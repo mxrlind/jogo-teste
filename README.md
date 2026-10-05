@@ -52,7 +52,11 @@ Tudo que custa gemas se ganha **jogando**. Não existe dinheiro real no jogo.
 
 | Documento | Para quê |
 |---|---|
-| [**GDD — Documento de Design**](docs/GDD.md) | Visão, pilares, loops e a especificação de todos os sistemas |
+| [**GDD — Documento de Design**](GDD.md) | Documento curto: conceito, core loop, progressão, estilo visual e sonoro |
+| [Especificação dos sistemas](docs/ESPECIFICACAO-SISTEMAS.md) | Referência detalhada de cada sistema (antigo GDD longo) |
+| [**Prévia de estilo**](estilo.html) | Página com os assets reais propostos (mapa, prédios, heróis, ícones) |
+| [ASSETS](ASSETS.md) | Fonte, autor e licença de cada asset |
+| [Diagnóstico](docs/DIAGNOSTICO.md) | Bugs, checklist de jogo completo, pesquisa do gênero e escolha de assets |
 | [**Pesquisa → Design**](docs/PESQUISA-PARA-DESIGN.md) | Como cada insight da pesquisa de mercado virou uma feature (e o que foi descartado de propósito) |
 | [**Balanceamento**](docs/BALANCEAMENTO.md) | Todas as fórmulas e constantes, metas de ritmo e resultados do simulador |
 | [**Arquitetura**](docs/ARQUITETURA.md) | Código, fluxo de dados, formato do save, como adicionar conteúdo, testes e debug |

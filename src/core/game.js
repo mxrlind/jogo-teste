@@ -119,12 +119,14 @@ export class Game {
     }
     s.lastTick = now;
     this.now = now;
-    // Nada de invasão/evento/baú instantâneo ao voltar.
-    s.raid.nextAt = Math.max(s.raid.nextAt, now + 90000);
-    s.raid.warned = false;
-    s.nextEventAt = Math.max(s.nextEventAt, now + 120000);
-    s.chest = null;
-    s.nextChestAt = now + 30000;
+    // Nada de invasão/evento/baú instantâneo ao voltar (só para ausências de 1 min ou mais).
+    if (elapsed >= 60) {
+      s.raid.nextAt = Math.max(s.raid.nextAt, now + 90000);
+      s.raid.warned = false;
+      s.nextEventAt = Math.max(s.nextEventAt, now + 120000);
+      s.chest = null;
+      s.nextChestAt = now + 30000;
+    }
     if (s.event && s.event.endsAt < now) s.event = null;
     this.econ = computeEconomy(s, now);
     syncSeason(s, now);
@@ -632,13 +634,24 @@ export class Game {
     return [...list, me].sort((a, b) => b.power - a.power);
   }
 
+  // Visita conta para estatística/missão uma vez por reino por dia (evita completar missão clicando).
+  recordVisit(key) {
+    const s = this.state;
+    const today = dayKey(this.now);
+    s.social.visited ||= {};
+    if (s.social.visited[key] === today) return false;
+    s.social.visited[key] = today;
+    s.stats.visits++;
+    this.track('visit');
+    return true;
+  }
+
   greetRival(rid) {
     const s = this.state;
     const today = dayKey(this.now);
     if (s.social.greets[rid] === today) return { ok: false, reason: 'Você já saudou este reino hoje' };
     s.social.greets[rid] = today;
-    s.stats.visits++;
-    this.track('visit');
+    this.recordVisit(rid);
     this.addXp(10);
     let gift = null;
     if (Math.random() < 0.25) {

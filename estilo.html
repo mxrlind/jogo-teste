@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reino de Bolso — Prévia de estilo</title>
+  <meta name="description" content="Prévia do estilo visual proposto para o Reino de Bolso, com assets reais (Kenney Medieval RTS e game-icons.net).">
+  <link rel="icon" type="image/png" href="assets/sprites/medieval-rts/Structure/medievalStructure_06.png">
+  <style>
+    @font-face { font-family: 'Nunito'; font-weight: 400; src: url('assets/fonts/nunito-latin-400-normal.woff2') format('woff2'); font-display: swap; }
+    @font-face { font-family: 'Nunito'; font-weight: 400; src: url('assets/fonts/nunito-latin-ext-400-normal.woff2') format('woff2'); unicode-range: U+0100-024F; font-display: swap; }
+    @font-face { font-family: 'Nunito'; font-weight: 800; src: url('assets/fonts/nunito-latin-800-normal.woff2') format('woff2'); font-display: swap; }
+    :root {
+      --ink: #2b2a33; --ink2: #3a3946; --cream: #f3e3c0; --paper: #f4f1ea; --grass: #3fae5a; --dirt: #c8834a;
+      --stone: #9aa3a8; --water: #7cc6f0; --wood: #8a5a33; --roof: #e0694f; --gold: #f2b632; --text: #2b2a33; --muted: #6b6878;
+      --comum: #8d96a0; --raro: #3d8fd6; --epico: #8a63d2; --lendario: #e0a21b;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--ink); color: var(--text); font: 15px/1.45 Nunito, system-ui, sans-serif; }
+    h1, h2, h3, .num, .btn { font-family: Nunito, system-ui, sans-serif; font-weight: 800; font-variant-numeric: tabular-nums; }
+    a { color: #1c5fa8; }
+    .notice { background: var(--gold); color: var(--ink); padding: 10px 16px; text-align: center; font-weight: 800; }
+    .notice a { color: var(--ink); }
+    header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; background: var(--ink2); }
+    header h1 { color: var(--cream); font-size: 20px; margin: 0 12px 0 0; }
+    .chip { display: flex; align-items: center; gap: 6px; padding: 4px 12px 4px 8px; background: var(--paper); border-radius: 10px; box-shadow: inset 0 -3px 0 rgba(0,0,0,.15); }
+    .chip .num { font-size: 15px; }
+    .chip small { color: var(--grass); font-weight: 800; }
+    .ico { display: inline-block; width: 22px; height: 22px; background-color: currentColor; -webkit-mask: var(--src) center / contain no-repeat; mask: var(--src) center / contain no-repeat; flex: none; }
+    .gold { color: #c98a00; } .food { color: #b8862b; } .wood { color: var(--wood); } .stone { color: #6f7a80; } .gems { color: #2f8fcf; } .red { color: #c94c3a; } .green { color: #2e8b47; }
+    main { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 16px; padding: 16px; max-width: 1400px; margin: 0 auto; }
+    .panel { border: 10px solid transparent; border-image: url('assets/ui/kenney-ui-pack/grey_panel.png') 10 fill round; padding: 6px 8px; margin-bottom: 16px; }
+    .panel h2 { font-size: 16px; margin: 4px 0 10px; }
+    .panel p { margin: 4px 0 10px; color: var(--muted); }
+    #mapBox { position: relative; }
+    canvas { width: 100%; height: auto; display: block; border-radius: 8px; image-rendering: auto; touch-action: manipulation; }
+    #tip { min-height: 48px; margin-top: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+    .card { background: #fff; border-radius: 8px; padding: 6px; text-align: center; box-shadow: inset 0 -3px 0 rgba(0,0,0,.08); }
+    .card img { width: 64px; height: 64px; object-fit: contain; display: block; margin: 0 auto; }
+    .card b { display: block; font-size: 12px; line-height: 1.2; }
+    .card small { color: var(--muted); font-size: 11px; }
+    .card.swap { outline: 2px dashed var(--roof); }
+    .hero { display: flex; gap: 10px; align-items: center; background: #fff; border-radius: 8px; padding: 8px; margin-bottom: 6px; border-left: 6px solid var(--rc); }
+    .portrait { width: 52px; height: 52px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--rc) 18%, #fff); color: var(--rc); }
+    .portrait .ico { width: 40px; height: 40px; }
+    .hero small { display: block; color: var(--muted); }
+    .rar { color: var(--rc); font-weight: 800; font-size: 12px; text-transform: uppercase; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; border: 8px solid transparent; border-image: url('assets/ui/kenney-ui-pack/yellow_button00.png') 8 8 12 8 fill stretch; padding: 2px 10px 6px; font-size: 14px; color: var(--ink); background: none; cursor: pointer; }
+    .btn.grey { border-image-source: url('assets/ui/kenney-ui-pack/grey_button00.png'); }
+    .btn.green { border-image-source: url('assets/ui/kenney-ui-pack/green_button00.png'); color: #fff; }
+    .btn .ico { width: 18px; height: 18px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .icons { display: flex; flex-wrap: wrap; gap: 10px; }
+    .icons span { display: flex; flex-direction: column; align-items: center; font-size: 11px; color: var(--muted); width: 64px; }
+    .icons .ico { width: 30px; height: 30px; color: var(--ink); }
+    ul.notes { padding-left: 18px; margin: 4px 0; }
+    footer { color: #b9b6c6; font-size: 12px; padding: 0 16px 24px; max-width: 1400px; margin: 0 auto; }
+    footer a { color: var(--cream); }
+    @media (max-width: 960px) { main { grid-template-columns: 1fr; padding: 16px; } }
+  </style>
+</head>
+<body>
+  <div class="notice">Prévia de estilo, ainda não é o jogo. Passe o mouse ou toque no mapa para ver a adjacência. <a href="./">Abrir o jogo atual</a></div>
+  <header>
+    <h1>Reino de Bolso</h1>
+    <div class="chip gold"><i class="ico" style="--src:url(assets/icons/game-icons/gold.svg)"></i><span class="num">1.250</span><small>+12/s</small></div>
+    <div class="chip food"><i class="ico" style="--src:url(assets/icons/game-icons/food.svg)"></i><span class="num">340</span><small>+3,1/s</small></div>
+    <div class="chip wood"><i class="ico" style="--src:url(assets/icons/game-icons/wood.svg)"></i><span class="num">210</span><small>+2,0/s</small></div>
+    <div class="chip stone"><i class="ico" style="--src:url(assets/icons/game-icons/stone.svg)"></i><span class="num">95</span><small>+0,8/s</small></div>
+    <div class="chip gems"><i class="ico" style="--src:url(assets/icons/game-icons/gems.svg)"></i><span class="num">14</span></div>
+    <div class="chip"><i class="ico" style="--src:url(assets/icons/game-icons/pop.svg)"></i><span class="num">18/20</span></div>
+    <div class="chip red"><i class="ico" style="--src:url(assets/icons/game-icons/happiness.svg)"></i><span class="num">72</span></div>
+    <div class="chip green"><i class="ico" style="--src:url(assets/icons/game-icons/defense.svg)"></i><span class="num">24 vs 16</span><small style="color:var(--muted)">2m 10s</small></div>
+  </header>
+
+  <main>
+    <section>
+      <div class="panel" id="mapBox">
+        <h2>Mapa (Kenney Medieval RTS)</h2>
+        <canvas id="map" width="768" height="768" aria-label="Mapa de exemplo"></canvas>
+        <div id="tip"><p>Os prédios do mapa foram posicionados automaticamente buscando o melhor bônus de vizinhança, com as regras reais do jogo.</p></div>
+      </div>
+    </section>
+    <aside>
+      <div class="panel">
+        <h2>Prédios (15)</h2>
+        <p>Cada prédio do jogo e o sprite proposto. O contorno tracejado marca uma troca proposta.</p>
+        <div class="grid" id="catalog"></div>
+      </div>
+      <div class="panel">
+        <h2>Heróis (game-icons, cor por raridade)</h2>
+        <div id="heroes"></div>
+      </div>
+      <div class="panel">
+        <h2>Ícones de interface</h2>
+        <div class="icons" id="icons"></div>
+      </div>
+      <div class="panel">
+        <h2>Botões (Kenney UI Pack)</h2>
+        <div class="row">
+          <button class="btn"><i class="ico" style="--src:url(assets/icons/game-icons/upgrade.svg)"></i>Melhorar</button>
+          <button class="btn green"><i class="ico" style="--src:url(assets/icons/game-icons/build.svg)"></i>Construir</button>
+          <button class="btn grey"><i class="ico" style="--src:url(assets/icons/game-icons/settings.svg)"></i>Opções</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Pontos para você avaliar</h2>
+        <ul class="notes">
+          <li><b>Montanha</b>: o pacote não tem montanha; aqui é chão de pedra com um rochedo grande.</li>
+          <li><b>Fonte</b> vira <b>Fogueira</b> (o pacote não tem fonte d'água).</li>
+          <li>Ícones de interface em silhueta de uma cor (game-icons) só fora do mapa.</li>
+          <li>Fonte: Nunito em tudo (testei Kenney Future nos títulos, mas o R estilizado prejudica a leitura: "MELHORAR" parecia "MELHOAAA").</li>
+        </ul>
+      </div>
+    </aside>
+  </main>
+  <footer>
+    Assets: Kenney Medieval RTS, UI Pack por Kenney (kenney.nl), CC0 · Ícones de game-icons.net por Lorc, Delapouite e Skoll, CC BY 3.0 · Nunito por The Nunito Project Authors, SIL OFL 1.1. Lista completa em ASSETS.md.
+  </footer>
+  <script type="module" src="src/preview/estilo.js"></script>
+</body>
+</html>
