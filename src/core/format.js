@@ -1,7 +1,12 @@
 const SUFFIXES = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
 
+// Números no padrão brasileiro: vírgula decimal (1,5K; 0,3/s).
 export function fmt(n, decimals = 1) {
-  if (!Number.isFinite(n)) return '∞';
+  return fmtRaw(n, decimals).replace('.', ',');
+}
+
+function fmtRaw(n, decimals) {
+  if (!Number.isFinite(n)) return 'infinito';
   const sign = n < 0 ? '-' : '';
   n = Math.abs(n);
   if (n < 1000) {

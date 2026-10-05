@@ -1,4 +1,4 @@
-# 📘 Reino de Bolso: Documento de Design (GDD)
+# Reino de Bolso: Documento de Design (GDD)
 
 Versão 0.1 · Out/2026 · Status: **protótipo jogável completo**
 
@@ -37,7 +37,7 @@ Versão 0.1 · Out/2026 · Status: **protótipo jogável completo**
 | Público | Fãs de idle/incremental, city builders leves e jogadores "de pausa" | A tag Idler cresceu ~150% em 2026 e bate 1.000 reviews com mais frequência que a média |
 | Sessão casual | **2–5 min**: coletar, construir, mandar expedição, sair | Loop de mobile (Honor of Kings, Last War) |
 | Sessão hardcore | **30–120 min**: otimizar adjacência, defender, completar missões e passe | Dois perfis de jogador no mesmo jogo |
-| Idioma | PT-BR (i18n planejado; ver [ROADMAP](ROADMAP.md)) | Primeiro mercado: o próprio autor e a comunidade BR |
+| Idioma | PT-BR (i18n planejado; ver [ROADMAP](../ROADMAP.md)) | Primeiro mercado: o próprio autor e a comunidade BR |
 
 ## 3. Loops
 
@@ -86,11 +86,11 @@ flowchart LR
 
 | Terreno | Constrói? | Pode limpar? | Usado por |
 |---|---|---|---|
-| Campo | ✅ | — | tudo |
-| 🌲 Floresta | ❌ | ✅ 30💰 → +40🪵 | serraria (+40%) |
-| 🪨 Rochas | ❌ | ✅ 50💰 → +30🪨 | pedreira (+50%) |
-| 💧 Lago | ❌ | ❌ | fazenda (+50%), moinho (+25%) |
-| ⛰️ Montanha | ❌ | ❌ | **mina (obrigatória)**, pedreira (+25%) |
+| Campo | sim | — | tudo |
+| Floresta | não | sim: 30 ouro → +40 madeira | serraria (+40%) |
+| Rochas | não | sim: 50 ouro → +30 pedra | pedreira (+50%) |
+| Lago | não | não | fazenda (+50%), moinho (+25%) |
+| Montanha | não | não | **mina (obrigatória)**, pedreira (+25%) |
 
 **Decisão central (P1):** limpar uma floresta dá madeira e espaço agora, mas tira +40% de cada serraria vizinha para sempre.
 
@@ -98,21 +98,21 @@ flowchart LR
 
 | Prédio | Custo base | Trab. | Efeito (nv 1) | Gosta de (+) | Odeia (−) | Libera com |
 |---|---|---|---|---|---|---|
-| 🏠 Casa | 25💰 10🪵 | 0 | +4 moradores (×nível), 0,8💰/s × ocupação | mercado +50%, taverna +30%, fonte +30%, jardim +20%, casa +10% | pedreira −30%, mina −30% | início |
-| 🌾 Fazenda | 20💰 | 2 | 1,2🍖/s | água +50%, moinho +50%, armazém +15%, fazenda +10% | — | início |
-| 🪓 Serraria | 40💰 | 2 | 0,6🪵/s | floresta +40%, armazém +15% | — | início |
-| ⛏️ Pedreira | 60💰 20🪵 | 2 | 0,6🪨/s, −2 felicidade | rocha +50%, montanha +25%, armazém +15% | — | 3 prédios |
-| 🏪 Mercado | 120💰 40🪵 | 2 | 2💰/s consumindo 0,6🍖/s | casa +20%, armazém +15% | mercado −20% | 4 |
-| 🌀 Moinho | 100💰 50🪵 | 1 | 0,4🍖/s | fazenda +25%, água +25% | — | 5 |
-| 📦 Armazém | 150💰 80🪵 | 1 | +8.000💰 / +1.000 demais × nível² | — | — | 5 |
-| 🍺 Taverna | 200💰 80🪵 20🪨 | 2 | +6 felicidade, 0,8💰/s | casa +15% | taverna −50% | 6 |
-| 🧱 Muralha | 25🪨 | 0 | 3 defesa | muralha +25%, torre +25% | — | 6 |
-| 🗼 Torre | 150💰 40🪵 60🪨 | 2 | 10 defesa | muralha +30%, torre +10% | — | 6 |
-| 💰 Mina de Ouro | 500💰 150🪵 120🪨 | 4 | 5💰/s, −3 felicidade, **exige montanha** | montanha +60%, armazém +15% | — | 10 |
-| ⛪ Templo | 800💰 300🪨 | 3 | +10 felicidade, +5% Coroas | casa +10%, jardim +20% | — | 14 |
-| 🌳 Jardim | 60💰 | 0 | +2 felicidade (decoração, sem níveis) | — | — | 4 |
-| ⛲ Fonte | 5💎 | 0 | +5 felicidade (decoração) | — | — | 8 |
-| 🗿 Estátua do Fundador | 15💎 | 0 | +8 felicidade, +5% ouro global | — | — | 12 |
+| Casa | 25 ouro 10 madeira | 0 | +4 moradores (×nível), 0,8 ouro/s × ocupação | mercado +50%, taverna +30%, fonte +30%, jardim +20%, casa +10% | pedreira −30%, mina −30% | início |
+| Fazenda | 20 ouro | 2 | 1,2 comida/s | água +50%, moinho +50%, armazém +15%, fazenda +10% | — | início |
+| Serraria | 40 ouro | 2 | 0,6 madeira/s | floresta +40%, armazém +15% | — | início |
+| Pedreira | 60 ouro 20 madeira | 2 | 0,6 pedra/s, −2 felicidade | rocha +50%, montanha +25%, armazém +15% | — | 3 prédios |
+| Mercado | 120 ouro 40 madeira | 2 | 2 ouro/s consumindo 0,6 comida/s | casa +20%, armazém +15% | mercado −20% | 4 |
+| Moinho | 100 ouro 50 madeira | 1 | 0,4 comida/s | fazenda +25%, água +25% | — | 5 |
+| Armazém | 150 ouro 80 madeira | 1 | +8.000 ouro / +1.000 demais × nível² | — | — | 5 |
+| Taverna | 200 ouro 80 madeira 20 pedra | 2 | +6 felicidade, 0,8 ouro/s | casa +15% | taverna −50% | 6 |
+| Muralha | 25 pedra | 0 | 3 defesa | muralha +25%, torre +25% | — | 6 |
+| Torre | 150 ouro 40 madeira 60 pedra | 2 | 10 defesa | muralha +30%, torre +10% | — | 6 |
+| Mina de Ouro | 500 ouro 150 madeira 120 pedra | 4 | 5 ouro/s, −3 felicidade, **exige montanha** | montanha +60%, armazém +15% | — | 10 |
+| Templo | 800 ouro 300 pedra | 3 | +10 felicidade, +5% Coroas | casa +10%, jardim +20% | — | 14 |
+| Jardim | 60 ouro | 0 | +2 felicidade (decoração, sem níveis) | — | — | 4 |
+| Fonte | 5 gemas | 0 | +5 felicidade (decoração) | — | — | 8 |
+| Estátua do Fundador | 15 gemas | 0 | +8 felicidade, +5% ouro global | — | — | 12 |
 
 - **Níveis 1–10**: +75% de produção por nível; custo ×2,5 por nível; trabalhadores +50% do base por nível.
 - **Cópias**: cada cópia do mesmo prédio custa ×1,12.
@@ -138,8 +138,8 @@ flowchart LR
 
 ### 4.4 População, trabalho e comida
 - Casas definem a **capacidade**. A população cresce em direção a ela se houver comida, e mais rápido com felicidade alta.
-- Cada morador come **0,15🍖/s**. Sem estoque de comida, a população cai, e os mercados só convertem o excedente.
-- **Trabalho**: se os trabalhadores exigidos passam da população, *todos* os prédios com trabalhadores rendem `população / exigido`. O jogador precisa equilibrar casas e produção.
+- Cada morador come **0,15 comida/s**. Sem estoque de comida, a população cai, e os mercados só convertem o excedente.
+- **Trabalho**: os moradores ocupam primeiro as vagas de fazendas e moinhos; o que sobra se divide igualmente entre os demais prédios com trabalhadores. Se faltar gente, esses prédios rendem `sobra / vagas`. O jogador precisa equilibrar casas e produção, e a fome nunca trava o reino de vez.
 - Casas rendem impostos proporcionais à ocupação.
 
 ### 4.5 Felicidade
@@ -147,14 +147,14 @@ flowchart LR
 Multiplica **toda** a produção: ×0,5 (0) a ×1,5 (100). Pedreiras e minas reduzem; tavernas, templos e decorações aumentam.
 
 ### 4.6 Armazenamento
-Limite base de 2.500💰 e 500 para os demais recursos. Armazéns crescem com **nível²**, para acompanhar custos exponenciais. O limite cria o gancho do idle ("volte antes de lotar") e uma decisão de investimento: armazém × produção.
+Limite base de 2.500 ouro e 500 para os demais recursos. Armazéns crescem com **nível²**, para acompanhar custos exponenciais. O limite cria o gancho do idle ("volte antes de lotar") e uma decisão de investimento: armazém × produção.
 
 ### 4.7 Expansão de território
 | Anel | Área | Custo |
 |---|---|---|
-| 3 | 8×8 | 2.000💰 400🪵 |
-| 4 | 10×10 | 60.000💰 4.000🪨 |
-| 5 | 12×12 | 1.000.000💰 50.000🪨 |
+| 3 | 8×8 | 2.000 ouro 400 madeira |
+| 4 | 10×10 | 60.000 ouro 4.000 pedra |
+| 5 | 12×12 | 1.000.000 ouro 50.000 pedra |
 
 A temporada *Expansão* corta 50%. O talento *Terras Ancestrais* começa rodadas com anéis já abertos.
 
@@ -170,27 +170,27 @@ A temporada *Expansão* corta 50%. O talento *Terras Ancestrais* começa rodadas
 ### 4.9 Heróis
 16 heróis em 4 raridades: **Comum 60% · Raro 28% · Épico 10% · Lendário 2%**.
 
-| Herói | Raridade | Poder | Bônus (★1) |
+| Herói | Raridade | Poder | Bônus (1) |
 |---|---|---|---|
-| 🧑‍🌾 Marta, a Lavradora | Comum | 2 | +15% comida |
-| 🪵 Tito, o Lenhador | Comum | 3 | +15% madeira |
-| 🧱 Joca, o Pedreiro | Comum | 3 | +15% pedra |
-| 🛡️ Guarda Bento | Comum | 5 | +15% defesa |
-| 🪙 Lia, a Coletora | Comum | 2 | +10% ouro |
-| 🧕 Dona Safira | Raro | 4 | +20% ouro |
-| 🏹 Ayla, a Arqueira | Raro | 10 | +25% defesa |
-| 🎻 Rui, o Bardo | Raro | 3 | +8 felicidade |
-| 🧭 Nina, a Exploradora | Raro | 6 | +30% expedições |
-| 📐 Helena, a Arquiteta | Épico | 6 | −15% custo de obras |
-| ⚔️ Sir Dourado | Épico | 20 | +50% saque |
-| ⚗️ Zé Alquimista | Épico | 8 | +10% toda produção |
-| 🌿 Iara, a Druida | Épico | 9 | +50% adjacência de terreno |
-| 👑 Rainha Aurora | Lendário | 25 | +25% toda produção |
-| 🐉 Brasa, o Dragão | Lendário | 50 | +100% defesa |
-| ⏳ O Relojoeiro | Lendário | 10 | +25% eficiência offline, +4 h de limite |
+| Marta, a Lavradora | Comum | 2 | +15% comida |
+| Tito, o Lenhador | Comum | 3 | +15% madeira |
+| Joca, o Pedreiro | Comum | 3 | +15% pedra |
+| Guarda Bento | Comum | 5 | +15% defesa |
+| Lia, a Coletora | Comum | 2 | +10% ouro |
+| Dona Safira | Raro | 4 | +20% ouro |
+| Ayla, a Arqueira | Raro | 10 | +25% defesa |
+| Rui, o Bardo | Raro | 3 | +8 felicidade |
+| Nina, a Exploradora | Raro | 6 | +30% expedições |
+| Helena, a Arquiteta | Épico | 6 | −15% custo de obras |
+| Sir Dourado | Épico | 20 | +50% saque |
+| Zé Alquimista | Épico | 8 | +10% toda produção |
+| Iara, a Druida | Épico | 9 | +50% adjacência de terreno |
+| Rainha Aurora | Lendário | 25 | +25% toda produção |
+| Brasa, o Dragão | Lendário | 50 | +100% defesa |
+| O Relojoeiro | Lendário | 10 | +25% eficiência offline, +4 h de limite |
 
-- **Recrutar**: pergaminho (1 grátis no início, mais pelo passe, sequência diária e expedições), ouro (300 × 1,6ⁿ) ou 15💎.
-- **Estrelas**: duplicata = +1★ (máx. 5). Bônus × (1 + 0,5 × (★−1)) e poder × ★. Duplicata com ★5 vira gemas.
+- **Recrutar**: pergaminho (1 grátis no início, mais pelo passe, sequência diária e expedições), ouro (300 × 1,6ⁿ) ou 15 gemas.
+- **Estrelas**: duplicata = +1 (máx. 5). Bônus × (1 + 0,5 × (−1)) e poder × . Duplicata com 5 vira gemas.
 - **Conselho**: 3 vagas (+2 com talento). Só heróis no Conselho dão bônus e defendem.
 - Cada herói tem uma frase de *lore* curta e engraçada, pensada para clipes e memes.
 
@@ -204,55 +204,55 @@ Heróis **fora** do Conselho podem partir (troca: bônus agora × recompensa dep
 | Jornada | 30 min | 60% (1–4) | 6% |
 | Grande Expedição | 2 h | 100% (3–8) | 15% |
 
-Recompensa em ouro/madeira/pedra proporcional à renda atual × duração × poder do herói. Acelerar custa 1💎 por 10 min restantes.
+Recompensa em ouro/madeira/pedra proporcional à renda atual × duração × poder do herói. Acelerar custa 1 gemas por 10 min restantes.
 
 ### 4.11 Eventos relâmpago e baú do mercador
 A cada 6–10 min online (×2 na *Catástrofe*), um evento de 60–120 s:
 
 | Evento | Efeito |
 |---|---|
-| 🎉 Festival da Colheita | comida ×3 |
-| 🤑 Febre do Ouro | ouro ×2 |
-| 🔨 Mutirão | construções −30% |
-| ✨ Inspiração Real | XP de temporada ×2 |
-| 🌕 Lua de Sangue | horda em 30 s com saque ×3 |
-| 🐪 Caravana Exótica | madeira e pedra ×2 |
+| Festival da Colheita | comida ×3 |
+| Febre do Ouro | ouro ×2 |
+| Mutirão | construções −30% |
+| Inspiração Real | XP de temporada ×2 |
+| Lua de Sangue | horda em 30 s com saque ×3 |
+| Caravana Exótica | madeira e pedra ×2 |
 
-**Baú do mercador 🎁**: aparece num tile vazio a cada 100–220 s e some em 20 s. Dá ouro (60 s de renda), madeira+comida, gemas, pedra ou uma bênção (+50% por 2 min). É o "golden cookie" do jogo, feito para criar momentos de reação.
+**Baú do mercador **: aparece num tile vazio a cada 100–220 s e some em 20 s. Dá ouro (60 s de renda), madeira+comida, gemas, pedra ou uma bênção (+50% por 2 min). É o "golden cookie" do jogo, feito para criar momentos de reação.
 
 ### 4.12 Temporadas, passe e missões
 - **Temporadas de 28 dias**, calculadas pelo relógio (sem servidor), em rotação:
 
 | Tema | Modificador global |
 |---|---|
-| 🏗️ Fundação | ouro +10%, casas +25%, obras −10% |
-| ⚔️ Guerra | hordas ×1,67 mais frequentes, saque +100%, defesa +25% |
-| 🗺️ Expansão | terras −50%, expedições +50% |
-| 🌋 Catástrofe | eventos ×2, felicidade −10, Coroas +50% |
+| Fundação | ouro +10%, casas +25%, obras −10% |
+| Guerra | hordas ×1,67 mais frequentes, saque +100%, defesa +25% |
+| Expansão | terras −50%, expedições +50% |
+| Catástrofe | eventos ×2, felicidade −10, Coroas +50% |
 
 - **Passe gratuito de 30 níveis** (300 XP cada): gemas, pergaminhos, bênçãos, ouro e cosméticos exclusivos da temporada (estandarte no 14, emblema no 21, título "Campeão da …" no 30).
 - **XP**: construir 2, melhorar 3, vencer invasão 15, expedição 10–40, baú 5, recompensa diária 50, missões 50–130.
 - **Missões diárias**: 3 sorteadas por data (iguais para todos no mesmo dia, o que permite compartilhar dicas).
 
 ### 4.13 Recompensa diária
-Sequência de 7 dias: 200💰 → 2💎 → 10 min de ouro → 3💎 → bênção 15 min → 5💎 → pergaminho. Pular um dia reinicia a sequência.
+Sequência de 7 dias: 200 ouro → 2 gemas → 10 min de ouro → 3 gemas → bênção 15 min → 5 gemas → pergaminho. Pular um dia reinicia a sequência.
 
 ### 4.14 Ascensão (prestígio) e Legado
-- Coroas = `⌊√(ouro da rodada / 1.000.000) × (1 + 5% por templo + bônus da temporada)⌋`.
+- Coroas = `√(ouro da rodada / 1.000.000) × (1 + 5% por templo + bônus da temporada)`.
 - **Ao ascender**, o reino (prédios, recursos, terras) recomeça num **mapa novo**.
 - **Persistem**: heróis, gemas, Coroas, talentos, temporada, conquistas, cosméticos, estatísticas e sequência.
 
-| Talento | Efeito por nível | Máx. | Custo (👑) |
+| Talento | Efeito por nível | Máx. | Custo () |
 |---|---|---|---|
-| 🌽 Fartura | +10% toda produção | 20 | 1, 2, 3… |
-| 🪙 Herança | +500💰 +200🪵 iniciais | 5 | 1, 2, 3… |
-| 🏰 Muralhas Eternas | +20% defesa | 10 | 1, 2, 3… |
-| 🌙 Vigília | +2 h de limite e +8% de eficiência offline | 5 | 2, 4, 6… |
-| 📏 Engenharia | −5% custo de obras | 6 | 2, 4, 6… |
-| 💎 Garimpo | +1 gema por vitória | 3 | 4, 8, 12 |
-| 🗺️ Terras Ancestrais | +1 anel inicial | 2 | 5, 10 |
-| 🪑 Mesa Redonda | +1 vaga no Conselho | 2 | 8, 16 |
-| 🤵 Mordomo Real | baús coletados sozinhos | 1 | 10 |
+| Fartura | +10% toda produção | 20 | 1, 2, 3… |
+| Herança | +500 ouro +200 madeira iniciais | 5 | 1, 2, 3… |
+| Muralhas Eternas | +20% defesa | 10 | 1, 2, 3… |
+| Vigília | +2 h de limite e +8% de eficiência offline | 5 | 2, 4, 6… |
+| Engenharia | −5% custo de obras | 6 | 2, 4, 6… |
+| Garimpo | +1 gema por vitória | 3 | 4, 8, 12 |
+| Terras Ancestrais | +1 anel inicial | 2 | 5, 10 |
+| Mesa Redonda | +1 vaga no Conselho | 2 | 8, 16 |
+| Mordomo Real | baús coletados sozinhos | 1 | 10 |
 
 ### 4.15 Identidade e conquistas
 - Nome do reino, **estandarte** (cor), **emblema** e **título**, sempre visíveis no topo e no ranking.
@@ -260,13 +260,13 @@ Sequência de 7 dias: 200💰 → 2💎 → 10 min de ouro → 3💎 → bênç�
 - **24 conquistas**, que dão gemas e, várias delas, títulos ("Urbanista" por +150% de adjacência, "Imperador" por 5 ascensões…).
 
 ### 4.16 Social assíncrono
-- **Ranking regional**: 9 reinos vizinhos determinísticos (semente do jogador) que crescem com o tempo, + o jogador. "Poder do Reino" = √(ouro da vida toda) + 10/nível de prédio + 40/★ de herói + 500/ascensão + 15/vitória.
-- **Visitar** (vê a cidade do vizinho), **saudar** (1×/dia, +10 XP, 25% de chance de 1💎) e **trocar** (1×/h por vizinho: 25% da madeira/pedra por ouro).
+- **Ranking regional**: 9 reinos vizinhos determinísticos (semente do jogador) que crescem com o tempo, + o jogador. "Poder do Reino" = √(ouro da vida toda) + 10/nível de prédio + 40/ de herói + 500/ascensão + 15/vitória.
+- **Visitar** (vê a cidade do vizinho), **saudar** (1×/dia, +10 XP, 25% de chance de 1 gemas) e **trocar** (1×/h por vizinho: 25% da madeira/pedra por ouro).
 - **Código do reino** (`RB1.…`): exporta o layout real; um amigo cola e vê a cidade. É social de verdade, sem servidor.
-- O backend real (visitas, guildas e trocas entre jogadores) está planejado em [ARQUITETURA](ARQUITETURA.md#12-caminho-para-social-real) e [ROADMAP](ROADMAP.md).
+- O backend real (visitas, guildas e trocas entre jogadores) está planejado em [ARQUITETURA](ARQUITETURA.md#12-caminho-para-social-real) e [ROADMAP](../ROADMAP.md).
 
 ### 4.17 Progresso offline
-- Simula até **4 h** (+2 h por nível de Vigília, +4 h por ★ do Relojoeiro) a **60%** de eficiência (+8% por Vigília, +25% por ★ do Relojoeiro; máx. 100%).
+- Simula até **4 h** (+2 h por nível de Vigília, +4 h por  do Relojoeiro) a **60%** de eficiência (+8% por Vigília, +25% por  do Relojoeiro; máx. 100%).
 - A simulação roda em blocos e respeita limites, comida e crescimento populacional. Depois, um modal mostra o resumo.
 
 ## 5. UX e interface
@@ -279,19 +279,18 @@ Sequência de 7 dias: 200💰 → 2💎 → 10 min de ouro → 3💎 → bênç�
 | Direita | Abas: Reino, Heróis, Temporada, Legado, Social, Perfil (ponto vermelho quando há algo a resgatar) |
 | Celular | Tudo vira coluna: HUD fixo e compacto, mapa, paleta horizontal, abas; toque duplo para construir |
 
-**Feedback e "suco"**: partículas e números flutuantes de produção, explosão de faíscas ao construir/melhorar, tremor de tela e flash vermelho na derrota, flash dourado na vitória, revelação animada de herói com brilho da raridade, sons sintetizados (WebAudio, sem arquivos), toasts para tudo que acontece.
+**Feedback e "suco"**: partículas e números flutuantes de produção, explosão de faíscas ao construir/melhorar, tremor de tela e flash vermelho na derrota, flash dourado na vitória, revelação animada de herói com brilho da raridade, efeitos sonoros Kenney (CC0), toasts para tudo que acontece.
 
 ## 6. Arte e áudio
-- **Agora**: emojis + terreno procedural em canvas, com paleta "medieval aconchegante à noite" (roxos profundos + dourado). Custo zero, leitura imediata e estilo coeso.
-- **Para a Steam**: trocar emojis por um *sprite atlas* 32×32 pixel art (o renderizador desenha por id, então a troca fica isolada em `render.js`). Ver [ROADMAP](ROADMAP.md).
-- **Áudio**: blips sintetizados por evento. Para a Steam, uma trilha lo-fi medieval em loop e ambiência que muda por temporada.
+- **Arte**: Kenney Medieval RTS (mundo), Kenney UI Pack (interface), game-icons.net (ícones) e Nunito (texto). Regras do estilo no [GDD](../GDD.md#5-estilo-visual); cada arquivo com autor e licença no [ASSETS.md](../ASSETS.md).
+- **Áudio**: efeitos e fanfarras dos pacotes de áudio da Kenney (CC0). A música em loop é opcional e instalada pelo [EXECUTAR.md](../EXECUTAR.md).
 
 ## 7. Glossário
 | Termo | Significado |
 |---|---|
 | Anel | Faixa concêntrica de terra desbloqueável |
 | Conselho | Heróis ativos (bônus + defesa) |
-| Coroa 👑 | Moeda de prestígio, ganha ao Ascender |
+| Coroa  | Moeda de prestígio, ganha ao Ascender |
 | Bênção | +50% de toda produção por tempo limitado |
 | Trabalho (staffing) | Fração dos trabalhadores exigidos que existe de fato |
 | Poder do Reino | Pontuação do ranking social |

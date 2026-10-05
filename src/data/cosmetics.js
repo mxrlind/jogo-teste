@@ -16,18 +16,18 @@ export const BANNERS = [
 ];
 
 export const EMBLEMS = [
-  { id: 'coroa', icon: '👑', free: true },
-  { id: 'escudo', icon: '🛡️', free: true },
-  { id: 'leao', icon: '🦁', free: true },
-  { id: 'arvore', icon: '🌳', free: true },
-  { id: 'lobo', icon: '🐺', price: 8 },
-  { id: 'aguia', icon: '🦅', price: 8 },
-  { id: 'rosa', icon: '🌹', price: 8 },
-  { id: 'caveira', icon: '💀', price: 12 },
-  { id: 'emblema-fundacao', icon: '🏗️', season: true },
-  { id: 'emblema-guerra', icon: '⚔️', season: true },
-  { id: 'emblema-expansao', icon: '🧭', season: true },
-  { id: 'emblema-catastrofe', icon: '🌋', season: true },
+  { id: 'coroa', icon: 'crowns', free: true },
+  { id: 'escudo', icon: 'emblem-shield', free: true },
+  { id: 'leao', icon: 'emblem-lion', free: true },
+  { id: 'arvore', icon: 'emblem-tree', free: true },
+  { id: 'lobo', icon: 'emblem-wolf', price: 8 },
+  { id: 'aguia', icon: 'emblem-eagle', price: 8 },
+  { id: 'rosa', icon: 'emblem-rose', price: 8 },
+  { id: 'caveira', icon: 'emblem-skull', price: 12 },
+  { id: 'emblema-fundacao', icon: 'season-foundation', season: true },
+  { id: 'emblema-guerra', icon: 'season-war', season: true },
+  { id: 'emblema-expansao', icon: 'season-expansion', season: true },
+  { id: 'emblema-catastrofe', icon: 'season-catastrophe', season: true },
 ];
 
 export const BASE_TITLES = ['Fundador', 'Aldeão Ambicioso'];

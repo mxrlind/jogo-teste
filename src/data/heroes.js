@@ -20,22 +20,22 @@ export const RARITIES = {
 };
 
 export const HEROES = [
-  { id: 'lavradora', name: 'Marta, a Lavradora', icon: '🧑‍🌾', rarity: 'comum', power: 2, bonus: { type: 'prod:food', value: 0.15 }, lore: 'Diz que conversa com as sementes. As sementes parecem concordar.' },
-  { id: 'lenhador', name: 'Tito, o Lenhador', icon: '🪵', rarity: 'comum', power: 3, bonus: { type: 'prod:wood', value: 0.15 }, lore: 'Nunca derrubou uma árvore que não pediu desculpas antes.' },
-  { id: 'pedreiro', name: 'Joca, o Pedreiro', icon: '🧱', rarity: 'comum', power: 3, bonus: { type: 'prod:stone', value: 0.15 }, lore: 'Constrói muros tão retos que dá pra usar como régua.' },
-  { id: 'guarda', name: 'Guarda Bento', icon: '🛡️', rarity: 'comum', power: 5, bonus: { type: 'defense', value: 0.15 }, lore: 'Dorme em pé. Literalmente. É um talento.' },
-  { id: 'coletora', name: 'Lia, a Coletora', icon: '🪙', rarity: 'comum', power: 2, bonus: { type: 'prod:gold', value: 0.1 }, lore: 'Ninguém escapa dos impostos. Ninguém.' },
-  { id: 'mercadora', name: 'Dona Safira', icon: '🧕', rarity: 'raro', power: 4, bonus: { type: 'prod:gold', value: 0.2 }, lore: 'Vende gelo para pinguins e areia para camelos.' },
-  { id: 'arqueira', name: 'Ayla, a Arqueira', icon: '🏹', rarity: 'raro', power: 10, bonus: { type: 'defense', value: 0.25 }, lore: 'Acerta uma maçã a cem passos. Depois come a maçã.' },
-  { id: 'bardo', name: 'Rui, o Bardo', icon: '🎻', rarity: 'raro', power: 3, bonus: { type: 'happiness', value: 8 }, lore: 'Conhece 400 canções, 399 sobre si mesmo.' },
-  { id: 'exploradora', name: 'Nina, a Exploradora', icon: '🧭', rarity: 'raro', power: 6, bonus: { type: 'expedition', value: 0.3 }, lore: 'O mapa dela tem uma seção chamada "ainda não".' },
-  { id: 'arquiteta', name: 'Helena, a Arquiteta', icon: '📐', rarity: 'epico', power: 6, bonus: { type: 'cost', value: 0.15 }, lore: 'Projetou o reino inteiro num guardanapo.' },
-  { id: 'cavaleiro', name: 'Sir Dourado', icon: '⚔️', rarity: 'epico', power: 20, bonus: { type: 'raidLoot', value: 0.5 }, lore: 'Sua armadura brilha tanto que cega os inimigos. E os aliados.' },
-  { id: 'alquimista', name: 'Zé Alquimista', icon: '⚗️', rarity: 'epico', power: 8, bonus: { type: 'prodAll', value: 0.1 }, lore: 'Transformou chumbo em ouro uma vez. Ou foi só tinta.' },
-  { id: 'druida', name: 'Iara, a Druida', icon: '🌿', rarity: 'epico', power: 9, bonus: { type: 'terrainAdj', value: 0.5 }, lore: 'As florestas crescem um pouco mais quando ela passa.' },
-  { id: 'rainha', name: 'Rainha Aurora', icon: '👑', rarity: 'lendario', power: 25, bonus: { type: 'prodAll', value: 0.25 }, lore: 'Governou mil reinos. Escolheu o seu.' },
-  { id: 'dragao', name: 'Brasa, o Dragão', icon: '🐉', rarity: 'lendario', power: 50, bonus: { type: 'defense', value: 1.0 }, lore: 'Antes era a ameaça. Agora é o cão de guarda mais caro do continente.' },
-  { id: 'relojoeiro', name: 'O Relojoeiro', icon: '⏳', rarity: 'lendario', power: 10, bonus: { type: 'offline', value: 0.25 }, lore: 'Dizem que ele dá corda no próprio tempo.' },
+  { id: 'lavradora', name: 'Marta, a Lavradora', icon: 'hero-farmer', rarity: 'comum', power: 2, bonus: { type: 'prod:food', value: 0.15 }, lore: 'Diz que conversa com as sementes. As sementes parecem concordar.' },
+  { id: 'lenhador', name: 'Tito, o Lenhador', icon: 'hero-woodcutter', rarity: 'comum', power: 3, bonus: { type: 'prod:wood', value: 0.15 }, lore: 'Nunca derrubou uma árvore que não pediu desculpas antes.' },
+  { id: 'pedreiro', name: 'Joca, o Pedreiro', icon: 'hero-mason', rarity: 'comum', power: 3, bonus: { type: 'prod:stone', value: 0.15 }, lore: 'Constrói muros tão retos que dá pra usar como régua.' },
+  { id: 'guarda', name: 'Guarda Bento', icon: 'hero-guard', rarity: 'comum', power: 5, bonus: { type: 'defense', value: 0.15 }, lore: 'Dorme em pé. Literalmente. É um talento.' },
+  { id: 'coletora', name: 'Lia, a Coletora', icon: 'hero-collector', rarity: 'comum', power: 2, bonus: { type: 'prod:gold', value: 0.1 }, lore: 'Ninguém escapa dos impostos. Ninguém.' },
+  { id: 'mercadora', name: 'Dona Safira', icon: 'hero-merchant', rarity: 'raro', power: 4, bonus: { type: 'prod:gold', value: 0.2 }, lore: 'Vende gelo para pinguins e areia para camelos.' },
+  { id: 'arqueira', name: 'Ayla, a Arqueira', icon: 'hero-archer', rarity: 'raro', power: 10, bonus: { type: 'defense', value: 0.25 }, lore: 'Acerta uma maçã a cem passos. Depois come a maçã.' },
+  { id: 'bardo', name: 'Rui, o Bardo', icon: 'hero-bard', rarity: 'raro', power: 3, bonus: { type: 'happiness', value: 8 }, lore: 'Conhece 400 canções, 399 sobre si mesmo.' },
+  { id: 'exploradora', name: 'Nina, a Exploradora', icon: 'hero-explorer', rarity: 'raro', power: 6, bonus: { type: 'expedition', value: 0.3 }, lore: 'O mapa dela tem uma seção chamada "ainda não".' },
+  { id: 'arquiteta', name: 'Helena, a Arquiteta', icon: 'hero-architect', rarity: 'epico', power: 6, bonus: { type: 'cost', value: 0.15 }, lore: 'Projetou o reino inteiro num guardanapo.' },
+  { id: 'cavaleiro', name: 'Sir Dourado', icon: 'hero-knight', rarity: 'epico', power: 20, bonus: { type: 'raidLoot', value: 0.5 }, lore: 'Sua armadura brilha tanto que cega os inimigos. E os aliados.' },
+  { id: 'alquimista', name: 'Zé Alquimista', icon: 'hero-alchemist', rarity: 'epico', power: 8, bonus: { type: 'prodAll', value: 0.1 }, lore: 'Transformou chumbo em ouro uma vez. Ou foi só tinta.' },
+  { id: 'druida', name: 'Iara, a Druida', icon: 'hero-druid', rarity: 'epico', power: 9, bonus: { type: 'terrainAdj', value: 0.5 }, lore: 'As florestas crescem um pouco mais quando ela passa.' },
+  { id: 'rainha', name: 'Rainha Aurora', icon: 'hero-queen', rarity: 'lendario', power: 25, bonus: { type: 'prodAll', value: 0.25 }, lore: 'Governou mil reinos. Escolheu o seu.' },
+  { id: 'dragao', name: 'Brasa, o Dragão', icon: 'hero-dragon', rarity: 'lendario', power: 50, bonus: { type: 'defense', value: 1.0 }, lore: 'Antes era a ameaça. Agora é o cão de guarda mais caro do continente.' },
+  { id: 'relojoeiro', name: 'O Relojoeiro', icon: 'hero-clock', rarity: 'lendario', power: 10, bonus: { type: 'offline', value: 0.25 }, lore: 'Dizem que ele dá corda no próprio tempo.' },
 ];
 
 export const HERO_BY_ID = Object.fromEntries(HEROES.map((h) => [h.id, h]));

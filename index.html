@@ -4,42 +4,63 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Reino de Bolso</title>
-  <meta name="description" content="Idle Tycoon 2D social: construa seu reino, onde a posição de cada prédio importa.">
-  <meta name="theme-color" content="#1b1626">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👑</text></svg>">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+  <meta name="description" content="Idle tycoon 2D: construa seu reino num tabuleiro 12x12 onde a posição de cada prédio importa.">
+  <meta name="theme-color" content="#2b2a33">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/app/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="assets/icons/app/favicon-64.png">
+  <link rel="apple-touch-icon" href="assets/icons/app/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="assets/fonts/nunito-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body data-mode="select">
-  <header id="hud">
-    <div id="brand"></div>
-    <div id="hud-res"></div>
-    <div id="hud-status"></div>
-  </header>
+<body class="screen-loading">
+  <!-- Tela de carregamento -->
+  <section id="loading" class="screen" aria-live="polite">
+    <img class="logo-sprite" src="assets/sprites/medieval-rts/Structure/medievalStructure_06.png" alt="">
+    <h1>Reino de Bolso</h1>
+    <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100"><i id="loadBar"></i></div>
+    <p id="loadText">Carregando...</p>
+  </section>
 
-  <main id="layout">
-    <aside id="palette" aria-label="Construções"></aside>
+  <!-- Menu principal -->
+  <section id="mainMenu" class="screen" hidden>
+    <canvas id="menuMap" aria-hidden="true"></canvas>
+    <div class="menu-card panel">
+      <img class="logo-sprite" src="assets/sprites/medieval-rts/Structure/medievalStructure_06.png" alt="">
+      <h1>Reino de Bolso</h1>
+      <p class="tagline">Um reino de bolso onde a posição de cada prédio importa.</p>
+      <div id="menuButtons" class="stack"></div>
+      <p class="version" id="menuVersion"></p>
+    </div>
+  </section>
 
-    <section id="stage">
-      <div id="tutorial" hidden></div>
-      <div id="visitBar" hidden></div>
-      <div id="modeHint" hidden></div>
-      <div id="mapWrap"><canvas id="map" aria-label="Mapa do reino"></canvas></div>
-      <div id="tileInfo" hidden></div>
-    </section>
-
-    <aside id="side">
-      <nav id="tabs"></nav>
-      <div id="side-body"></div>
-    </aside>
-  </main>
+  <!-- Jogo -->
+  <section id="game" class="screen" hidden>
+    <header id="hud">
+      <button id="menuBtn" class="btn small grey icon-only" data-action="gameMenu" aria-label="Menu do jogo"></button>
+      <div id="brand"></div>
+      <div id="hud-res"></div>
+      <div id="hud-status"></div>
+    </header>
+    <main id="layout">
+      <aside id="palette" aria-label="Construções"></aside>
+      <section id="stage">
+        <div id="tutorial" hidden></div>
+        <div id="visitBar" hidden></div>
+        <div id="modeHint" hidden></div>
+        <div id="mapWrap"><canvas id="map" tabindex="0" aria-label="Mapa do reino. Use as setas para mover o cursor e Enter para agir."></canvas></div>
+        <div id="tileInfo" class="panel" hidden></div>
+      </section>
+      <aside id="side" class="panel">
+        <nav id="tabs" role="tablist"></nav>
+        <div id="side-body"></div>
+      </aside>
+    </main>
+  </section>
 
   <div id="toasts" aria-live="polite"></div>
-  <div id="modal" hidden></div>
-
-  <noscript>Reino de Bolso precisa de JavaScript.</noscript>
+  <div id="modal" role="dialog" aria-modal="true" hidden></div>
+  <noscript>O Reino de Bolso precisa de JavaScript.</noscript>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>

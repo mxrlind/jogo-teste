@@ -5,6 +5,7 @@ const RTS = 'assets/sprites/medieval-rts';
 const t = (n) => `${RTS}/Tile/medievalTile_${String(n).padStart(2, '0')}.png`;
 const s = (n) => `${RTS}/Structure/medievalStructure_${String(n).padStart(2, '0')}.png`;
 const e = (n) => `${RTS}/Environment/medievalEnvironment_${String(n).padStart(2, '0')}.png`;
+const u = (n) => `${RTS}/Unit/medievalUnit_${String(n).padStart(2, '0')}.png`;
 
 // Terreno: base (tile inteiro) + sobreposição opcional (objeto do Environment).
 export const TERRAIN_SPRITES = {
@@ -31,11 +32,16 @@ export const BUILDING_SPRITES = {
   mina: { src: e(18) },
   templo: { src: s(4) },
   jardim: { src: e(19) },
-  fonte: { src: e(20) }, // proposta: vira "Fogueira" (o pacote não tem fonte d'água)
+  fogueira: { src: e(20) }, // substitui a antiga Fonte (o pacote não tem fonte d'água)
   estatua: { src: s(12) },
 };
 
 export const LOCKED_OVERLAY = 'rgba(20, 22, 32, 0.62)';
+
+// Carroça do mercador (evento surpresa), invasores (time vermelho) e aldeões (time azul).
+export const CART_SPRITE = s(7);
+export const RAIDER_SPRITES = [u(9), u(10), u(8)];
+export const VILLAGER_SPRITES = [u(1), u(13), u(19), u(24)];
 
 const ICONS = 'assets/icons/game-icons';
 export const icon = (name) => `${ICONS}/${name}.svg`;
@@ -48,5 +54,6 @@ export function allSpriteUrls() {
   const urls = new Set();
   for (const v of Object.values(TERRAIN_SPRITES)) [...v.base, ...(v.over || [])].forEach((u) => urls.add(u));
   for (const v of Object.values(BUILDING_SPRITES)) { urls.add(v.src); if (v.blades) urls.add(v.blades); }
+  [CART_SPRITE, ...RAIDER_SPRITES, ...VILLAGER_SPRITES].forEach((x) => urls.add(x));
   return [...urls];
 }

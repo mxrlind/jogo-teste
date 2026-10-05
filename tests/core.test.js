@@ -1,7 +1,10 @@
 // Testes do motor (sem navegador). Rode com: npm test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createState, serialize, deserialize, exportSave, importSave } from '../src/core/state.js';
+import { createState, serialize, deserialize, SAVE_VERSION, SAVE_KEY } from '../src/core/state.js';
+import { encodeSave, decodeSave, loadSave, writeSave, exportCode, importCode, checksum, CORRUPT_KEY, BACKUP_INTERVAL, listBackups } from '../src/core/storage.js';
+import { defaultConfig, normalizeConfig, actionForKey } from '../src/core/config.js';
+import { dirWeight } from '../src/core/economy.js';
 import { Game } from '../src/core/game.js';
 import { computeEconomy, adjacencyAt, buildCost, upgradeCost, collectModifiers } from '../src/core/economy.js';
 import { generateMap, ringOf, isUnlocked, idx, GRID_W, GRID_H } from '../src/core/map.js';
@@ -101,6 +104,23 @@ test('economia: falta de trabalhadores reduz produção proporcionalmente', () =
   assert.ok(Math.abs(half - full / 2) < 1e-9);
 });
 
+test('economia: fazendas recebem trabalhadores primeiro e o reino sai da fome', () => {
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  put(s, 5, 5, 'grass', { id: 'fazenda', lvl: 1 });
+  for (let x = 2; x <= 9; x++) put(s, x, 8, 'forest');
+  for (let x = 2; x <= 9; x++) put(s, x, 7, 'grass', { id: 'serraria', lvl: 1 });
+  s.pop = 2;
+  const e = computeEconomy(s, T0);
+  assert.equal(e.tiles[idx(5, 5)].staff, 1);
+  assert.equal(e.tiles[idx(3, 7)].staff, 0);
+  // Fome extrema: 1 morador, estoque zerado. A comida precisa voltar a subir.
+  s.pop = 1;
+  s.res.food = 0;
+  assert.ok(computeEconomy(s, T0).rates.food > 0);
+});
+
 test('economia: mercados param quando a comida acaba', () => {
   const g = freshGame();
   const s = g.state;
@@ -189,8 +209,11 @@ test('invasões: vitória dá saque e sobe nível; derrota tira 5% (novato) e de
   assert.equal(s.res.gold, 950, 'proteção de novato: perde só 5%');
   s.stats.raidsLost = 5;
   s.res.gold = 1000;
+  g.econ.defense = 0;
+  g.econ.gross.gold = 1000;
   g.resolveRaid(T0);
   assert.equal(s.res.gold, 850, 'depois perde 15%');
+  g.econ.defense = 0;
   g.econ.gross.gold = 1; // produção baixa: saque limitado a max(50, 2 min de produção)
   s.res.gold = 100000;
   g.resolveRaid(T0);
@@ -338,26 +361,76 @@ test('social: rivais determinísticos e ranking inclui o jogador', () => {
   assert.ok(g.rivals().some((r) => r.me));
 });
 
-test('save: serializa, importa e migra', () => {
+test('save: envelope com checksum, exportar/importar', () => {
   const g = freshGame();
   g.state.res.gold = 4242;
-  const back = deserialize(serialize(g.state));
+  const back = decodeSave(encodeSave(g.state)).state;
   assert.equal(back.res.gold, 4242);
-  const imp = importSave(exportSave(g.state));
-  assert.equal(imp.res.gold, 4242);
-  const partial = JSON.parse(serialize(g.state));
-  delete partial.settings;
-  delete partial.stats.chests;
-  const migrated = deserialize(JSON.stringify(partial));
-  assert.equal(migrated.settings.sound, true);
-  assert.equal(migrated.stats.chests, 0);
-  assert.throws(() => deserialize('{"foo":1}'));
+  assert.equal(importCode(exportCode(g.state)).state.res.gold, 4242);
+  const env = JSON.parse(encodeSave(g.state));
+  assert.equal(env.v, SAVE_VERSION);
+  assert.equal(env.sum, checksum(env.data));
+  env.data = env.data.replace('4242', '4243');
+  assert.throws(() => decodeSave(JSON.stringify(env)), /Checksum/);
+  assert.throws(() => decodeSave('{"foo":1}'));
+});
+
+test('save: migração v1 -> v2 (fonte vira fogueira, abas abertas, configurações antigas)', () => {
+  const g = freshGame();
+  const v1 = JSON.parse(serialize(g.state));
+  v1.version = 1;
+  v1.grid.tiles[idx(4, 4)] = { t: 'grass', b: { id: 'fonte', lvl: 1 } };
+  delete v1.raid.dir;
+  delete v1.unlocks;
+  v1.settings = { sound: false, particles: true };
+  delete v1.stats.chests;
+  const { state, legacySettings } = decodeSave(JSON.stringify(v1));
+  assert.equal(state.version, 2);
+  assert.equal(state.grid.tiles[idx(4, 4)].b.id, 'fogueira');
+  assert.equal(state.raid.dir, 'n');
+  assert.equal(state.unlocks.tabs.length, 6, 'jogador antigo não perde abas');
+  assert.equal(state.stats.chests, 0);
+  assert.equal(state.settings, undefined);
+  const cfg = normalizeConfig(null, legacySettings);
+  assert.equal(cfg.sfxVolume, 0, 'som desligado no v1 vira volume 0');
+  // código de exportação antigo (base64 do estado puro) continua importável
+  const oldCode = btoa(unescape(encodeURIComponent(JSON.stringify(v1))));
+  assert.equal(importCode(oldCode).state.grid.tiles[idx(4, 4)].b.id, 'fogueira');
+  assert.throws(() => decodeSave(JSON.stringify({ ...v1, version: 99 })), /mais nova/);
+});
+
+test('save: backups em rodízio e recuperação de save corrompido', () => {
+  const mem = new Map();
+  const store = { getItem: (k) => (mem.has(k) ? mem.get(k) : null), setItem: (k, v) => mem.set(k, String(v)), removeItem: (k) => mem.delete(k) };
+  const g = freshGame();
+  for (let i = 0; i < 4; i++) {
+    g.state.res.gold = 1000 + i;
+    g.state.lastTick = T0 + i * BACKUP_INTERVAL;
+    writeSave(store, g.state, T0 + i * BACKUP_INTERVAL);
+  }
+  assert.equal(listBackups(store).length, 3, 'só 3 slots');
+  store.setItem(SAVE_KEY, '{"format":"reino-de-bolso","v":2,"sum":"00000000","data":"{}"}');
+  const loaded = loadSave(store);
+  assert.equal(loaded.recovered, true);
+  assert.equal(loaded.state.res.gold, 1003, 'backup mais recente');
+  assert.ok(store.getItem(CORRUPT_KEY), 'save ruim guardado à parte');
+  assert.equal(loadSave({ getItem: () => null, setItem() {}, removeItem() {} }).state, null);
+});
+
+test('config: padrões, limites e atalhos', () => {
+  const c = normalizeConfig({ musicVolume: 7, fontScale: 0.1, keys: { upgrade: 'J' } });
+  assert.equal(c.musicVolume, 1);
+  assert.equal(c.fontScale, 0.85);
+  assert.equal(c.keys.upgrade, 'j');
+  assert.equal(actionForKey(c, 'J'), 'upgrade');
+  assert.equal(actionForKey(defaultConfig(), 'Escape'), 'menu');
 });
 
 test('formatação de números e tempo', () => {
   assert.equal(fmt(999), '999');
-  assert.equal(fmt(1500), '1.5K');
-  assert.equal(fmt(2.5e9), '2.5B');
+  assert.equal(fmt(1500), '1,5K');
+  assert.equal(fmt(2.5e9), '2,5B');
+  assert.equal(fmt(0.25), '0,3');
   assert.equal(fmtTime(65), '1m 05s');
   assert.equal(fmtTime(3700), '1h 1m');
 });
@@ -378,4 +451,94 @@ test('offline: ausência curta (< 1 min) não some com o baú', () => {
   g.state.chest = { x: 4, y: 4, expiresAt: T0 + 100000 };
   g.catchUp(T0 + 40000);
   assert.ok(g.state.chest, 'baú continua');
+});
+
+test('hordas: a defesa pesa mais do lado de onde a horda vem', () => {
+  assert.equal(dirWeight('n', 5, 0), 1);
+  assert.equal(dirWeight('n', 5, GRID_H - 1), 0.5);
+  assert.equal(dirWeight('e', GRID_W - 1, 3), 1);
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  s.pop = 50;
+  put(s, 5, 0, 'grass', { id: 'torre', lvl: 1 });
+  s.raid.dir = 'n';
+  const north = computeEconomy(s, T0).defense;
+  s.raid.dir = 's';
+  const south = computeEconomy(s, T0).defense;
+  assert.ok(north > south * 1.9, 'torre no norte defende o dobro contra horda do norte');
+  const r = (() => { g.econ = computeEconomy(s, T0); return g.resolveRaid(T0); })();
+  assert.ok(['n', 's', 'e', 'w'].includes(s.raid.dir), 'próxima horda já tem direção');
+  assert.equal(r.dir, 's');
+});
+
+test('core loop: melhorar ao máximo e melhorar todos do tipo', () => {
+  const g = freshGame();
+  const s = g.state;
+  Object.assign(s.res, { gold: 5000, wood: 5000, stone: 5000 });
+  put(s, 4, 4, 'grass', { id: 'casa', lvl: 1 });
+  put(s, 7, 7, 'grass', { id: 'casa', lvl: 3 });
+  g.econ = computeEconomy(s, T0);
+  const n = g.upgradeAll('casa');
+  assert.ok(n >= 3);
+  const lv = s.grid.tiles.filter((t) => t.b?.id === 'casa').map((t) => t.b.lvl);
+  assert.ok(Math.max(...lv) - Math.min(...lv) <= 1, 'nivela por baixo primeiro');
+  s.res.gold = 1e9; s.res.wood = 1e9;
+  assert.ok(g.upgradeMax(4, 4) > 0);
+  assert.equal(s.grid.tiles[idx(4, 4)].b.lvl, 10);
+});
+
+test('core loop: prévia de ganho por segundo antes de construir/melhorar', () => {
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  put(s, 5, 4, 'forest');
+  s.pop = 10;
+  put(s, 6, 6, 'grass', { id: 'casa', lvl: 3 });
+  g.econ = computeEconomy(s, T0);
+  const d = g.previewBuild('serraria', 5, 5);
+  assert.ok(d.wood > 0);
+  assert.equal(s.grid.tiles[idx(5, 5)].b, null, 'prévia não altera o mapa');
+  const up = g.previewUpgrade(6, 6);
+  assert.ok(up.popCap > 0);
+  assert.equal(s.grid.tiles[idx(6, 6)].b.lvl, 3);
+});
+
+test('core loop: abas abrem aos poucos e aviso de quando ascender', () => {
+  const g = freshGame();
+  const s = g.state;
+  const opened = [];
+  g.on('unlock', (u) => opened.push(u.tab));
+  assert.equal(g.isTabUnlocked('herois'), false);
+  s.tutorial.step = 2;
+  g.checkUnlocks();
+  assert.deepEqual(opened, ['herois']);
+  s.stats.runGold = 4e6;
+  g.checkUnlocks();
+  assert.ok(g.isTabUnlocked('legado'));
+  const adv = g.ascendAdvice();
+  assert.equal(adv.crowns, 2);
+  assert.equal(adv.recommended, true);
+  s.res.crowns = 5;
+  assert.equal(g.ascendAdvice().recommended, false, 'não dobra as coroas que já tem');
+});
+
+test('aba oculta produz a 100% (não a eficiência offline)', () => {
+  const g = freshGame();
+  const s = g.state;
+  s.pop = 4;
+  const evs = [];
+  g.on('background', (x) => evs.push(x)).on('offline', () => evs.push('offline'));
+  g.tick(T0 + 10 * 60 * 1000, { background: true });
+  assert.equal(evs.length, 1);
+  assert.equal(evs[0].efficiency, 1);
+});
+
+test('recompensa diária: "ontem" pela data, mesmo na troca de horário de verão', () => {
+  const g = freshGame();
+  g.now = new Date(2026, 9, 17, 23, 30).getTime();
+  g.claimDaily();
+  g.now = new Date(2026, 9, 18, 0, 30).getTime();
+  assert.ok(g.claimDaily().ok);
+  assert.equal(g.state.daily.streak, 2);
 });

@@ -1,4 +1,4 @@
-# 💼 Modelo de negócio
+# Modelo de negócio
 
 > Base: [pesquisa de mercado](pesquisa-de-mercado.md). Os números de mercado citados são estimativas de terceiros (Sensor Tower, AppMagic, Newzoo, Alinea) e servem para comparar ordens de grandeza.
 
@@ -44,7 +44,7 @@ Regra prática do mercado indie (não vem da pesquisa; é o chamado "método Box
 
 | Etapa | Critério para seguir | Prazo |
 |---|---|---|
-| Protótipo jogável | ✅ feito (este repositório) | — |
+| Protótipo jogável | feito (este repositório) | — |
 | 10 testadores próximos | ≥ 6 jogam > 30 min no 1º dia sem pedir; ≥ 3 voltam no dia seguinte | 1 semana |
 | Demo no itch.io + Reddit (r/incremental_games, r/idlegames) | D1 ≥ 35%, D7 ≥ 15% (referência: os top casuais têm D7 de 14,9% e os mid-core, 20,9%) | 2–3 semanas |
 | Página na Steam ("Coming Soon") | **≥ 7.000 listas de desejos** antes do lançamento (referência comum entre devs indie, não da pesquisa) | 2–3 meses |
@@ -56,7 +56,7 @@ Regra prática do mercado indie (não vem da pesquisa; é o chamado "método Box
 - % de jogadores que compartilham o código do reino (proxy de viralidade).
 - Abandono por derrota em invasão (se alto: ajustar `RAID_GROWTH` / perda).
 
-Telemetria ainda não existe. Plano: endpoint anônimo e opcional com eventos agregados, sem dados pessoais (ver [ROADMAP](ROADMAP.md)).
+Telemetria ainda não existe. Plano: endpoint anônimo e opcional com eventos agregados, sem dados pessoais (ver [ROADMAP](../ROADMAP.md)).
 
 ## 6. Marketing de baixo custo
 - **"Divertido de assistir"**: o momento do herói lendário, a Lua de Sangue e combos absurdos de adjacência são feitos para GIF e clipe curto.

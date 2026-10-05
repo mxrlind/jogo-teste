@@ -16,28 +16,28 @@
 
 export const BUILDINGS = {
   casa: {
-    id: 'casa', name: 'Casa', icon: '🏠', category: 'civil',
+    id: 'casa', name: 'Casa', category: 'civil',
     desc: 'Abriga 4 moradores e gera impostos. Adora mercados e tavernas; odeia barulho de pedreiras e minas.',
     cost: { gold: 25, wood: 10 }, workers: 0,
     prod: { gold: 0.8 }, popCap: 4,
-    adj: { mercado: 0.5, taverna: 0.3, casa: 0.1, jardim: 0.2, fonte: 0.3, pedreira: -0.3, mina: -0.3 },
+    adj: { mercado: 0.5, taverna: 0.3, casa: 0.1, jardim: 0.2, fogueira: 0.3, pedreira: -0.3, mina: -0.3 },
   },
   fazenda: {
-    id: 'fazenda', name: 'Fazenda', icon: '🌾', category: 'producao',
+    id: 'fazenda', name: 'Fazenda', category: 'producao',
     desc: 'Produz comida. Rende mais perto da água, de moinhos e de outras fazendas.',
     cost: { gold: 20 }, workers: 2,
     prod: { food: 1.2 },
     adj: { water: 0.5, moinho: 0.5, fazenda: 0.1, armazem: 0.15 },
   },
   serraria: {
-    id: 'serraria', name: 'Serraria', icon: '🪓', category: 'producao',
+    id: 'serraria', name: 'Serraria', category: 'producao',
     desc: 'Produz madeira. Cada floresta vizinha dá +40%. Não derrube todas as árvores!',
     cost: { gold: 40 }, workers: 2,
     prod: { wood: 0.6 },
     adj: { forest: 0.4, armazem: 0.15 },
   },
   pedreira: {
-    id: 'pedreira', name: 'Pedreira', icon: '⛏️', category: 'producao',
+    id: 'pedreira', name: 'Pedreira', category: 'producao',
     desc: 'Produz pedra. Cada rocha vizinha dá +50%. Barulhenta: vizinhos de casa ficam infelizes.',
     cost: { gold: 60, wood: 20 }, workers: 2,
     prod: { stone: 0.6 }, happiness: -2,
@@ -45,7 +45,7 @@ export const BUILDINGS = {
     unlock: { buildings: 3 },
   },
   mercado: {
-    id: 'mercado', name: 'Mercado', icon: '🏪', category: 'economia',
+    id: 'mercado', name: 'Mercado', category: 'economia',
     desc: 'Transforma comida em ouro. Cada casa vizinha é um cliente (+20%). Mercados vizinhos competem (-20%).',
     cost: { gold: 120, wood: 40 }, workers: 2,
     prod: { gold: 2.0 }, consume: { food: 0.6 },
@@ -53,7 +53,7 @@ export const BUILDINGS = {
     unlock: { buildings: 4 },
   },
   moinho: {
-    id: 'moinho', name: 'Moinho', icon: '🌀', category: 'producao',
+    id: 'moinho', name: 'Moinho', category: 'producao',
     desc: 'Um pouco de comida e um grande bônus para fazendas vizinhas.',
     cost: { gold: 100, wood: 50 }, workers: 1,
     prod: { food: 0.4 },
@@ -61,7 +61,7 @@ export const BUILDINGS = {
     unlock: { buildings: 5 },
   },
   armazem: {
-    id: 'armazem', name: 'Armazém', icon: '📦', category: 'economia',
+    id: 'armazem', name: 'Armazém', category: 'economia',
     desc: 'Aumenta muito o limite de recursos (cresce com o quadrado do nível). Produtores vizinhos ganham +15%.',
     cost: { gold: 150, wood: 80 }, workers: 1,
     storage: { gold: 8000, food: 1000, wood: 1000, stone: 1000 }, // x nível² (1, 4, 9 … 100)
@@ -69,7 +69,7 @@ export const BUILDINGS = {
     unlock: { buildings: 5 },
   },
   taverna: {
-    id: 'taverna', name: 'Taverna', icon: '🍺', category: 'civil',
+    id: 'taverna', name: 'Taverna', category: 'civil',
     desc: 'Felicidade para o reino inteiro e ouro de quem passa. Duas tavernas lado a lado brigam.',
     cost: { gold: 200, wood: 80, stone: 20 }, workers: 2,
     prod: { gold: 0.8 }, happiness: 6,
@@ -77,15 +77,15 @@ export const BUILDINGS = {
     unlock: { buildings: 6 },
   },
   muralha: {
-    id: 'muralha', name: 'Muralha', icon: '🧱', category: 'defesa',
+    id: 'muralha', name: 'Muralha', category: 'defesa',
     desc: 'Defesa barata. Muralhas e torres vizinhas se reforçam.',
     cost: { stone: 25 }, workers: 0,
     defense: 3,
     adj: { muralha: 0.25, torre: 0.25 },
-    unlock: { buildings: 6 },
+    unlock: { buildings: 4 }, // o tutorial pede defesa no passo 4: precisa estar liberada
   },
   torre: {
-    id: 'torre', name: 'Torre', icon: '🗼', category: 'defesa',
+    id: 'torre', name: 'Torre', category: 'defesa',
     desc: 'O coração da defesa. +30% por muralha vizinha.',
     cost: { gold: 150, wood: 40, stone: 60 }, workers: 2,
     defense: 10,
@@ -93,7 +93,7 @@ export const BUILDINGS = {
     unlock: { buildings: 6 },
   },
   mina: {
-    id: 'mina', name: 'Mina de Ouro', icon: '💰', category: 'economia',
+    id: 'mina', name: 'Mina de Ouro', category: 'economia',
     desc: 'Muito ouro, mas só funciona encostada numa montanha (+60% por montanha).',
     cost: { gold: 500, wood: 150, stone: 120 }, workers: 4,
     prod: { gold: 5.0 }, happiness: -3,
@@ -102,7 +102,7 @@ export const BUILDINGS = {
     unlock: { buildings: 10 },
   },
   templo: {
-    id: 'templo', name: 'Templo', icon: '⛪', category: 'civil',
+    id: 'templo', name: 'Templo', category: 'civil',
     desc: 'Grande felicidade e +5% de Coroas ao Ascender (por templo).',
     cost: { gold: 800, stone: 300 }, workers: 3,
     happiness: 10, crownBonus: 0.05,
@@ -110,21 +110,21 @@ export const BUILDINGS = {
     unlock: { buildings: 14 },
   },
   jardim: {
-    id: 'jardim', name: 'Jardim', icon: '🌳', category: 'decoracao',
+    id: 'jardim', name: 'Jardim', category: 'decoracao',
     desc: 'Decoração simples. +2 de felicidade; casas vizinhas ganham +20%.',
     cost: { gold: 60 }, workers: 0,
     happiness: 2, adj: {}, maxLevel: 1,
     unlock: { buildings: 4 },
   },
-  fonte: {
-    id: 'fonte', name: 'Fonte', icon: '⛲', category: 'decoracao',
-    desc: 'Decoração nobre (custa gemas). +5 de felicidade; casas vizinhas ganham +30%.',
+  fogueira: {
+    id: 'fogueira', name: 'Fogueira', category: 'decoracao',
+    desc: 'Ponto de encontro do povo (custa gemas). +5 de felicidade; casas vizinhas ganham +30%.',
     cost: { gems: 5 }, workers: 0,
     happiness: 5, adj: {}, maxLevel: 1,
     unlock: { buildings: 8 },
   },
   estatua: {
-    id: 'estatua', name: 'Estátua do Fundador', icon: '🗿', category: 'decoracao',
+    id: 'estatua', name: 'Estátua do Fundador', category: 'decoracao',
     desc: 'Símbolo do seu reino. +8 de felicidade e +5% de ouro global.',
     cost: { gems: 15 }, workers: 0,
     happiness: 8, globalGold: 0.05, adj: {}, maxLevel: 1,
@@ -134,7 +134,7 @@ export const BUILDINGS = {
 
 export const BUILDING_ORDER = [
   'casa', 'fazenda', 'serraria', 'pedreira', 'mercado', 'moinho', 'armazem',
-  'taverna', 'muralha', 'torre', 'mina', 'templo', 'jardim', 'fonte', 'estatua',
+  'taverna', 'muralha', 'torre', 'mina', 'templo', 'jardim', 'fogueira', 'estatua',
 ];
 
 export const MAX_LEVEL = 10;
@@ -144,20 +144,21 @@ export const LEVEL_OUTPUT_STEP = 0.75; // +75% de produção por nível acima do
 export const SELL_REFUND = 0.5;
 
 export const TERRAIN = {
-  grass: { id: 'grass', name: 'Campo', icon: '', buildable: true },
-  forest: { id: 'forest', name: 'Floresta', icon: '🌲', buildable: false, clearCost: { gold: 30 }, clearYield: { wood: 40 } },
-  rock: { id: 'rock', name: 'Rochas', icon: '🪨', buildable: false, clearCost: { gold: 50 }, clearYield: { stone: 30 } },
-  water: { id: 'water', name: 'Lago', icon: '', buildable: false },
-  mountain: { id: 'mountain', name: 'Montanha', icon: '⛰️', buildable: false },
+  grass: { id: 'grass', name: 'Campo', buildable: true },
+  forest: { id: 'forest', name: 'Floresta', buildable: false, clearCost: { gold: 30 }, clearYield: { wood: 40 } },
+  rock: { id: 'rock', name: 'Rochas', buildable: false, clearCost: { gold: 50 }, clearYield: { stone: 30 } },
+  water: { id: 'water', name: 'Lago', buildable: false },
+  mountain: { id: 'mountain', name: 'Montanha', buildable: false },
 };
 
+// `icon` = nome do arquivo em assets/icons/game-icons/ (sem .svg).
 export const RESOURCES = {
-  gold: { id: 'gold', name: 'Ouro', icon: '💰' },
-  food: { id: 'food', name: 'Comida', icon: '🍖' },
-  wood: { id: 'wood', name: 'Madeira', icon: '🪵' },
-  stone: { id: 'stone', name: 'Pedra', icon: '🪨' },
-  gems: { id: 'gems', name: 'Gemas', icon: '💎' },
-  crowns: { id: 'crowns', name: 'Coroas', icon: '👑' },
+  gold: { id: 'gold', name: 'Ouro', icon: 'gold' },
+  food: { id: 'food', name: 'Comida', icon: 'food' },
+  wood: { id: 'wood', name: 'Madeira', icon: 'wood' },
+  stone: { id: 'stone', name: 'Pedra', icon: 'stone' },
+  gems: { id: 'gems', name: 'Gemas', icon: 'gems' },
+  crowns: { id: 'crowns', name: 'Coroas', icon: 'crowns' },
 };
 
 export const BASE_STORAGE = { gold: 2500, food: 500, wood: 500, stone: 500 };

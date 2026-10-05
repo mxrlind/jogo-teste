@@ -1,4 +1,4 @@
-# 🏛️ Arquitetura
+# Arquitetura
 
 ## 1. Princípios
 
@@ -126,7 +126,7 @@ sequenceDiagram
 
 | Decisão | Alternativa | Por quê |
 |---|---|---|
-| Canvas 2D + emojis | Sprites / WebGL | Zero assets e leitura imediata; o renderizador isola o desenho por id, então a troca por sprites fica num lugar só |
+| Canvas 2D + sprites PNG pré-carregados | WebGL | 144 tiles cabem folgado no canvas 2D; o terreno fica em cache e só prédios e efeitos são redesenhados |
 | HTML gerado por template string + delegação | Framework (React etc.) | Sem build; o painel é re-renderizado 1×/s e os cliques funcionam mesmo durante a re-renderização. Inputs focados não são re-renderizados |
 | `Date.now()` real | Relógio de jogo próprio | Offline, expedições, temporada e missões diárias precisam do relógio real. O motor recebe `now` por parâmetro, então testes e simulador controlam o tempo |
 | Offline simulado em blocos | Multiplicação simples taxa × tempo | Respeita limites, comida e crescimento populacional (taxas mudam durante a ausência) |

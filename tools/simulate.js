@@ -5,7 +5,7 @@
 import { createState } from '../src/core/state.js';
 import { Game } from '../src/core/game.js';
 import { BUILDINGS, TERRAIN, MAX_LEVEL } from '../src/data/buildings.js';
-import { buildCost, upgradeCost, canAfford, adjacencyAt, computeEconomy } from '../src/core/economy.js';
+import { buildCost, upgradeCost, canAfford, adjacencyAt, computeEconomy, dirWeight } from '../src/core/economy.js';
 import { GRID_W, idx, isUnlocked } from '../src/core/map.js';
 import { fmt, fmtTime } from '../src/core/format.js';
 import { tierOf } from '../src/core/season.js';
@@ -37,12 +37,15 @@ function freeTiles() {
   return out;
 }
 
+// Defesas preferem o lado de onde vem a próxima horda (a direção é anunciada com antecedência).
 function bestSpot(id) {
   let best = null;
+  const def = BUILDINGS[id].defense;
   for (const [x, y] of freeTiles()) {
     const a = adjacencyAt(g.state, id, x, y, g.econ.mods);
     if (!a.hasRequired) continue;
-    if (!best || a.total > best.total) best = { x, y, total: a.total };
+    const score = a.total + (def ? 2 * dirWeight(g.state.raid.dir, x, y) : 0);
+    if (!best || score > best.total) best = { x, y, total: score };
   }
   return best;
 }

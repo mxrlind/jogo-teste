@@ -5,7 +5,9 @@ import { BASE_TITLES } from '../data/cosmetics.js';
 import { TALENT_BY_ID } from '../data/talents.js';
 import { RAID_FIRST_DELAY } from '../data/events.js';
 
-export const SAVE_VERSION = 1;
+// v1: formato original. v2: id 'fonte' -> 'fogueira', direção das hordas, desbloqueio de abas,
+// configurações movidas para src/core/config.js (preferência do dispositivo, não do reino).
+export const SAVE_VERSION = 2;
 export const SAVE_KEY = 'reino-de-bolso:save';
 
 export function newSeed() {
@@ -39,7 +41,7 @@ export function createState({ seed = newSeed(), now = Date.now(), carry = null }
       gold: 100 + startTalent.startGold,
       food: 50,
       wood: 30 + startTalent.startWood,
-      stone: 20,
+      stone: 25, // paga a primeira muralha (tutorial, passo 4)
       gems: carry?.res?.gems ?? 0,
       crowns: carry?.res?.crowns ?? 0,
     },
@@ -47,7 +49,7 @@ export function createState({ seed = newSeed(), now = Date.now(), carry = null }
     grid,
     heroes: carry?.heroes ?? { owned: {}, council: [] },
     items: carry?.items ?? { scrolls: 1 },
-    raid: { level: 0, nextAt: now + RAID_FIRST_DELAY * 1000, warned: false, name: null },
+    raid: { level: 0, nextAt: now + RAID_FIRST_DELAY * 1000, warned: false, name: null, dir: 'n' },
     event: null,
     nextEventAt: now + 240000,
     chest: null,
@@ -60,8 +62,9 @@ export function createState({ seed = newSeed(), now = Date.now(), carry = null }
     daily: carry?.daily ?? { lastDay: null, streak: 0 },
     social: carry?.social ?? { trades: {}, greets: {}, rivalsSeed: seed },
     tutorial: carry ? { done: true, step: 99 } : { done: false, step: 0 },
+    // Abas reveladas aos poucos (desbloqueio gradual). Veteranos (Ascensão) mantêm o que já viram.
+    unlocks: carry?.unlocks ?? { tabs: ['reino', 'perfil'] },
     stats: carry ? { ...freshStats(), ...carry.stats, runGold: 0 } : freshStats(),
-    settings: carry?.settings ?? { sound: true, particles: true },
     log: [],
   };
 }
@@ -82,7 +85,7 @@ export function carryOver(state) {
     daily: state.daily,
     social: state.social,
     stats: state.stats,
-    settings: state.settings,
+    unlocks: state.unlocks,
   };
 }
 
@@ -96,23 +99,35 @@ export function deserialize(json) {
   return migrate(data);
 }
 
-export function migrate(data) {
-  if (!data || typeof data !== 'object' || !data.grid || !data.res) throw new Error('Save inválido');
-  // v1 é a primeira versão; migrações futuras entram aqui (if (data.version < 2) {...}).
+export const ALL_TABS = ['reino', 'herois', 'temporada', 'legado', 'social', 'perfil'];
+
+// Migra qualquer versão anterior para a atual. Cada passo é aplicado em ordem e é idempotente.
+// Retorna { state, legacySettings } — legacySettings vem do v1 e é repassado para config.js.
+export function migrateWithSettings(data) {
+  if (!data || typeof data !== 'object' || !data.grid || !Array.isArray(data.grid.tiles) || !data.res) throw new Error('Save inválido');
+  const from = Number(data.version) || 1;
+  if (from > SAVE_VERSION) throw new Error(`Save de uma versão mais nova do jogo (v${from})`);
+  let legacySettings = null;
+  if (from < 2) {
+    // Prédio "Fonte" virou "Fogueira" (o pacote de arte não tem fonte d'água).
+    for (const t of data.grid.tiles) if (t.b?.id === 'fonte') t.b.id = 'fogueira';
+    data.raid = { dir: 'n', ...data.raid };
+    // Quem já jogava v1 conhecia todas as abas: nada some.
+    data.unlocks = { tabs: [...ALL_TABS] };
+    legacySettings = data.settings ?? null;
+    delete data.settings;
+  }
   const base = createState({ seed: data.seed ?? 1, now: data.lastTick ?? Date.now() });
   const merged = { ...base, ...data, log: [] };
   merged.stats = { ...base.stats, ...data.stats };
-  merged.settings = { ...base.settings, ...data.settings };
   merged.items = { ...base.items, ...data.items };
   merged.social = { ...base.social, ...data.social };
+  merged.raid = { ...base.raid, ...data.raid };
+  merged.unlocks = { ...base.unlocks, ...data.unlocks };
   merged.version = SAVE_VERSION;
-  return merged;
+  return { state: merged, legacySettings };
 }
 
-export function exportSave(state) {
-  return btoa(unescape(encodeURIComponent(serialize(state))));
-}
-
-export function importSave(code) {
-  return deserialize(decodeURIComponent(escape(atob(code.trim()))));
+export function migrate(data) {
+  return migrateWithSettings(data).state;
 }

@@ -1,12 +1,12 @@
 // Eventos relâmpago (live-ops local). Acontecem enquanto o jogador está online.
 
 export const EVENTS = [
-  { id: 'colheita', name: 'Festival da Colheita', icon: '🎉', duration: 90, desc: 'Comida x3!', mods: { prod: { food: 2 } } },
-  { id: 'febre', name: 'Febre do Ouro', icon: '🤑', duration: 90, desc: 'Ouro x2!', mods: { prod: { gold: 1 } } },
-  { id: 'mutirao', name: 'Mutirão', icon: '🔨', duration: 90, desc: 'Construções -30%!', mods: { cost: 0.3 } },
-  { id: 'inspiracao', name: 'Inspiração Real', icon: '✨', duration: 120, desc: 'XP de temporada x2!', mods: { xp: 1 } },
-  { id: 'lua', name: 'Lua de Sangue', icon: '🌕', duration: 60, desc: 'Uma horda chega em 30s. Saque x3!', mods: { raidLoot: 2 }, triggersRaid: 30 },
-  { id: 'caravana', name: 'Caravana Exótica', icon: '🐪', duration: 90, desc: 'Madeira e pedra x2!', mods: { prod: { wood: 1, stone: 1 } } },
+  { id: 'colheita', name: 'Festival da Colheita', icon: 'event-harvest', duration: 90, desc: 'Comida x3!', mods: { prod: { food: 2 } } },
+  { id: 'febre', name: 'Febre do Ouro', icon: 'event-gold-rush', duration: 90, desc: 'Ouro x2!', mods: { prod: { gold: 1 } } },
+  { id: 'mutirao', name: 'Mutirão', icon: 'event-work', duration: 90, desc: 'Construções -30%!', mods: { cost: 0.3 } },
+  { id: 'inspiracao', name: 'Inspiração Real', icon: 'event-inspiration', duration: 120, desc: 'XP de temporada x2!', mods: { xp: 1 } },
+  { id: 'lua', name: 'Lua de Sangue', icon: 'event-blood-moon', duration: 60, desc: 'Uma horda chega em 30s. Saque x3!', mods: { raidLoot: 2 }, triggersRaid: 30 },
+  { id: 'caravana', name: 'Caravana Exótica', icon: 'event-caravan', duration: 90, desc: 'Madeira e pedra x2!', mods: { prod: { wood: 1, stone: 1 } } },
 ];
 
 export const EVENT_BY_ID = Object.fromEntries(EVENTS.map((e) => [e.id, e]));

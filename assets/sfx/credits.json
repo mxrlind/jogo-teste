@@ -1,0 +1,112 @@
+{
+ "click": {
+  "pack": "Kenney – Interface Sounds",
+  "file": "Audio/click_002.ogg",
+  "license": "CC0"
+ },
+ "open": {
+  "pack": "Kenney – Interface Sounds",
+  "file": "Audio/open_001.ogg",
+  "license": "CC0"
+ },
+ "close": {
+  "pack": "Kenney – Interface Sounds",
+  "file": "Audio/close_001.ogg",
+  "license": "CC0"
+ },
+ "error": {
+  "pack": "Kenney – Interface Sounds",
+  "file": "Audio/error_004.ogg",
+  "license": "CC0"
+ },
+ "tab": {
+  "pack": "Kenney – Interface Sounds",
+  "file": "Audio/switch_002.ogg",
+  "license": "CC0"
+ },
+ "upgrade": {
+  "pack": "Kenney – Interface Sounds",
+  "file": "Audio/maximize_003.ogg",
+  "license": "CC0"
+ },
+ "confirm": {
+  "pack": "Kenney – Interface Sounds",
+  "file": "Audio/confirmation_002.ogg",
+  "license": "CC0"
+ },
+ "event": {
+  "pack": "Kenney – Interface Sounds",
+  "file": "Audio/bong_001.ogg",
+  "license": "CC0"
+ },
+ "build": {
+  "pack": "Kenney – Impact Sounds",
+  "file": "Audio/impactPlank_medium_001.ogg",
+  "license": "CC0"
+ },
+ "mine": {
+  "pack": "Kenney – Impact Sounds",
+  "file": "Audio/impactMining_002.ogg",
+  "license": "CC0"
+ },
+ "warn": {
+  "pack": "Kenney – Impact Sounds",
+  "file": "Audio/impactBell_heavy_000.ogg",
+  "license": "CC0"
+ },
+ "coin": {
+  "pack": "Kenney – RPG Audio",
+  "file": "Audio/handleCoins.ogg",
+  "license": "CC0"
+ },
+ "cart": {
+  "pack": "Kenney – RPG Audio",
+  "file": "Audio/handleCoins2.ogg",
+  "license": "CC0"
+ },
+ "chop": {
+  "pack": "Kenney – RPG Audio",
+  "file": "Audio/chop.ogg",
+  "license": "CC0"
+ },
+ "recruit": {
+  "pack": "Kenney – RPG Audio",
+  "file": "Audio/bookOpen.ogg",
+  "license": "CC0"
+ },
+ "expedition": {
+  "pack": "Kenney – RPG Audio",
+  "file": "Audio/beltHandle1.ogg",
+  "license": "CC0"
+ },
+ "win": {
+  "pack": "Kenney – Music Jingles",
+  "file": "Audio/Pizzicato jingles/jingles_PIZZI02.ogg",
+  "license": "CC0"
+ },
+ "lose": {
+  "pack": "Kenney – Music Jingles",
+  "file": "Audio/Pizzicato jingles/jingles_PIZZI01.ogg",
+  "license": "CC0"
+ },
+ "tier": {
+  "pack": "Kenney – Music Jingles",
+  "file": "Audio/Pizzicato jingles/jingles_PIZZI10.ogg",
+  "license": "CC0"
+ },
+ "achievement": {
+  "pack": "Kenney – Music Jingles",
+  "file": "Audio/Pizzicato jingles/jingles_PIZZI16.ogg",
+  "license": "CC0"
+ },
+ "legendary": {
+  "pack": "Kenney – Music Jingles",
+  "file": "Audio/Pizzicato jingles/jingles_PIZZI15.ogg",
+  "license": "CC0"
+ },
+ "ascend": {
+  "pack": "Kenney – Music Jingles",
+  "file": "Audio/Pizzicato jingles/jingles_PIZZI12.ogg",
+  "license": "CC0"
+ }
+}
