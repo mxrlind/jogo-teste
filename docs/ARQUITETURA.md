@@ -183,13 +183,21 @@ reino.save();                                       // salvar agora
 - `decodeKingdom` valida prefixo, tamanho da grade, ids de prédio e limita níveis e textos.
 - Save ilegível → começa um jogo novo sem travar (com aviso no console).
 
-## 10. Empacotamento para Steam (planejado)
+## 10. Publicação na web (GitHub Pages)
+
+O workflow `.github/workflows/pages.yml` roda `npm test` e publica a raiz do repositório a cada push na `main` (ou manualmente em *Actions → Publicar no GitHub Pages → Run workflow*). Como o jogo é estático e usa caminhos relativos, ele funciona em `https://<usuário>.github.io/<repo>/` sem build. O `.nojekyll` impede o GitHub de processar os arquivos com Jekyll.
+
+**Configuração única:** *Settings → Pages → Build and deployment → Source: GitHub Actions*.
+
+O save fica no `localStorage` do domínio `<usuário>.github.io`, com uma chave própria (`reino-de-bolso:save`), então não colide com outros sites do mesmo usuário.
+
+## 11. Empacotamento para Steam (planejado)
 - **Tauri** (preferido: binário pequeno) ou Electron apontando para `index.html`.
 - Trocar `localStorage` por arquivo de save via API do wrapper + Steam Cloud.
 - Steamworks: conquistas (já existe o catálogo `ACHIEVEMENTS`), Rich Presence ("Temporada 10 — Guerra, nível 14").
 - Fontes locais (hoje vêm do Google Fonts, com fallback do sistema).
 
-## 11. Caminho para social real
+## 12. Caminho para social real
 
 ```mermaid
 flowchart LR

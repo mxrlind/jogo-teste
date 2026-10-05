@@ -9,6 +9,10 @@ Roda direto no navegador (PC e celular), em **JavaScript puro, sem build e sem d
 
 ## ▶️ Como jogar
 
+**Online:** https://mxrlind.github.io/jogo-teste/ (GitHub Pages, publicado automaticamente a cada push na `main`)
+
+Localmente:
+
 ```bash
 npm start          # servidor local em http://localhost:8080 (Node ≥ 18, zero dependências)
 ```
@@ -79,4 +83,4 @@ npm test                              # testes do motor
 npm run simulate -- 8 1 --ascend      # simula 8 h de jogo (semente 1) com Ascensões
 ```
 
-Abra `http://localhost:8080/?debug` para expor `window.reino.game` no console (dar recursos, forçar invasão etc.). Os comandos estão em [ARQUITETURA.md](docs/ARQUITETURA.md#modo-debug).
+Abra `http://localhost:8080/?debug` para expor `window.reino.game` no console (dar recursos, forçar invasão etc.). Os comandos estão em [ARQUITETURA.md](docs/ARQUITETURA.md#8-modo-debug).

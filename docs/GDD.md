@@ -165,7 +165,7 @@ A temporada *Expansão* corta 50%. O talento *Terras Ancestrais* começa rodadas
 - **Derrota**: perde 15% dos recursos (5% nas 2 primeiras, a proteção de novato), **limitado a 2 min de produção** de cada recurso, e o nível cai 1.
 - As invasões **não acontecem offline**. Ao voltar, a próxima espera pelo menos 90 s.
 
-> **Por quê:** o nível sobe a cada vitória, então a defesa vira uma corrida que o jogador escolhe correr. A derrota baixa o nível (o jogo se autorregula), e o teto de saque garante que poupar para grandes metas continua viável (problema encontrado pelo simulador; ver [BALANCEAMENTO](BALANCEAMENTO.md#historico-de-ajustes)).
+> **Por quê:** o nível sobe a cada vitória, então a defesa vira uma corrida que o jogador escolhe correr. A derrota baixa o nível (o jogo se autorregula), e o teto de saque garante que poupar para grandes metas continua viável (problema encontrado pelo simulador; ver [BALANCEAMENTO](BALANCEAMENTO.md#5-histórico-de-ajustes)).
 
 ### 4.9 Heróis
 16 heróis em 4 raridades: **Comum 60% · Raro 28% · Épico 10% · Lendário 2%**.
@@ -263,7 +263,7 @@ Sequência de 7 dias: 200💰 → 2💎 → 10 min de ouro → 3💎 → bênç�
 - **Ranking regional**: 9 reinos vizinhos determinísticos (semente do jogador) que crescem com o tempo, + o jogador. "Poder do Reino" = √(ouro da vida toda) + 10/nível de prédio + 40/★ de herói + 500/ascensão + 15/vitória.
 - **Visitar** (vê a cidade do vizinho), **saudar** (1×/dia, +10 XP, 25% de chance de 1💎) e **trocar** (1×/h por vizinho: 25% da madeira/pedra por ouro).
 - **Código do reino** (`RB1.…`): exporta o layout real; um amigo cola e vê a cidade. É social de verdade, sem servidor.
-- O backend real (visitas, guildas e trocas entre jogadores) está planejado em [ARQUITETURA](ARQUITETURA.md#caminho-para-social-real) e [ROADMAP](ROADMAP.md).
+- O backend real (visitas, guildas e trocas entre jogadores) está planejado em [ARQUITETURA](ARQUITETURA.md#12-caminho-para-social-real) e [ROADMAP](ROADMAP.md).
 
 ### 4.17 Progresso offline
 - Simula até **4 h** (+2 h por nível de Vigília, +4 h por ★ do Relojoeiro) a **60%** de eficiência (+8% por Vigília, +25% por ★ do Relojoeiro; máx. 100%).
