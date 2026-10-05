@@ -1,0 +1,147 @@
+{
+ "gold": {
+  "author": "delapouite",
+  "source": "https://github.com/game-icons/icons/blob/master/delapouite/two-coins.svg",
+  "page": "https://game-icons.net/1x1/delapouite/two-coins.html"
+ },
+ "food": {
+  "author": "lorc",
+  "source": "https://github.com/game-icons/icons/blob/master/lorc/wheat.svg",
+  "page": "https://game-icons.net/1x1/lorc/wheat.html"
+ },
+ "wood": {
+  "author": "delapouite",
+  "source": "https://github.com/game-icons/icons/blob/master/delapouite/wood-pile.svg",
+  "page": "https://game-icons.net/1x1/delapouite/wood-pile.html"
+ },
+ "stone": {
+  "author": "lorc",
+  "source": "https://github.com/game-icons/icons/blob/master/lorc/stone-block.svg",
+  "page": "https://game-icons.net/1x1/lorc/stone-block.html"
+ },
+ "gems": {
+  "author": "lorc",
+  "source": "https://github.com/game-icons/icons/blob/master/lorc/cut-diamond.svg",
+  "page": "https://game-icons.net/1x1/lorc/cut-diamond.html"
+ },
+ "crowns": {
+  "author": "delapouite",
+  "source": "https://github.com/game-icons/icons/blob/master/delapouite/imperial-crown.svg",
+  "page": "https://game-icons.net/1x1/delapouite/imperial-crown.html"
+ },
+ "pop": {
+  "author": "delapouite",
+  "source": "https://github.com/game-icons/icons/blob/master/delapouite/person.svg",
+  "page": "https://game-icons.net/1x1/delapouite/person.html"
+ },
+ "happiness": {
+  "author": "skoll",
+  "source": "https://github.com/game-icons/icons/blob/master/skoll/hearts.svg",
+  "page": "https://game-icons.net/1x1/skoll/hearts.html"
+ },
+ "defense": {
+  "author": "lorc",
+  "source": "https://github.com/game-icons/icons/blob/master/lorc/checked-shield.svg",
+  "page": "https://game-icons.net/1x1/lorc/checked-shield.html"
+ },
+ "raid": {
+  "author": "lorc",
+  "source": "https://github.com/game-icons/icons/blob/master/lorc/crossed-swords.svg",
+  "page": "https://game-icons.net/1x1/lorc/crossed-swords.html"
+ },
+ "time": {
+  "author": "lorc",
+  "source": "https://github.com/game-icons/icons/blob/master/lorc/hourglass.svg",
+  "page": "https://game-icons.net/1x1/lorc/hourglass.html"
+ },
+ "build": {
+  "author": "lorc",
+  "source": "https://github.com/game-icons/icons/blob/master/lorc/hammer-nails.svg",
+  "page": "https://game-icons.net/1x1/lorc/hammer-nails.html"
+ },
+ "upgrade": {
+  "author": "delapouite",
+  "source": "https://github.com/game-icons/icons/blob/master/delapouite/upgrade.svg",
+  "page": "https://game-icons.net/1x1/delapouite/upgrade.html"
+ },
+ "map": {
+  "author": "lorc",
+  "source": "https://github.com/game-icons/icons/blob/master/lorc/treasure-map.svg",
+  "page": "https://game-icons.net/1x1/lorc/treasure-map.html"
+ },
+ "trophy": {
+  "author": "delapouite",
+  "source": "https://github.com/game-icons/icons/blob/master/delapouite/trophy-cup.svg",
+  "page": "https://game-icons.net/1x1/delapouite/trophy-cup.html"
+ },
+ "settings": {
+  "author": "lorc",
+  "source": "https://github.com/game-icons/icons/blob/master/lorc/gears.svg",
+  "page": "https://game-icons.net/1x1/lorc/gears.html"
+ },
+ "scroll": {
+  "author": "lorc",
+  "source": "https://github.com/game-icons/icons/blob/master/lorc/scroll-unfurled.svg",
+  "page": "https://game-icons.net/1x1/lorc/scroll-unfurled.html"
+ },
+ "castle": {
+  "author": "delapouite",
+  "source": "https://github.com/game-icons/icons/blob/master/delapouite/castle.svg",
+  "page": "https://game-icons.net/1x1/delapouite/castle.html"
+ },
+ "hero-farmer": {
+  "author": "delapouite",
+  "source": "https://github.com/game-icons/icons/blob/master/delapouite/farmer.svg",
+  "page": "https://game-icons.net/1x1/delapouite/farmer.html"
+ },
+ "hero-archer": {
+  "author": "delapouite",
+  "source": "https://github.com/game-icons/icons/blob/master/delapouite/archer.svg",
+  "page": "https://game-icons.net/1x1/delapouite/archer.html"
+ },
+ "hero-wizard": {
+  "author": "delapouite",
+  "source": "https://github.com/game-icons/icons/blob/master/delapouite/wizard-face.svg",
+  "page": "https://game-icons.net/1x1/delapouite/wizard-face.html"
+ },
+ "hero-dwarf": {
+  "author": "delapouite",
+  "source": "https://github.com/game-icons/icons/blob/master/delapouite/dwarf-face.svg",
+  "page": "https://game-icons.net/1x1/delapouite/dwarf-face.html"
+ },
+ "hero-elf": {
+  "author": "delapouite",
+  "source": "https://github.com/game-icons/icons/blob/master/delapouite/woman-elf-face.svg",
+  "page": "https://game-icons.net/1x1/delapouite/woman-elf-face.html"
+ },
+ "hero-dragon": {
+  "author": "lorc",
+  "source": "https://github.com/game-icons/icons/blob/master/lorc/dragon-head.svg",
+  "page": "https://game-icons.net/1x1/lorc/dragon-head.html"
+ },
+ "hero-queen": {
+  "author": "lorc",
+  "source": "https://github.com/game-icons/icons/blob/master/lorc/queen-crown.svg",
+  "page": "https://game-icons.net/1x1/lorc/queen-crown.html"
+ },
+ "hero-guard": {
+  "author": "delapouite",
+  "source": "https://github.com/game-icons/icons/blob/master/delapouite/guards.svg",
+  "page": "https://game-icons.net/1x1/delapouite/guards.html"
+ },
+ "hero-explorer": {
+  "author": "lorc",
+  "source": "https://github.com/game-icons/icons/blob/master/lorc/compass.svg",
+  "page": "https://game-icons.net/1x1/lorc/compass.html"
+ },
+ "hero-bard": {
+  "author": "delapouite",
+  "source": "https://github.com/game-icons/icons/blob/master/delapouite/musical-notes.svg",
+  "page": "https://game-icons.net/1x1/delapouite/musical-notes.html"
+ },
+ "hero-clock": {
+  "author": "skoll",
+  "source": "https://github.com/game-icons/icons/blob/master/skoll/pocket-watch.svg",
+  "page": "https://game-icons.net/1x1/skoll/pocket-watch.html"
+ }
+}

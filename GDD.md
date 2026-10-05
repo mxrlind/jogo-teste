@@ -64,7 +64,7 @@
 | Mundo (terreno, prédios, natureza, unidades) | **Kenney — Medieval RTS** (CC0), PNG 128 px (Retina) | Top-down, vetor plano, contorno escuro suave. Um prédio = um tile. Sem misturar com outro pacote de mundo |
 | Interface (painéis, botões, barras) | **Kenney — UI Pack** (CC0) | Cantos arredondados, plano, sem gradiente pesado |
 | Ícones (recursos, ações, heróis, conquistas) | **game-icons.net** (CC BY 3.0) | SVG de cor única, tingido com a paleta; nunca dentro do mapa |
-| Texto | **Kenney Future** (títulos, números) + **Nunito** (corpo, OFL) | Tamanho mínimo de 14 px; escala configurável |
+| Texto | **Nunito** (OFL), 400 no corpo e 800 em títulos e números | Tamanho mínimo de 14 px; escala configurável. Kenney Future foi testada e descartada: o R estilizado prejudica a leitura |
 
 **Paleta** (derivada do Medieval RTS): grama `#3fae5a` · terra `#c8834a` · pedra `#9aa3a8` · água `#7cc6f0` · madeira `#8a5a33` · telhado `#e0694f` · creme `#f3e3c0` · tinta escura `#2b2a33` · dourado de destaque `#f2b632`.
 

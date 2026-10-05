@@ -108,7 +108,7 @@ Mapeamento proposto (Medieval RTS): casa = Structure_18/17 · fazenda = tile de 
 |---|---|---|---|
 | Painéis e botões | Kenney **UI Pack** (`uipack_fixed`) | CC0 | Mesmo autor e mesma linguagem plana do Medieval RTS |
 | Ícones de recurso, ação e heróis | **game-icons.net** (SVG, cor única, tingidos pela paleta) | CC BY 3.0 (exige crédito por autor) | O Medieval RTS não tem ícones de interface. game-icons cobre todos os temas (trigo, tora, bloco de pedra, moedas, gemas, coroa, rostos de herói) com um traço uniforme. **Justificativa da mistura**: ícone de interface é uma camada separada do mundo, em silhueta chapada, com a mesma paleta, e não aparece dentro do mapa |
-| Fonte de títulos e números | **Kenney Future** (`kenney_fontpackage`) | CC0 | Mesmo autor; conferi que tem todos os acentos do português (ÁÂÃÀÉÊÍÓÔÕÚÇ) |
+| Fonte de títulos e números | ~~Kenney Future~~ → **Nunito 800** | OFL | Kenney Future foi testada na prévia e descartada: o R estilizado deixa palavras ilegíveis ("MELHORAR" parecia "MELHOAAA") |
 | Fonte de texto corrido | **Nunito** (via `@fontsource/nunito`, npm) | SIL OFL 1.1 | Legível em tamanho pequeno; arredondada como o estilo |
 | Efeitos sonoros | Kenney **Interface Sounds**, **RPG Audio**, **Impact Sounds**, **Music Jingles** | CC0 | Cliques, moedas, construção, vitória e derrota, num só "timbre" |
 | Música (loop) | RandomMind, "Medieval: Minstrel Dance" (versão loop) — **download manual** | CC0 (segundo a página do OpenGameArt; conferir no download) | Clima medieval leve; há versão loop |
