@@ -6,7 +6,7 @@ import { BUILDINGS, TERRAIN } from '../data/buildings.js';
 import { HEROES, RARITIES } from '../data/heroes.js';
 import { TERRAIN_SPRITES, BUILDING_SPRITES, LOCKED_OVERLAY, icon, allSpriteUrls } from '../ui/sprites.js';
 
-const NAMES = { ...Object.fromEntries(Object.entries(BUILDINGS).map(([k, v]) => [k, v.name])), fonte: 'Fogueira' };
+const NAMES = Object.fromEntries(Object.entries(BUILDINGS).map(([k, v]) => [k, v.name]));
 const SEED = 20261005;
 const grid = generateMap(SEED);
 grid.ring = 3;
@@ -15,7 +15,7 @@ const mods = { terrainAdj: 0 };
 
 // Posiciona prédios buscando o maior bônus de adjacência (regras reais do jogo).
 const ORDER = ['serraria', 'casa', 'casa', 'mercado', 'casa', 'casa', 'fazenda', 'moinho', 'fazenda', 'pedreira', 'taverna',
-  'armazem', 'torre', 'muralha', 'muralha', 'templo', 'jardim', 'fonte', 'estatua', 'casa', 'mina'];
+  'armazem', 'torre', 'muralha', 'muralha', 'templo', 'jardim', 'fogueira', 'estatua', 'casa', 'mina'];
 for (const id of ORDER) {
   let best = null;
   grid.tiles.forEach((tile, i) => {
@@ -143,7 +143,7 @@ canvas.addEventListener('pointerleave', () => { hover = null; });
 // ---------------------------------------------------------------- painéis
 const catalog = document.getElementById('catalog');
 catalog.innerHTML = Object.entries(BUILDING_SPRITES).map(([id, b]) => `
-  <div class="card ${id === 'fonte' ? 'swap' : ''}"><img src="${b.src}" alt=""><b>${NAMES[id]}</b>${id === 'fonte' ? '<small>no lugar de Fonte</small>' : ''}</div>`).join('');
+  <div class="card ${id === 'fogueira' ? 'swap' : ''}"><img src="${b.src}" alt=""><b>${NAMES[id]}</b>${id === 'fogueira' ? '<small>no lugar de Fonte</small>' : ''}</div>`).join('');
 
 const HERO_ICONS = { lavradora: 'hero-farmer', arqueira: 'hero-archer', bardo: 'hero-bard', exploradora: 'hero-explorer', alquimista: 'hero-wizard', druida: 'hero-elf', rainha: 'hero-queen', dragao: 'hero-dragon', relojoeiro: 'hero-clock', guarda: 'hero-guard', pedreiro: 'hero-dwarf' };
 const sample = ['lavradora', 'guarda', 'arqueira', 'bardo', 'druida', 'rainha', 'dragao'];

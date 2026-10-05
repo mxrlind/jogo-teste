@@ -1,807 +1,720 @@
-// Controlador de interface: HUD, paleta, painéis, modais e entrada.
+// Controlador da interface: telas (carregamento, menu, jogo), ciclo do jogo, ações e teclado.
 // Toda interação usa delegação: elementos com data-action="..." chamam ACTIONS[nome](el).
-import { BUILDINGS, BUILDING_ORDER, RESOURCES, TERRAIN } from '../data/buildings.js';
-import { HEROES, HERO_BY_ID, RARITIES, EXPEDITIONS, RECRUIT_GEM_COST } from '../data/heroes.js';
-import { TALENTS, CROWN_DIVISOR } from '../data/talents.js';
+import { BUILDINGS, BUILDING_ORDER, RESOURCES } from '../data/buildings.js';
+import { HERO_BY_ID, RARITIES } from '../data/heroes.js';
+import { BANNERS, DAILY_REWARDS } from '../data/cosmetics.js';
 import { SEASON_TIERS, XP_PER_TIER } from '../data/seasons.js';
-import { ACHIEVEMENTS } from '../data/achievements.js';
-import { BANNERS, EMBLEMS, DAILY_REWARDS } from '../data/cosmetics.js';
-import { EVENT_BY_ID } from '../data/events.js';
-import { Game, TUTORIAL } from '../core/game.js';
-import { createState, serialize, deserialize, exportSave, importSave, SAVE_KEY } from '../core/state.js';
-import { buildCost, upgradeCost, canAfford, kingdomPower, heroMultiplier, storageMult } from '../core/economy.js';
-import { idx, isUnlocked, ringOf } from '../core/map.js';
-import { seasonInfo, tierOf, missionText, rewardFor } from '../core/season.js';
-import { councilSlots, recruitGoldCost, speedUpCost } from '../core/heroes.js';
-import { rivalGrid, encodeKingdom, decodeKingdom } from '../core/social.js';
-import { fmt, fmtRate, fmtPct, fmtTime, fmtCost } from '../core/format.js';
+import { Game, DIR_NAMES, TAB_NAMES } from '../core/game.js';
+import { createState, newSeed, SAVE_VERSION } from '../core/state.js';
+import { loadSave, writeSave, exportCode, importCode, listBackups, restoreBackup, clearSave, BACKUP_SLOTS } from '../core/storage.js';
+import { CONFIG_KEY, KEY_ACTIONS, normalizeConfig, actionForKey, keyLabel } from '../core/config.js';
+import { buildCost, canAfford, kingdomPower, heroMultiplier } from '../core/economy.js';
+import { generateRivals, rivalGrid, encodeKingdom, decodeKingdom } from '../core/social.js';
+import { fmt, fmtTime } from '../core/format.js';
 import { MapRenderer } from './render.js';
-import { sfx, setSound } from './sfx.js';
+import { preloadAll, iconKey } from './assets.js';
+import { initAudio, loadSfx, play, setVolumes, hasMusic, musicInfo } from './audio.js';
+import { ui, $, esc, bannerColor, emblemIcon } from './ctx.js';
+import { ico, resIco } from './icons.js';
+import { showModal, closeModal, confirmModal, runConfirm, toast, modalOpen } from './modals.js';
+import { renderHud, renderPalette, renderTileInfo, renderSide, renderModeHint, hudInfo, lockedTabHint, describeBonus } from './panels.js';
 
-const $ = (sel) => document.querySelector(sel);
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const costHtml = (cost, res) => Object.entries(cost)
-  .map(([r, v]) => `<span class="cost ${res && (res[r] || 0) < v ? 'short' : ''}">${RESOURCES[r]?.icon ?? '📜'}${fmt(v)}</span>`).join(' ');
-const bannerColor = (id) => BANNERS.find((b) => b.id === id)?.color ?? '#c92a2a';
-const emblemIcon = (id) => EMBLEMS.find((e) => e.id === id)?.icon ?? '👑';
+const GAME_VERSION = '0.2.0';
+const TAB_ORDER = ['reino', 'herois', 'temporada', 'legado', 'social', 'perfil'];
+const FLOAT_COLORS = { gold: '#f2b632', food: '#f0c27a', wood: '#c8834a', stone: '#d7dde0', gems: '#7cc6f0' };
 
-let game;
-let renderer;
-let tab = 'reino';
-let visiting = null;
+// localStorage pode lançar exceção (modo privado, cota cheia): o jogo segue em memória.
+const memory = new Map();
+const store = {
+  getItem: (k) => { try { return localStorage.getItem(k); } catch { return memory.get(k) ?? null; } },
+  setItem: (k, v) => { try { localStorage.setItem(k, v); } catch { memory.set(k, v); } },
+  removeItem: (k) => { try { localStorage.removeItem(k); } catch { memory.delete(k); } },
+};
+
+let loaded = null; // resultado de loadSave no boot
+let loopsStarted = false;
 let lastSave = 0;
-// Enquanto um ponteiro está pressionado, os painéis não são re-renderizados: trocar o nó entre
-// pointerdown e pointerup faz o navegador descartar o "click" (bug de clique perdido).
-let pointerHeld = false;
-// Fila de modais: um modal novo espera o atual fechar (ex.: resumo offline + recompensa diária).
-const modalQueue = [];
+let menuRenderer = null;
+let menuLoop = 0;
+let remapping = null;
 
-// ------------------------------------------------------------------ boot
-export function boot() {
-  let state = null;
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (raw) state = deserialize(raw);
-  } catch (err) {
-    console.warn('Save ilegível: cópia guardada em', SAVE_KEY + ':corrompido', err);
-    try { localStorage.setItem(SAVE_KEY + ':corrompido', localStorage.getItem(SAVE_KEY)); } catch { /* sem espaço */ }
-  }
-  const isNew = !state;
-  if (!state) state = createState();
-  game = new Game(state);
-  wireGame();
-
-  renderer = new MapRenderer($('#map'), {
-    onTileClick: tileClick,
-    onHover: () => {},
-  });
+// ================================================================ boot
+export async function boot() {
+  let rawConfig = null;
+  try { rawConfig = JSON.parse(store.getItem(CONFIG_KEY) || 'null'); } catch { rawConfig = null; }
+  loaded = loadSave(store);
+  ui.config = normalizeConfig(rawConfig, rawConfig ? null : loaded.legacySettings);
+  if (!rawConfig && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) ui.config.reduceMotion = true;
+  saveConfig();
+  applyConfig();
 
   document.addEventListener('click', onClick);
-  document.addEventListener('pointerdown', () => { pointerHeld = true; }, true);
-  document.addEventListener('pointerup', () => { pointerHeld = false; }, true);
-  document.addEventListener('pointercancel', () => { pointerHeld = false; }, true);
   document.addEventListener('keydown', onKey);
-  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); else game.tick(Date.now()); });
+  document.addEventListener('input', onInput);
+  document.addEventListener('pointerdown', () => { ui.pointerHeld = true; }, true);
+  document.addEventListener('pointerup', () => { ui.pointerHeld = false; }, true);
+  document.addEventListener('pointercancel', () => { ui.pointerHeld = false; }, true);
+  document.addEventListener('visibilitychange', onVisibility);
   window.addEventListener('beforeunload', save);
+  $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal') closeModal(); });
 
-  setSound(game.state.settings.sound);
-  game.tick(Date.now());
-  renderPalette();
-  renderHud();
-  renderSide();
-  renderTileInfo();
+  initAudio(ui.config);
+  let imgDone = 0; let imgTotal = 1; let sfxDone = 0; let sfxTotal = 1;
+  const progress = () => {
+    const p = Math.round(((imgDone + sfxDone) / (imgTotal + sfxTotal)) * 100);
+    $('#loadBar').style.width = `${p}%`;
+    $('#loading .progress').setAttribute('aria-valuenow', String(p));
+    $('#loadText').textContent = `Carregando assets... ${p}%`;
+  };
+  const uiImages = ['assets/ui/kenney-ui-pack/grey_panel.png', 'assets/ui/kenney-ui-pack/yellow_button00.png', 'assets/ui/kenney-ui-pack/grey_button00.png'];
+  await Promise.all([
+    preloadAll(uiImages, (d, t) => { imgDone = d; imgTotal = t; progress(); }),
+    loadSfx((d, t) => { sfxDone = d; sfxTotal = t; progress(); }),
+  ]);
+  if (new URLSearchParams(location.search).has('debug')) window.reino = { ui, save, store };
+  showMainMenu();
+  registerServiceWorker();
+}
 
-  setInterval(() => {
-    game.tick(Date.now());
-    renderHud();
-    if (Date.now() - lastSave > 10000) save();
-  }, 250);
-  setInterval(() => { if (!pointerHeld) { renderSide(); renderPalette(); renderTileInfo(); } ambientFx(); }, 1000);
-  const loop = () => { renderer.draw(game); requestAnimationFrame(loop); };
-  requestAnimationFrame(loop);
+function saveConfig() {
+  store.setItem(CONFIG_KEY, JSON.stringify(ui.config));
+}
 
-  // Modo debug (?debug): expõe o jogo no console. Ver docs/ARQUITETURA.md.
-  if (new URLSearchParams(location.search).has('debug')) window.reino = { game, renderer, save };
-
-  if (isNew) showIntro();
-  else {
-    const daily = game.dailyStatus();
-    if (daily.available) setTimeout(showDaily, 600);
-  }
+function applyConfig() {
+  const c = ui.config;
+  document.documentElement.style.setProperty('--fs', String(c.fontScale));
+  document.body.classList.toggle('high-contrast', c.highContrast);
+  document.body.classList.toggle('reduce-motion', c.reduceMotion);
+  setVolumes(c.musicVolume, c.sfxVolume);
 }
 
 function save() {
+  if (!ui.game) return;
   try {
-    localStorage.setItem(SAVE_KEY, serialize(game.state));
+    writeSave(store, ui.game.state);
     lastSave = Date.now();
   } catch (err) {
     console.warn('Falha ao salvar', err);
+    toast('Não foi possível salvar (armazenamento cheio ou bloqueado). Exporte o save pelo menu.', 'bad', 'warning');
   }
 }
 
-// ------------------------------------------------------------------ eventos do motor
-function wireGame() {
-  game
-    .on('toast', ({ text, kind }) => toast(text, kind))
-    .on('built', ({ x, y, id }) => { sfx.build(); renderer.addBurst(x, y, '#fff3bf'); renderer.addFloat(x, y, BUILDINGS[id].icon + ' +1'); })
-    .on('upgraded', ({ x, y, lvl }) => { sfx.upgrade(); renderer.addBurst(x, y, '#ffd43b'); renderer.addFloat(x, y, `Nv ${lvl}!`, '#ffd43b'); })
-    .on('sold', ({ name }) => toast(`🏚️ ${name} demolida (50% devolvido).`))
-    .on('cleared', ({ x, y, yieldRes }) => { sfx.coin(); renderer.addFloat(x, y, fmtCost(yieldRes, RESOURCES), '#c0eb75'); })
-    .on('expanded', ({ ring }) => { sfx.win(); toast(`🗺️ Novas terras conquistadas! (anel ${ring})`, 'good'); })
-    .on('raidWarning', ({ name, strength, defense }) => {
-      sfx.warn();
-      toast(`🚨 ${name} se aproximam! Força ${strength} vs sua defesa ${Math.floor(defense)}.`, defense >= strength ? 'info' : 'bad');
-    })
-    .on('raid', (r) => {
-      if (r.win) { sfx.win(); renderer.doFlash('#ffd43b'); toast(`⚔️ Vitória sobre ${r.name}! +${fmt(r.loot)} 💰 +${r.gems} 💎`, 'good'); }
-      else { sfx.lose(); renderer.doShake(700); renderer.doFlash('#e03131'); toast(`🔥 ${r.name} saquearam ${fmtCost(r.lost, RESOURCES) || 'quase nada'}${r.fraction < 0.1 ? ' (proteção de novato)' : ''}`, 'bad'); }
-    })
-    .on('event', (ev) => { sfx.chest(); toast(`${ev.icon} ${ev.name}: ${ev.desc}`, 'event'); })
-    .on('chest', () => sfx.coin())
-    .on('chestOpened', ({ reward, x, y }) => {
-      sfx.chest();
-      renderer.addBurst(x, y);
-      const label = reward.boost ? `Bênção ${reward.boost}min!` : fmtCost(reward, RESOURCES);
-      renderer.addFloat(x, y, label, '#ffe066');
-    })
-    .on('recruited', (r) => showRecruit(r))
-    .on('expeditionDone', ({ hid, reward }) => {
-      sfx.coin();
-      const extra = (reward.gems ? ` +${reward.gems}💎` : '') + (reward.scrolls ? ' +📜' : '');
-      toast(`${HERO_BY_ID[hid].icon} Expedição: +${fmt(reward.gold)}💰 +${fmt(reward.wood)}🪵 +${fmt(reward.stone)}🪨${extra}`, 'good');
-    })
-    .on('tierUp', ({ tier }) => { sfx.upgrade(); toast(`⭐ Passe de Temporada: nível ${tier}! Resgate na aba Temporada.`, 'season'); })
-    .on('achievement', (a) => { sfx.win(); toast(`🏆 Conquista: ${a.icon} ${a.name} (+${a.gems}💎${a.title ? `, título "${a.title}"` : ''})`, 'good'); })
-    .on('tutorial', () => sfx.coin())
-    .on('offline', (sum) => showOffline(sum))
-    .on('ascended', ({ crowns }) => { sfx.ascend(); renderer.doFlash('#ffd43b', 1200); toast(`👑 Você ascendeu! +${crowns} Coroas.`, 'good'); renderPalette(); });
+function registerServiceWorker() {
+  // Só em HTTPS publicado (GitHub Pages); em localhost o cache atrapalharia o desenvolvimento.
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
 }
 
-// ------------------------------------------------------------------ input
-function tileClick(x, y) {
-  if (visiting) return;
-  const s = game.state;
-  const mode = renderer.mode;
-  if (s.chest && s.chest.x === x && s.chest.y === y && mode.type === 'select') {
-    game.openChest();
-    return;
+function setScreen(name) {
+  for (const id of ['loading', 'mainMenu', 'game']) $(`#${id}`).hidden = id !== name;
+  document.body.className = `${document.body.className.replace(/screen-\S+/g, '').trim()} screen-${name}`.trim();
+  applyConfig();
+}
+
+// ================================================================ menu principal
+function showMainMenu() {
+  setScreen('mainMenu');
+  const st = ui.game?.state ?? loaded?.state;
+  const has = Boolean(st);
+  $('#menuButtons').innerHTML = `
+    ${has ? `<button class="btn big primary" data-action="continue">${ico('play')} Continuar: ${esc(st.kingdom.name)}</button>` : ''}
+    <button class="btn big ${has ? '' : 'primary'}" data-action="newGame">${ico('build')} Novo reino</button>
+    <button class="btn big" data-action="howTo">${ico('info')} Como jogar</button>
+    <div class="row"><button class="btn" style="flex:1" data-action="options">${ico('settings')} Opções</button><button class="btn" style="flex:1" data-action="credits">${ico('scroll')} Créditos</button></div>`;
+  $('#menuVersion').textContent = `Versão ${GAME_VERSION} · save v${SAVE_VERSION}${hasMusic() ? '' : ' · música não instalada (ver EXECUTAR.md)'}`;
+  $('#menuButtons button')?.focus({ preventScroll: true });
+  if (loaded?.recovered && loaded.state) toast(`O save principal estava danificado; recuperamos o backup (${loaded.source}). A cópia danificada foi guardada.`, 'bad', 'warning');
+  else if (loaded?.recovered) toast('O save estava danificado e não havia backup íntegro. A cópia danificada foi guardada.', 'bad', 'warning');
+  if (loaded) loaded.recovered = false;
+
+  const canvas = $('#menuMap');
+  canvas.dataset.fill = 'cover';
+  if (!menuRenderer) menuRenderer = new MapRenderer(canvas, { getConfig: () => ui.config });
+  const grid = st ? st.grid : rivalGrid(generateRivals(7, Date.now(), Date.now())[6]);
+  menuRenderer.view = { grid };
+  cancelAnimationFrame(menuLoop);
+  const draw = () => { menuRenderer.draw({ state: { grid } }); if (!$('#mainMenu').hidden) menuLoop = requestAnimationFrame(draw); };
+  draw();
+}
+
+function startGame(state, { isNew = false } = {}) {
+  if (!ui.game) {
+    ui.game = new Game(state);
+    wireGame();
+  } else {
+    ui.game.state = state;
   }
-  if (mode.type === 'build') {
-    const r = game.build(mode.id, x, y);
-    if (!r.ok) { sfx.error(); toast(r.reason, 'bad'); return; }
-    // mantém o modo para construir em sequência se ainda der para pagar (Shift força sair)
-    if (!canAfford(s.res, buildCost(s, mode.id, game.econ.mods))) setMode({ type: 'select' });
+  setScreen('game');
+  if (!ui.renderer) {
+    ui.renderer = new MapRenderer($('#map'), { onTileClick: tileClick, onHover, getConfig: () => ui.config });
+  }
+  ui.renderer.resize();
+  ui.renderer.selected = null;
+  ui.renderer.cursor = null;
+  setMode({ type: 'select' });
+  ui.game.tick(Date.now());
+  save();
+  renderAll();
+  if (!loopsStarted) startLoops();
+  if (isNew) showIntro();
+  else if (ui.game.dailyStatus().available) showDaily();
+}
+
+function startLoops() {
+  loopsStarted = true;
+  setInterval(() => {
+    if (!ui.game || $('#game').hidden) return;
+    ui.game.tick(Date.now(), { background: document.hidden });
+    renderHud();
+    if (Date.now() - lastSave > 10000) save();
+  }, 250);
+  setInterval(() => {
+    if (!ui.game || $('#game').hidden || ui.pointerHeld) return;
+    renderSide();
     renderPalette();
-    return;
-  }
-  if (mode.type === 'move') {
-    const r = game.move(mode.from.x, mode.from.y, x, y);
-    if (!r.ok) { sfx.error(); toast(r.reason, 'bad'); return; }
-    sfx.build();
-    renderer.selected = { x, y };
-    setMode({ type: 'select' });
     renderTileInfo();
-    return;
-  }
-  sfx.click();
-  renderer.selected = renderer.selected && renderer.selected.x === x && renderer.selected.y === y ? null : { x, y };
-  renderTileInfo();
+    ambientFx();
+  }, 1000);
+  const loop = () => {
+    if (ui.game && !$('#game').hidden) ui.renderer.draw(ui.game);
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
 }
 
-function setMode(mode) {
-  renderer.mode = mode;
-  document.body.dataset.mode = mode.type;
-  renderPalette();
+function onVisibility() {
+  if (!ui.game || $('#game').hidden) return;
+  if (document.hidden) save();
+  else ui.game.tick(Date.now(), { background: true });
+}
+
+function renderAll() {
+  endVisit();
+  renderPalette(true);
+  renderHud();
+  renderSide(true);
+  renderTileInfo(true);
   renderModeHint();
 }
 
+// ================================================================ eventos do motor -> som, efeitos, avisos
+function wireGame() {
+  const r = () => ui.renderer;
+  ui.game
+    .on('toast', ({ text, kind, icon }) => toast(text, kind, icon))
+    .on('built', ({ x, y, id }) => { play(id === 'mina' || id === 'pedreira' ? 'mine' : 'build'); r().pop(x, y); r().addBurst(x, y, '#fff3bf'); })
+    .on('upgraded', ({ x, y, lvl }) => { play('upgrade', 0.8); r().pop(x, y); r().addFloat(x, y, `Nível ${lvl}`, '#ffe08a'); })
+    .on('sold', ({ name }) => toast(`${name} demolida (50% devolvido).`, 'info', 'demolish'))
+    .on('moved', ({ tx, ty }) => { play('build', 0.6); r().pop(tx, ty); })
+    .on('cleared', ({ x, y, yieldRes }) => { play('chop'); for (const [res, v] of Object.entries(yieldRes)) r().addFloat(x, y, `+${fmt(v)}`, FLOAT_COLORS[res], iconKey(res, FLOAT_COLORS[res])); })
+    .on('expanded', ({ ring }) => { play('win'); toast(`Novas terras conquistadas (anel ${ring}).`, 'good', 'map'); })
+    .on('raidWarning', ({ name, strength, defense, dir }) => {
+      play('warn');
+      toast(`${name} se aproximam pelo ${DIR_NAMES[dir]}! Força ${strength} contra sua defesa ${Math.floor(defense)} desse lado.`, defense >= strength ? 'info' : 'bad', 'swords');
+    })
+    .on('raid', (res) => {
+      const next = DIR_NAMES[ui.game.state.raid.dir];
+      if (res.win) { play('win'); r().doFlash('#f2b632'); toast(`Vitória sobre ${res.name}! +${fmt(res.loot)} de ouro e +${res.gems} gema(s). A próxima horda vem do ${next}.`, 'good', 'swords'); return; }
+      play('lose'); r().doShake(650); r().doFlash('#b8412f');
+      const lost = Object.entries(res.lost).filter(([, v]) => v > 0).map(([k, v]) => `${fmt(v)} de ${RESOURCES[k].name.toLowerCase()}`).join(', ');
+      toast(`${res.name} saquearam ${lost || 'quase nada'}${res.fraction < 0.1 ? ' (proteção de novato)' : ''}. A próxima horda vem do ${next}.`, 'bad', 'warning');
+    })
+    .on('event', (ev) => { play('event'); toast(`${ev.name}: ${ev.desc}`, 'event', ev.icon); })
+    .on('chest', () => play('cart', 0.6))
+    .on('chestOpened', ({ reward, x, y }) => {
+      play('cart');
+      r().addBurst(x, y);
+      if (reward.boost) r().addFloat(x, y, `Bênção ${reward.boost} min`, '#ffe08a', iconKey('boost', '#ffe08a'));
+      else Object.entries(reward).forEach(([res, v], i) => setTimeout(() => r().addFloat(x, y, `+${fmt(v)}`, FLOAT_COLORS[res], iconKey(res, FLOAT_COLORS[res])), i * 200));
+    })
+    .on('recruited', (res) => showRecruit(res))
+    .on('expeditionStart', () => play('expedition'))
+    .on('expeditionDone', ({ hid, reward }) => {
+      play('coin');
+      const parts = [`${fmt(reward.gold)} de ouro`, `${fmt(reward.wood)} de madeira`, `${fmt(reward.stone)} de pedra`];
+      if (reward.gems) parts.push(`${reward.gems} gema(s)`);
+      if (reward.scrolls) parts.push('1 pergaminho');
+      toast(`Expedição de ${HERO_BY_ID[hid].name}: ${parts.join(', ')}.`, 'good', 'expedition');
+    })
+    .on('tierUp', ({ tier }) => { play('tier'); toast(`Passe de temporada: nível ${tier}! Resgate na aba Temporada.`, 'season', 'star'); })
+    .on('achievement', (a) => { play('achievement'); toast(`Conquista: ${a.name} (+${a.gems} gemas${a.title ? `, título "${a.title}"` : ''})`, 'good', a.icon); })
+    .on('tutorial', () => { play('confirm'); renderPalette(true); renderSide(true); })
+    .on('unlock', ({ tab, name }) => { play('tier'); toast(`Nova aba aberta: ${name}.`, 'season', 'star'); if (tab === 'herois') ui.tab = 'herois'; renderSide(true); })
+    .on('offline', (sum) => showOffline(sum))
+    .on('background', (sum) => {
+      if (sum.elapsed >= 60) toast(`Com a aba em segundo plano (${fmtTime(sum.elapsed)}): +${fmt(Math.max(0, sum.gains.gold))} de ouro.`, 'info', 'time');
+    })
+    .on('ascended', ({ crowns }) => { play('ascend'); ui.renderer.doFlash('#f2b632', 1000); toast(`Você ascendeu! +${crowns} Coroas.`, 'good', 'crowns'); renderAll(); });
+}
+
+// ================================================================ mapa: clique e hover
+function tileClick(x, y) {
+  if (ui.visiting) return;
+  const g = ui.game;
+  const s = g.state;
+  const mode = ui.renderer.mode;
+  if (s.chest && s.chest.x === x && s.chest.y === y && mode.type === 'select') { g.openChest(); return; }
+  if (mode.type === 'build') {
+    const res = g.build(mode.id, x, y);
+    if (!res.ok) { play('error'); toast(res.reason, 'bad', 'warning'); return; }
+    if (!canAfford(s.res, buildCost(s, mode.id, g.econ.mods))) setMode({ type: 'select' });
+    ui.hoverDelta = null;
+    renderPalette();
+    renderModeHint();
+    return;
+  }
+  if (mode.type === 'move') {
+    const res = g.move(mode.from.x, mode.from.y, x, y);
+    if (!res.ok) { play('error'); toast(res.reason, 'bad', 'warning'); return; }
+    ui.renderer.selected = { x, y };
+    setMode({ type: 'select' });
+    renderTileInfo(true);
+    return;
+  }
+  play('click', 0.6);
+  const sel = ui.renderer.selected;
+  ui.renderer.selected = sel && sel.x === x && sel.y === y ? null : { x, y };
+  renderTileInfo(true);
+}
+
+function onHover(t) {
+  const m = ui.renderer?.mode;
+  ui.hoverDelta = null;
+  if (t && m?.type === 'build') {
+    const tile = ui.game.tileAt(t.x, t.y);
+    if (tile.t === 'grass' && !tile.b) ui.hoverDelta = ui.game.previewBuild(m.id, t.x, t.y);
+  }
+  renderModeHint();
+}
+
+function setMode(mode) {
+  ui.renderer.mode = mode;
+  document.body.dataset.mode = mode.type;
+  ui.hoverDelta = null;
+  renderPalette(true);
+  renderModeHint();
+}
+
+function selectBuild(id) {
+  if (ui.renderer.mode.type === 'build' && ui.renderer.mode.id === id) setMode({ type: 'select' });
+  else { ui.renderer.selected = null; setMode({ type: 'build', id }); renderTileInfo(true); }
+  play('click', 0.6);
+}
+
+// ================================================================ teclado (remapeável)
 function onKey(e) {
-  if (e.target.matches('input, textarea')) return;
-  if (e.key === 'Escape') { setMode({ type: 'select' }); renderer.selected = null; closeModal(); renderTileInfo(); return; }
+  const key = e.key.toLowerCase();
+  if (remapping) {
+    e.preventDefault();
+    if (key !== 'escape') {
+      const clash = actionForKey(ui.config, key);
+      if (clash && clash !== remapping) ui.config.keys[clash] = ui.config.keys[remapping];
+      ui.config.keys[remapping] = key;
+      saveConfig();
+    }
+    remapping = null;
+    showOptions(true);
+    return;
+  }
+  if (e.target.matches?.('input, textarea, select')) return;
+  const action = actionForKey(ui.config, key);
+  if (action === 'menu') {
+    e.preventDefault();
+    if (modalOpen()) { closeModal(); return; }
+    if ($('#game').hidden || !ui.game) return;
+    const r = ui.renderer;
+    if (r.mode.type !== 'select' || r.selected || r.cursor) {
+      setMode({ type: 'select' }); r.selected = null; r.cursor = null; renderTileInfo(true); return;
+    }
+    showGameMenu();
+    return;
+  }
+  if (modalOpen() || $('#game').hidden || !ui.game) return;
+  const r = ui.renderer;
+  const moveCursor = (dx, dy) => {
+    e.preventDefault();
+    const c = r.cursor ?? r.selected ?? { x: 5, y: 5 };
+    r.cursor = { x: Math.max(0, Math.min(11, c.x + dx)), y: Math.max(0, Math.min(11, c.y + dy)) };
+    onHover(r.cursor);
+    $('#map').focus({ preventScroll: true });
+  };
+  if (action === 'up') return moveCursor(0, -1);
+  if (action === 'down') return moveCursor(0, 1);
+  if (action === 'left') return moveCursor(-1, 0);
+  if (action === 'right') return moveCursor(1, 0);
+  if (action === 'confirm' && r.cursor && document.activeElement === $('#map')) {
+    e.preventDefault();
+    const c = r.cursor;
+    tileClick(c.x, c.y);
+    r.cursor = c;
+    return;
+  }
+  const selB = r.selected && ui.game.tileAt(r.selected.x, r.selected.y).b;
+  if (action === 'upgrade' && selB) return ACTIONS.upgrade();
+  if (action === 'move' && selB) return ACTIONS.move();
+  if (action === 'sell' && selB) return ACTIONS.sell();
+  if (action === 'nextTab') {
+    const open = TAB_ORDER.filter((t) => ui.game.isTabUnlocked(t));
+    ui.tab = open[(open.indexOf(ui.tab) + 1) % open.length];
+    play('tab', 0.6);
+    renderSide(true);
+    return;
+  }
   const n = Number(e.key);
   if (n >= 1 && n <= 9) {
-    const ids = BUILDING_ORDER.filter((id) => game.isAvailable(id));
+    const ids = BUILDING_ORDER.filter((id) => ui.game.isAvailable(id));
     if (ids[n - 1]) selectBuild(ids[n - 1]);
   }
 }
 
-function selectBuild(id) {
-  if (renderer.mode.type === 'build' && renderer.mode.id === id) setMode({ type: 'select' });
-  else { renderer.selected = null; setMode({ type: 'build', id }); renderTileInfo(); }
-  sfx.click();
-}
-
-function result(r, okMsg) {
-  if (!r.ok) { sfx.error(); if (r.reason) toast(r.reason, 'bad'); return false; }
-  if (okMsg) toast(okMsg, 'good');
+// ================================================================ ações (data-action)
+function result(res, okMsg) {
+  if (!res.ok) { play('error'); if (res.reason) toast(res.reason, 'bad', 'warning'); return false; }
+  if (okMsg) toast(okMsg, 'good', 'check');
   renderSide(true);
   renderHud();
-  renderTileInfo();
+  renderTileInfo(true);
+  renderPalette();
   return true;
 }
 
 const ACTIONS = {
-  tab: (el) => { tab = el.dataset.arg; sfx.click(); renderSide(true); },
-  build: (el) => selectBuild(el.dataset.arg),
-  cancelMode: () => setMode({ type: 'select' }),
-  upgrade: () => { const { x, y } = renderer.selected; result(game.upgrade(x, y)); },
-  move: () => { setMode({ type: 'move', from: { ...renderer.selected } }); },
-  sell: () => {
-    const { x, y } = renderer.selected;
-    confirmModal('Demolir esta construção? Você recebe 50% de volta.', () => { result(game.sell(x, y)); renderer.selected = null; renderTileInfo(); });
+  // menu e telas
+  continue: () => {
+    play('confirm');
+    const st = ui.game?.state ?? loaded?.state;
+    loaded = null;
+    startGame(st);
   },
-  clear: () => { const { x, y } = renderer.selected; if (result(game.clear(x, y))) renderTileInfo(); },
-  expand: () => result(game.expand()),
-  closeTile: () => { renderer.selected = null; renderTileInfo(); },
-  recruit: (el) => result(game.recruit(el.dataset.arg)),
-  council: (el) => result(game.toggleCouncil(el.dataset.arg)),
-  expedition: (el) => { const [hid, eid] = el.dataset.arg.split('|'); if (result(game.startExpedition(hid, eid))) sfx.click(); },
-  collect: (el) => result(game.collectExpedition(el.dataset.arg)),
-  speedup: (el) => result(game.speedUpExpedition(el.dataset.arg)),
-  claimTier: (el) => result(game.claimTier(Number(el.dataset.arg))),
+  newGame: () => {
+    const has = Boolean(ui.game || loaded?.state);
+    const go = () => { loaded = null; startGame(createState({ seed: newSeed() }), { isNew: true }); };
+    if (has) confirmModal(`<h2>${ico('warning')} Começar um reino novo?</h2><p>O reino atual será substituído. Os backups automáticos ficam guardados em Save e backups.</p>`, go, { yes: 'Começar de novo', danger: true });
+    else go();
+  },
+  howTo: () => showHowTo(),
+  gameMenu: () => showGameMenu(),
+  toMainMenu: () => { save(); closeModal(); showMainMenu(); },
+  options: () => showOptions(),
+  credits: () => showCredits(),
+  saveMenu: () => showSaveMenu(),
+  closeModal: () => { play('close', 0.5); closeModal(); },
+  confirmYes: () => runConfirm(),
+  info: (el) => { const t = hudInfo(el.dataset.arg); if (t) toast(t, 'info', 'info'); },
+
+  // paleta e mapa
+  build: (el) => selectBuild(el.dataset.arg),
+  lockedBuilding: (el) => { const d = BUILDINGS[el.dataset.arg]; toast(`${d.name}: libera com ${d.unlock.buildings} construções. ${d.desc}`, 'info', 'lock'); },
+  cancelMode: () => setMode({ type: 'select' }),
+  upgrade: () => { const { x, y } = ui.renderer.selected; result(ui.game.upgrade(x, y)); },
+  upgradeMax: () => {
+    const { x, y } = ui.renderer.selected;
+    const n = ui.game.upgradeMax(x, y);
+    if (!n) { play('error'); toast('Recursos insuficientes.', 'bad', 'warning'); return; }
+    toast(`Subiu ${n} nível(is).`, 'good', 'upgrade');
+    result({ ok: true });
+  },
+  upgradeAll: () => {
+    const { x, y } = ui.renderer.selected;
+    const id = ui.game.tileAt(x, y).b.id;
+    const n = ui.game.upgradeAll(id);
+    if (!n) { play('error'); toast('Recursos insuficientes.', 'bad', 'warning'); return; }
+    toast(`${n} melhoria(s) em ${BUILDINGS[id].name}.`, 'good', 'upgrade');
+    result({ ok: true });
+  },
+  move: () => setMode({ type: 'move', from: { ...ui.renderer.selected } }),
+  sell: () => {
+    const { x, y } = ui.renderer.selected;
+    confirmModal(`<h2>${ico('demolish')} Demolir?</h2><p>Você recebe 50% do que gastou de volta.</p>`, () => { result(ui.game.sell(x, y)); ui.renderer.selected = null; renderTileInfo(true); }, { yes: 'Demolir', danger: true });
+  },
+  clear: () => { const { x, y } = ui.renderer.selected; result(ui.game.clear(x, y)); },
+  expand: () => result(ui.game.expand()),
+  closeTile: () => { ui.renderer.selected = null; renderTileInfo(true); },
+
+  // abas
+  tab: (el) => { ui.tab = el.dataset.arg; play('tab', 0.6); renderSide(true); },
+  lockedTab: (el) => toast(`${TAB_NAMES[el.dataset.arg]}: ${lockedTabHint(el.dataset.arg)}.`, 'info', 'lock'),
+  recruit: (el) => result(ui.game.recruit(el.dataset.arg)),
+  council: (el) => result(ui.game.toggleCouncil(el.dataset.arg)),
+  expedition: (el) => { const [hid, eid] = el.dataset.arg.split('|'); result(ui.game.startExpedition(hid, eid)); },
+  collect: (el) => result(ui.game.collectExpedition(el.dataset.arg)),
+  speedup: (el) => result(ui.game.speedUpExpedition(el.dataset.arg)),
+  claimTier: (el) => { if (result(ui.game.claimTier(Number(el.dataset.arg)))) play('coin'); },
   claimAllTiers: () => {
-    const max = tierOf(game.state.season.xp);
-    for (let t = 1; t <= max; t++) if (!game.state.season.claimed.includes(t)) game.claimTier(t);
-    sfx.chest();
+    const max = Math.min(SEASON_TIERS, Math.floor(ui.game.state.season.xp / XP_PER_TIER));
+    for (let t = 1; t <= max; t++) if (!ui.game.state.season.claimed.includes(t)) ui.game.claimTier(t);
+    play('coin');
     renderSide(true);
   },
-  claimMission: (el) => result(game.claimMission(Number(el.dataset.arg))),
-  daily: () => { result(game.claimDaily()); closeModal(); sfx.chest(); },
+  claimMission: (el) => { if (result(ui.game.claimMission(Number(el.dataset.arg)))) play('confirm'); },
+  daily: () => { closeModal(); if (result(ui.game.claimDaily())) play('coin'); },
   showDaily: () => showDaily(),
   ascend: () => {
-    const c = game.crownsOnAscend();
-    confirmModal(`<h3>👑 Ascender?</h3><p>Seu reino atual (prédios, recursos, terras) recomeça do zero. Você ganha <b>${c} Coroas</b> para a Árvore de Legado.</p><p>Ficam com você: heróis, gemas, coroas, temporada, conquistas, cosméticos e talentos.</p>`, () => { result(game.ascend()); renderer.selected = null; });
+    const adv = ui.game.ascendAdvice();
+    if (adv.crowns < 1) { play('error'); toast('Ainda não há Coroas a ganhar.', 'bad', 'warning'); return; }
+    confirmModal(`<h2>${resIco('crowns')} Ascender?</h2><p>O reino atual (prédios, recursos, terras) recomeça num mapa novo. Você ganha <b>${adv.crowns} Coroas</b> para a Árvore de Legado.</p><p>Ficam com você: heróis, gemas, Coroas, talentos, temporada, conquistas, cosméticos e estatísticas.</p>${adv.recommended ? '' : `<p class="warn">${ico('warning')} Ainda não é o momento recomendado: esta Ascensão não dobra as suas Coroas.</p>`}`, () => { result(ui.game.ascend()); ui.renderer.selected = null; }, { yes: 'Ascender' });
   },
-  talent: (el) => result(game.buyTalent(el.dataset.arg)),
-  greet: (el) => { const r = game.greetRival(el.dataset.arg); if (result(r)) toast(r.gift ? '👋 Eles retribuíram com 1 💎!' : '👋 Saudação enviada (+10 XP).', 'good'); },
-  trade: (el) => { const [rid, res] = el.dataset.arg.split('|'); const r = game.tradeRival(rid, res); if (result(r)) toast(`🤝 Trocou ${fmt(r.amount)} ${RESOURCES[res].icon} por ${fmt(r.gold)} 💰`, 'good'); },
+  talent: (el) => { if (result(ui.game.buyTalent(el.dataset.arg))) play('upgrade'); },
+  greet: (el) => { const res = ui.game.greetRival(el.dataset.arg); if (result(res)) toast(res.gift ? 'Eles retribuíram com 1 gema!' : 'Saudação enviada (+10 XP).', 'good', 'greet'); },
+  trade: (el) => {
+    const [rid, res] = el.dataset.arg.split('|');
+    const out = ui.game.tradeRival(rid, res);
+    if (result(out)) { play('coin'); toast(`Trocou ${fmt(out.amount)} de ${RESOURCES[res].name.toLowerCase()} por ${fmt(out.gold)} de ouro.`, 'good', 'trade'); }
+  },
   visit: (el) => {
-    const rival = game.rivals().find((r) => r.id === el.dataset.arg);
+    const rival = ui.game.rivals().find((x) => x.id === el.dataset.arg);
     if (rival) startVisit({ id: rival.id, name: rival.name, title: rival.title, banner: rival.banner, emblem: rival.emblem, power: rival.power, grid: rivalGrid(rival) });
   },
-  visitCode: () => {
-    try {
-      const k = decodeKingdom($('#friendCode').value);
-      startVisit(k);
-    } catch (err) { sfx.error(); toast(err.message, 'bad'); }
-  },
-  copyCode: () => copyText(encodeKingdom(game.state, kingdomPower(game.state)), 'Código do reino copiado! Mande para um amigo.'),
+  visitCode: () => { try { startVisit(decodeKingdom($('#friendCode').value)); } catch (err) { play('error'); toast(err.message, 'bad', 'warning'); } },
+  copyCode: () => copyText(encodeKingdom(ui.game.state, kingdomPower(ui.game.state)), 'Código do reino copiado. Mande para um amigo.'),
   endVisit: () => endVisit(),
-  rename: () => { if (result(game.setKingdomName($('#kname').value))) toast('Nome atualizado.', 'good'); },
-  equip: (el) => { const [kind, id] = el.dataset.arg.split('|'); result(game.equip(kind, id)); },
-  buyCosmetic: (el) => { const [kind, id] = el.dataset.arg.split('|'); if (result(game.buyCosmetic(kind, id))) game.equip(kind, id); },
-  toggleSound: () => { game.state.settings.sound = !game.state.settings.sound; setSound(game.state.settings.sound); renderSide(true); },
-  toggleParticles: () => { game.state.settings.particles = !game.state.settings.particles; renderSide(true); },
-  exportSave: () => copyText(exportSave(game.state), 'Save copiado para a área de transferência.'),
+  rename: () => { if (result(ui.game.setKingdomName($('#kname').value))) toast('Nome atualizado.', 'good', 'check'); },
+  equip: (el) => { const [kind, id] = el.dataset.arg.split('|'); result(ui.game.equip(kind, id)); },
+  buyCosmetic: (el) => { const [kind, id] = el.dataset.arg.split('|'); if (result(ui.game.buyCosmetic(kind, id))) { ui.game.equip(kind, id); play('coin'); } },
+
+  // save e opções
+  exportSave: () => copyText(exportCode(ui.game.state), 'Save copiado para a área de transferência. Guarde em lugar seguro.'),
   importSave: () => {
     try {
-      const st = importSave($('#saveCode').value);
-      game.state = st;
-      game.tick(Date.now());
-      save();
-      toast('Save importado!', 'good');
-      renderAll();
-    } catch (err) { sfx.error(); toast('Save inválido.', 'bad'); }
+      const { state } = importCode($('#saveCode').value);
+      closeModal();
+      confirmModal(`<h2>${ico('save')} Importar este save?</h2><p>Reino <b>${esc(state.kingdom.name)}</b>, ${fmt(state.stats.totalGold)} de ouro na vida toda. O reino atual será substituído (os backups automáticos continuam guardados).</p>`, () => { save(); startGame(state); toast('Save importado.', 'good', 'save'); }, { yes: 'Importar' });
+    } catch (err) { play('error'); toast(`Save inválido: ${err.message}`, 'bad', 'warning'); }
   },
-  hardReset: () => confirmModal('<h3>Apagar tudo?</h3><p>Isso apaga o save local para sempre (exporte antes, se quiser).</p>', () => {
-    localStorage.removeItem(SAVE_KEY);
-    game.state = createState();
-    game.tick(Date.now());
-    renderAll();
-    showIntro();
-  }),
-  closeModal: () => closeModal(),
-  confirmYes: () => { const fn = pendingConfirm; closeModal(); fn?.(); },
-  startGame: () => {
-    game.setKingdomName($('#introName').value || 'Reino de Bolso');
-    const color = document.querySelector('input[name=introBanner]:checked')?.value;
-    if (color) game.equip('banner', color);
+  restoreBackup: (el) => {
+    confirmModal(`<h2>${ico('save')} Restaurar este backup?</h2><p>O reino atual será substituído pelo backup.</p>`, () => {
+      try { const { state } = restoreBackup(store, Number(el.dataset.arg)); startGame(state); toast('Backup restaurado.', 'good', 'save'); } catch (err) { toast(`Backup ilegível: ${err.message}`, 'bad', 'warning'); }
+    }, { yes: 'Restaurar' });
+  },
+  hardReset: () => confirmModal(`<h2>${ico('warning')} Apagar o reino atual?</h2><p>O save principal será apagado. Os backups automáticos continuam disponíveis em Save e backups.</p>`, () => {
+    clearSave(store);
+    startGame(createState({ seed: newSeed() }), { isNew: true });
+  }, { yes: 'Apagar', danger: true }),
+  remap: (el) => { remapping = el.dataset.arg; showOptions(true); },
+  resetKeys: () => { ui.config.keys = Object.fromEntries(KEY_ACTIONS.map((a) => [a.id, a.key])); saveConfig(); showOptions(true); },
+  startKingdom: () => {
+    ui.game.setKingdomName($('#introName').value || 'Reino de Bolso');
+    const banner = document.querySelector('input[name=introBanner]:checked')?.value;
+    if (banner) ui.game.equip('banner', banner);
     closeModal();
     save();
     renderAll();
-    setTimeout(showDaily, 400);
+    showDaily();
   },
 };
 
 function onClick(e) {
   const el = e.target.closest('[data-action]');
-  if (!el) return;
+  if (!el || el.disabled) return;
   const fn = ACTIONS[el.dataset.action];
   if (fn) { e.preventDefault(); fn(el); }
 }
 
+// Opções: sliders e caixas com data-config aplicam na hora.
+function onInput(e) {
+  const el = e.target.closest('[data-config]');
+  if (!el) return;
+  const k = el.dataset.config;
+  const c = ui.config;
+  if (el.type === 'checkbox') c[k] = el.checked;
+  else c[k] = Number(el.value) / 100;
+  const out = document.querySelector(`[data-out="${k}"]`);
+  if (out) out.textContent = `${Math.round(Number(el.value))}%`;
+  saveConfig();
+  applyConfig();
+  if (k === 'sfxVolume') play('click');
+  if (k === 'fontScale') ui.renderer?.resize();
+}
+
 function copyText(text, msg) {
-  const done = () => toast(msg, 'good');
-  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(done, () => showModal(`<h3>Copie manualmente</h3><textarea readonly class="code">${esc(text)}</textarea><button data-action="closeModal">Fechar</button>`));
-  else showModal(`<h3>Copie manualmente</h3><textarea readonly class="code">${esc(text)}</textarea><button data-action="closeModal">Fechar</button>`);
+  const fallback = () => showModal(`<h2>${ico('copy')} Copie manualmente</h2><textarea readonly class="code">${esc(text)}</textarea><div class="row"><button class="btn" data-action="closeModal">Fechar</button></div>`, '', { priority: true });
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => toast(msg, 'good', 'copy'), fallback);
+  else fallback();
 }
 
-// ------------------------------------------------------------------ HUD
-function renderHud() {
-  const s = game.state;
-  const e = game.econ;
-  const res = ['gold', 'food', 'wood', 'stone'].map((r) => {
-    const pct = Math.min(100, (s.res[r] / e.caps[r]) * 100);
-    const rate = e.rates[r];
-    return `<div class="res ${pct >= 99.5 ? 'full' : ''}" title="${RESOURCES[r].name}: ${fmt(s.res[r])} / ${fmt(e.caps[r])}">
-      <span class="ri">${RESOURCES[r].icon}</span><span class="rv">${fmt(s.res[r])}</span>
-      <span class="rr ${rate < 0 ? 'neg' : ''}">${fmtRate(rate)}</span><i style="width:${pct}%"></i></div>`;
-  }).join('');
-  const strength = game.raidStrength();
-  const raidIn = (s.raid.nextAt - Date.now()) / 1000;
-  const safe = e.defense >= strength;
-  const ev = s.event && s.event.endsAt > Date.now() ? EVENT_BY_ID[s.event.id] : null;
-  const boost = s.boostUntil > Date.now();
-  $('#hud-res').innerHTML = `${res}
-    <div class="res gem" title="Gemas (só se ganha jogando)"><span class="ri">💎</span><span class="rv">${fmt(s.res.gems)}</span></div>
-    <div class="res" title="Moradores / capacidade · trabalhadores exigidos"><span class="ri">👥</span><span class="rv">${Math.floor(s.pop)}/${e.popCap}</span><span class="rr ${e.staffing < 1 ? 'neg' : ''}">⚒${e.workersNeeded}</span></div>
-    <div class="res" title="Felicidade: multiplica toda a produção (x${e.happinessMult.toFixed(2)})"><span class="ri">${e.happiness >= 70 ? '😄' : e.happiness >= 40 ? '🙂' : '😠'}</span><span class="rv">${Math.floor(e.happiness)}</span><span class="rr">x${e.happinessMult.toFixed(2)}</span></div>`;
-  $('#hud-status').innerHTML = `
-    <div class="raid ${safe ? 'safe' : 'danger'} ${raidIn < 20 ? 'soon' : ''}" title="Próxima invasão">
-      ${safe ? '🛡️' : '⚠️'} Defesa <b>${fmt(e.defense)}</b> vs <b>${fmt(strength)}</b> · ⏱ ${fmtTime(raidIn)}</div>
-    ${ev ? `<div class="evt">${ev.icon} ${ev.name} · ${fmtTime((s.event.endsAt - Date.now()) / 1000)}</div>` : ''}
-    ${boost ? `<div class="evt boost">✨ Bênção +50% · ${fmtTime((s.boostUntil - Date.now()) / 1000)}</div>` : ''}`;
-  const k = s.kingdom;
-  $('#brand').innerHTML = `<span class="banner" style="--bc:${bannerColor(k.banner)}">${emblemIcon(k.emblem)}</span>
-    <span><b>${esc(k.name)}</b><small>${esc(k.title)} · Poder ${fmt(kingdomPower(s))}</small></span>`;
-  renderTutorial();
-}
-
-function renderTutorial() {
-  const s = game.state;
-  const el = $('#tutorial');
-  if (s.tutorial.done || visiting) { el.hidden = true; return; }
-  const step = TUTORIAL[s.tutorial.step];
-  el.hidden = false;
-  el.innerHTML = `<b>Primeiros passos ${s.tutorial.step + 1}/${TUTORIAL.length}</b> ${step.text}`;
-}
-
-function renderModeHint() {
-  const m = renderer.mode;
-  const el = $('#modeHint');
-  if (m.type === 'build') {
-    const def = BUILDINGS[m.id];
-    el.hidden = false;
-    el.innerHTML = `${def.icon} Construindo <b>${def.name}</b> — passe o mouse no mapa para ver a adjacência. <button data-action="cancelMode">Cancelar (Esc)</button>`;
-  } else if (m.type === 'move') {
-    el.hidden = false;
-    el.innerHTML = `↔️ Escolha o novo lugar. <button data-action="cancelMode">Cancelar (Esc)</button>`;
-  } else el.hidden = true;
-}
-
-// ------------------------------------------------------------------ paleta
-function renderPalette() {
-  const s = game.state;
-  const mods = game.econ.mods;
-  let n = 0;
-  $('#palette').innerHTML = BUILDING_ORDER.map((id) => {
-    const def = BUILDINGS[id];
-    const avail = game.isAvailable(id);
-    if (avail) n++;
-    const cost = buildCost(s, id, mods);
-    const can = canAfford(s.res, cost);
-    const active = renderer.mode.type === 'build' && renderer.mode.id === id;
-    if (!avail) return `<div class="pb locked" title="Desbloqueia com ${def.unlock.buildings} construções"><span class="pi">🔒</span><span class="pn">${def.name}</span><span class="pc">${def.unlock.buildings} prédios</span></div>`;
-    return `<button class="pb ${can ? '' : 'poor'} ${active ? 'active' : ''}" data-action="build" data-arg="${id}" title="${esc(def.desc)}">
-      <span class="pi">${def.icon}</span><span class="pn">${def.name}${n <= 9 ? `<kbd>${n}</kbd>` : ''}</span><span class="pc">${costHtml(cost, s.res)}</span></button>`;
-  }).join('');
-}
-
-// ------------------------------------------------------------------ painel do tile
-function outputLines(info, def) {
-  const lines = [];
-  for (const [r, v] of Object.entries(info.out || {})) lines.push(`${RESOURCES[r].icon} ${fmtRate(v)}`);
-  if (info.consume) lines.push(`🍖 -${fmt(info.consume)}/s`);
-  if (info.defense) lines.push(`🛡️ ${fmt(info.defense)} defesa`);
-  if (def.popCap) lines.push(`👥 +${def.popCap * info.lvl} moradores`);
-  if (def.happiness) lines.push(`😄 ${def.happiness > 0 ? '+' : ''}${fmt(def.happiness * (def.happiness > 0 ? info.mult : 1))} felicidade`);
-  if (def.storage) lines.push(`📦 +${fmt(def.storage.gold * storageMult(info.lvl))}💰 / +${fmt(def.storage.food * storageMult(info.lvl))} demais`);
-  if (def.crownBonus) lines.push(`👑 +${def.crownBonus * 100}% Coroas`);
-  if (def.globalGold) lines.push(`💰 +${def.globalGold * 100}% ouro global`);
-  return lines;
-}
-
-function renderTileInfo() {
-  const el = $('#tileInfo');
-  const sel = renderer?.selected;
-  if (!sel || visiting) { el.hidden = true; return; }
-  const s = game.state;
-  const tile = s.grid.tiles[idx(sel.x, sel.y)];
-  const unlocked = isUnlocked(s.grid, sel.x, sel.y);
-  let html = '';
-  if (!unlocked) {
-    const cost = game.expandCost();
-    const nextRing = ringOf(sel.x, sel.y) === s.grid.ring + 1;
-    html = `<h4>🌫️ Terra desconhecida</h4><p>Expanda o reino para conquistar o próximo anel de terra.</p>
-      ${cost && nextRing ? `<button data-action="expand" ${canAfford(s.res, cost) ? '' : 'class="poor"'}>🗺️ Expandir ${costHtml(cost, s.res)}</button>` : '<p class="muted">Conquiste os anéis mais próximos primeiro.</p>'}`;
-  } else if (tile.b) {
-    const def = BUILDINGS[tile.b.id];
-    const info = game.econ.tiles[idx(sel.x, sel.y)];
-    const up = upgradeCost(tile.b.id, tile.b.lvl, game.econ.mods);
-    const adj = info.adjParts.length
-      ? info.adjParts.map((p) => `<li class="${p.value > 0 ? 'pos' : 'neg'}">${p.key in BUILDINGS ? BUILDINGS[p.key].icon : TERRAIN[p.key].icon || '💧'} ${p.key in BUILDINGS ? BUILDINGS[p.key].name : TERRAIN[p.key].name} ${fmtPct(p.value)}</li>`).join('')
-      : '<li class="muted">Nenhum vizinho com bônus</li>';
-    const warn = !info.active ? `<p class="warn">⚠️ Precisa estar encostada em ${TERRAIN[def.requiresAdj].name.toLowerCase()}.</p>`
-      : info.workers > 0 && game.econ.staffing < 1 ? `<p class="warn">⚠️ Faltam trabalhadores: rendendo ${Math.round(game.econ.staffing * 100)}%. Construa casas.</p>` : '';
-    html = `<h4>${def.icon} ${def.name} <small>Nv ${tile.b.lvl}</small></h4>
-      <p class="muted">${esc(def.desc)}</p>${warn}
-      <div class="stats">${outputLines(info, def).map((l) => `<span>${l}</span>`).join('')}${info.workers ? `<span>⚒ ${info.workers} trabalhadores</span>` : ''}</div>
-      <p><b>Adjacência ${fmtPct(info.adjBonus)}</b></p><ul class="adj">${adj}</ul>
-      <div class="row">
-        ${up ? `<button data-action="upgrade" class="${canAfford(s.res, up) ? 'primary' : 'poor'}">⬆️ Melhorar ${costHtml(up, s.res)}</button>` : '<span class="muted">Nível máximo</span>'}
-        <button data-action="move">↔️ Mover</button>
-        <button data-action="sell" class="danger">🏚️</button>
-      </div>`;
-  } else {
-    const ter = TERRAIN[tile.t];
-    html = `<h4>${ter.icon || (tile.t === 'water' ? '💧' : '🟩')} ${ter.name}</h4>`;
-    if (ter.clearCost) html += `<p class="muted">Pode ser limpo para construir, mas vizinhos que gostam de ${ter.name.toLowerCase()} perdem o bônus.</p>
-      <button data-action="clear" class="${canAfford(s.res, ter.clearCost) ? '' : 'poor'}">🧹 Limpar ${costHtml(ter.clearCost, s.res)} → ${fmtCost(ter.clearYield, RESOURCES)}</button>`;
-    else if (ter.buildable) html += '<p class="muted">Terreno livre. Escolha uma construção na paleta.</p>';
-    else html += `<p class="muted">Não dá para construir aqui, mas vizinhos podem ganhar bônus com ${tile.t === 'water' ? 'a água' : 'a montanha'}.</p>`;
-  }
-  el.hidden = false;
-  el.innerHTML = `<button class="x" data-action="closeTile">✕</button>${html}`;
-}
-
-// ------------------------------------------------------------------ painel lateral
-let lastSide = '';
-function renderSide(force = false) {
-  const side = $('#side-body');
-  if (!force && side.contains(document.activeElement) && document.activeElement.matches('input, textarea')) return;
-  const tabs = [['reino', '🏰', 'Reino'], ['herois', '🦸', 'Heróis'], ['temporada', '⭐', 'Temporada'], ['legado', '👑', 'Legado'], ['social', '🌐', 'Social'], ['perfil', '🎖️', 'Perfil']];
-  const badge = {
-    temporada: tierOf(game.state.season.xp) > game.state.season.claimed.length || game.state.season.missions?.list.some((m) => !m.claimed && m.progress >= m.target),
-    herois: Object.values(game.state.heroes.owned).some((h) => h.expedition && h.expedition.endsAt <= Date.now()) || game.state.items.scrolls > 0,
-    legado: game.crownsOnAscend() >= 1,
-  };
-  $('#tabs').innerHTML = tabs.map(([id, icon, name]) => `<button class="${tab === id ? 'on' : ''}" data-action="tab" data-arg="${id}">${icon}<span>${name}</span>${badge[id] ? '<i class="dot"></i>' : ''}</button>`).join('');
-  const html = { reino: tabReino, herois: tabHerois, temporada: tabTemporada, legado: tabLegado, social: tabSocial, perfil: tabPerfil }[tab]();
-  if (html !== lastSide || force) {
-    const scroll = side.scrollTop;
-    side.innerHTML = html;
-    side.scrollTop = scroll;
-    lastSide = html;
-  }
-}
-
-function tabReino() {
-  const s = game.state;
-  const e = game.econ;
-  const cost = game.expandCost();
-  const daily = game.dailyStatus();
-  const missions = s.season.missions?.list ?? [];
-  return `
-    <section class="card">
-      <h3>📜 Missões do dia</h3>
-      ${missions.map((m, i) => `<div class="mission ${m.claimed ? 'done' : ''}">
-        <span>${esc(missionText(m))}</span>
-        <div class="bar"><i style="width:${(m.progress / m.target) * 100}%"></i><em>${fmt(m.progress)}/${fmt(m.target)}</em></div>
-        ${m.claimed ? '<span class="ok">✔</span>' : `<button data-action="claimMission" data-arg="${i}" ${m.progress >= m.target ? 'class="primary"' : 'disabled'}>+${m.xp} XP</button>`}
-      </div>`).join('')}
-      <button class="${daily.available ? 'primary' : ''}" data-action="showDaily">📅 Recompensa diária ${daily.available ? '(disponível!)' : `· sequência ${s.daily.streak}`}</button>
-    </section>
-    <section class="card">
-      <h3>📊 Economia</h3>
-      <div class="grid2">
-        <span>Ouro</span><b>${fmtRate(e.rates.gold)}</b>
-        <span>Comida</span><b class="${e.rates.food < 0 ? 'neg' : ''}">${fmtRate(e.rates.food)} <small>(consumo ${fmt(e.foodConsumption)})</small></b>
-        <span>Madeira</span><b>${fmtRate(e.rates.wood)}</b>
-        <span>Pedra</span><b>${fmtRate(e.rates.stone)}</b>
-        <span>Trabalho</span><b class="${e.staffing < 1 ? 'neg' : ''}">${Math.round(e.staffing * 100)}% (${Math.floor(s.pop)}/${e.workersNeeded})</b>
-        <span>Felicidade</span><b>${Math.floor(e.happiness)} → x${e.happinessMult.toFixed(2)}</b>
-        <span>Heróis na defesa</span><b>+${fmt(e.heroPower)} poder</b>
-        <span>Invasões</span><b>${s.stats.raidsWon} vitórias · nível ${s.raid.level}</b>
-      </div>
-      ${e.rates.food < 0 ? '<p class="warn">⚠️ A comida está acabando! Sem comida, moradores vão embora e mercados param.</p>' : ''}
-      ${e.marketRatio < 1 ? '<p class="warn">⚠️ Mercados sem comida suficiente.</p>' : ''}
-    </section>
-    <section class="card">
-      <h3>🗺️ Território</h3>
-      ${cost ? `<p>Anel ${s.grid.ring}/5. Próxima expansão:</p><button data-action="expand" class="${canAfford(s.res, cost) ? 'primary' : 'poor'}">Expandir ${costHtml(cost, s.res)}</button>` : '<p>Todo o mapa é seu. 🏆</p>'}
-    </section>
-    <section class="card">
-      <h3>📖 Crônica do Reino</h3>
-      <ul class="log">${s.log.slice(0, 12).map((l) => `<li>${esc(l.text)}</li>`).join('') || '<li class="muted">Nada aconteceu... ainda.</li>'}</ul>
-    </section>`;
-}
-
-function tabHerois() {
-  const s = game.state;
-  const slots = councilSlots(game.econ.mods);
-  const goldCost = recruitGoldCost(s);
-  const now = Date.now();
-  const owned = HEROES.filter((h) => s.heroes.owned[h.id]);
-  const missing = HEROES.length - owned.length;
-  const card = (h) => {
-    const o = s.heroes.owned[h.id];
-    const inCouncil = s.heroes.council.includes(h.id);
-    const v = h.bonus.value * heroMultiplier(o.stars);
-    const bonusText = describeBonus(h.bonus.type, v);
-    let exp = '';
-    if (o.expedition) {
-      const left = (o.expedition.endsAt - now) / 1000;
-      const ex = EXPEDITIONS.find((x) => x.id === o.expedition.id);
-      exp = left <= 0
-        ? `<button class="primary" data-action="collect" data-arg="${h.id}">🎁 Coletar ${ex.name}</button>`
-        : `<div class="exp">🧭 ${ex.name} · ${fmtTime(left)} <button data-action="speedup" data-arg="${h.id}">⚡ ${speedUpCost(left)}💎</button></div>`;
-    } else if (!inCouncil) {
-      exp = `<div class="exps">${EXPEDITIONS.map((x) => `<button data-action="expedition" data-arg="${h.id}|${x.id}" title="${x.name}">🧭 ${fmtTime(x.duration)}</button>`).join('')}</div>`;
-    }
-    return `<div class="hero" style="--rc:${RARITIES[h.rarity].color}">
-      <div class="hi">${h.icon}</div>
-      <div class="hb"><b>${h.name}</b> <span class="stars">${'★'.repeat(o.stars)}${'☆'.repeat(5 - o.stars)}</span>
-        <small>${RARITIES[h.rarity].name} · ⚔ ${h.power * o.stars} · ${bonusText}</small>
-        <em>${esc(h.lore)}</em>
-        <div class="row">${o.expedition ? '' : `<button data-action="council" data-arg="${h.id}" class="${inCouncil ? 'on' : ''}">${inCouncil ? '🪑 No Conselho' : '➕ Conselho'}</button>`}</div>
-        ${exp}
-      </div></div>`;
-  };
-  return `
-    <section class="card">
-      <h3>📜 Recrutar herói</h3>
-      <p class="muted">Raridades: Comum 60% · Raro 28% · Épico 10% · Lendário 2%. Repetidos ganham estrelas. Tudo se ganha jogando.</p>
-      <div class="row wrap">
-        <button data-action="recruit" data-arg="scroll" class="${s.items.scrolls > 0 ? 'primary' : 'poor'}">📜 Pergaminho (${s.items.scrolls})</button>
-        <button data-action="recruit" data-arg="gold" class="${s.res.gold >= goldCost ? '' : 'poor'}">💰 ${fmt(goldCost)}</button>
-        <button data-action="recruit" data-arg="gems" class="${s.res.gems >= RECRUIT_GEM_COST ? '' : 'poor'}">💎 ${RECRUIT_GEM_COST}</button>
-      </div>
-    </section>
-    <section class="card">
-      <h3>🪑 Conselho ${s.heroes.council.length}/${slots}</h3>
-      <p class="muted">Heróis no Conselho dão bônus passivos e defendem o reino. Heróis fora dele podem partir em expedições.</p>
-      ${owned.length ? owned.map(card).join('') : '<p class="muted">Nenhum herói ainda. Use seu pergaminho grátis!</p>'}
-      ${missing ? `<div class="collection">${HEROES.filter((h) => !s.heroes.owned[h.id]).map((h) => `<span class="ghost" style="--rc:${RARITIES[h.rarity].color}" title="${RARITIES[h.rarity].name} — ainda não encontrado">❔</span>`).join('')}</div><p class="muted">${missing} heróis por descobrir.</p>` : '<p>📚 Coleção completa!</p>'}
-    </section>`;
-}
-
-function describeBonus(type, v) {
-  const [t, r] = type.split(':');
-  const map = {
-    prod: () => `+${Math.round(v * 100)}% ${RESOURCES[r].name.toLowerCase()}`,
-    prodAll: () => `+${Math.round(v * 100)}% toda produção`,
-    defense: () => `+${Math.round(v * 100)}% defesa`,
-    happiness: () => `+${Math.round(v)} felicidade`,
-    expedition: () => `+${Math.round(v * 100)}% expedições`,
-    cost: () => `-${Math.round(v * 100)}% custo de obras`,
-    raidLoot: () => `+${Math.round(v * 100)}% saque`,
-    terrainAdj: () => `+${Math.round(v * 100)}% adjacência de terreno`,
-    offline: () => `+${Math.round(v * 100)}% offline`,
-  };
-  return (map[t] || (() => t))();
-}
-
-function tabTemporada() {
-  const s = game.state;
-  const info = seasonInfo(Date.now());
-  const tier = tierOf(s.season.xp);
-  const into = s.season.xp - tier * XP_PER_TIER;
-  const unclaimed = Array.from({ length: tier }, (_, i) => i + 1).filter((t) => !s.season.claimed.includes(t)).length;
-  const tiers = Array.from({ length: SEASON_TIERS }, (_, i) => {
-    const t = i + 1;
-    const r = rewardFor(t, s);
-    const claimed = s.season.claimed.includes(t);
-    const reached = t <= tier;
-    return `<button class="tier ${claimed ? 'claimed' : reached ? 'ready' : ''} ${r.type === 'cosmetic' ? 'special' : ''}" data-action="claimTier" data-arg="${t}" title="${esc(r.label)}">
-      <b>${t}</b><span>${{ gems: '💎', scroll: '📜', boost: '✨', goldMinutes: '💰', cosmetic: r.kind === 'title' ? '🏷️' : r.kind === 'banner' ? '🚩' : '🔰' }[r.type]}</span></button>`;
-  }).join('');
-  return `
-    <section class="card season" style="--sc:${info.theme.color}">
-      <h3>${info.theme.icon} Temporada ${info.number} — ${info.theme.name}</h3>
-      <p>${info.theme.desc}</p>
-      <p class="muted">Termina em ${fmtTime(info.remaining)}. Próxima temporada traz um novo modificador global.</p>
-      <div class="bar big"><i style="width:${tier >= SEASON_TIERS ? 100 : (into / XP_PER_TIER) * 100}%"></i><em>Nível ${tier}/${SEASON_TIERS} · ${tier >= SEASON_TIERS ? 'MÁX' : `${into}/${XP_PER_TIER} XP`}</em></div>
-      ${unclaimed ? `<button class="primary" data-action="claimAllTiers">🎁 Resgatar ${unclaimed} recompensa(s)</button>` : ''}
-    </section>
-    <section class="card"><h3>🎟️ Passe de Temporada (gratuito)</h3><div class="tiers">${tiers}</div>
-    <p class="muted">XP vem de construir, melhorar, vencer invasões, expedições, baús, missões e da recompensa diária.</p></section>`;
-}
-
-function tabLegado() {
-  const s = game.state;
-  const crowns = game.crownsOnAscend();
-  return `
-    <section class="card">
-      <h3>👑 Ascensão</h3>
-      <p>Recomece o reino com bônus permanentes. Coroas vêm do ouro ganho nesta rodada (${fmt(s.stats.runGold)}).</p>
-      <p>Coroas: <b>${s.res.crowns}</b> · Ao ascender agora: <b class="gold">+${crowns}</b> ${game.econ.crownBonus ? `<small>(templos +${Math.round(game.econ.crownBonus * 100)}%)</small>` : ''}</p>
-      <button data-action="ascend" class="${crowns >= 1 ? 'primary' : 'poor'}">👑 Ascender</button>
-      ${crowns < 1 ? `<p class="muted">Primeira coroa com ${fmt(CROWN_DIVISOR)} de ouro na rodada.</p>` : ''}
-    </section>
-    <section class="card"><h3>🌳 Árvore de Legado</h3>
-      ${TALENTS.map((t) => {
-        const lvl = s.legacy[t.id] || 0;
-        const cost = game.talentCost(t.id);
-        return `<div class="talent"><span class="ti">${t.icon}</span><div><b>${t.name}</b> <small>${lvl}/${t.max}</small><br><small>${t.desc(Math.max(1, lvl))}${lvl ? '' : ' (nv 1)'}</small></div>
-        ${cost == null ? '<span class="ok">MÁX</span>' : `<button data-action="talent" data-arg="${t.id}" class="${s.res.crowns >= cost ? 'primary' : 'poor'}">👑 ${cost}</button>`}</div>`;
-      }).join('')}
-      <p class="muted">Talentos de início (Herança, Terras) valem a partir da próxima Ascensão.</p>
-    </section>`;
-}
-
-function tabSocial() {
-  const s = game.state;
-  const list = game.rivals();
-  const today = new Date();
-  const key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  return `
-    <section class="card">
-      <h3>🏆 Ranking da Região</h3>
-      <ol class="rank">${list.map((r, i) => `<li class="${r.me ? 'me' : ''}">
-        <span class="pos">${i + 1}</span><span class="banner sm" style="--bc:${bannerColor(r.banner)}">${emblemIcon(r.emblem)}</span>
-        <span class="rn"><b>${esc(r.name)}</b><small>${esc(r.ruler)} · ${esc(r.title)}</small></span><span class="pw">${fmt(r.power)}</span>
-        ${r.me ? '' : `<span class="ra">
-          <button data-action="visit" data-arg="${r.id}" title="Visitar">👁️</button>
-          <button data-action="greet" data-arg="${r.id}" title="Saudar (1x/dia)" ${s.social.greets[r.id] === key ? 'disabled' : ''}>👋</button>
-          <button data-action="trade" data-arg="${r.id}|wood" title="Trocar 25% da madeira por ouro (1x/h)">🪵→💰</button>
-          <button data-action="trade" data-arg="${r.id}|stone" title="Trocar 25% da pedra por ouro (1x/h)">🪨→💰</button>
-        </span>`}</li>`).join('')}</ol>
-      <p class="muted">Poder do Reino = ouro da vida toda, prédios, heróis, ascensões e vitórias.</p>
-    </section>
-    <section class="card">
-      <h3>🔗 Compartilhe seu reino</h3>
-      <p class="muted">Gere um código e mande para amigos: eles veem sua cidade exatamente como está.</p>
-      <button class="primary" data-action="copyCode">📋 Copiar código do meu reino</button>
-      <div class="row"><input id="friendCode" placeholder="Cole o código de um amigo (RB1....)"><button data-action="visitCode">👁️ Visitar</button></div>
-    </section>`;
-}
-
-function tabPerfil() {
-  const s = game.state;
-  const k = s.kingdom;
-  const got = ACHIEVEMENTS.filter((a) => s.achievements[a.id]).length;
-  return `
-    <section class="card">
-      <h3>🎖️ Identidade</h3>
-      <div class="row"><input id="kname" maxlength="24" value="${esc(k.name)}"><button data-action="rename">Salvar</button></div>
-      <h4>Estandarte</h4><div class="swatches">${BANNERS.map((b) => {
-        const own = game.ownsCosmetic('banner', b.id);
-        if (!own && b.season) return `<span class="sw locked" style="--bc:${b.color}" title="Recompensa de temporada">🔒</span>`;
-        return `<button class="sw ${k.banner === b.id ? 'on' : ''}" style="--bc:${b.color}" title="${b.name}" data-action="${own ? 'equip' : 'buyCosmetic'}" data-arg="banner|${b.id}">${own ? '' : `${b.price}💎`}</button>`;
-      }).join('')}</div>
-      <h4>Emblema</h4><div class="swatches">${EMBLEMS.map((e) => {
-        const own = game.ownsCosmetic('emblem', e.id);
-        if (!own && e.season) return `<span class="sw locked" title="Recompensa de temporada">🔒</span>`;
-        return `<button class="sw em ${k.emblem === e.id ? 'on' : ''}" data-action="${own ? 'equip' : 'buyCosmetic'}" data-arg="emblem|${e.id}">${e.icon}${own ? '' : `<small>${e.price}💎</small>`}</button>`;
-      }).join('')}</div>
-      <h4>Título</h4><div class="row wrap">${s.cosmetics.titles.map((t) => `<button class="${k.title === t ? 'on' : ''}" data-action="equip" data-arg="title|${esc(t)}">${esc(t)}</button>`).join('')}</div>
-    </section>
-    <section class="card">
-      <h3>🏆 Conquistas ${got}/${ACHIEVEMENTS.length}</h3>
-      <div class="achs">${ACHIEVEMENTS.map((a) => `<div class="ach ${s.achievements[a.id] ? 'got' : ''}" title="${esc(a.desc)}"><span>${s.achievements[a.id] ? a.icon : '🔒'}</span><b>${a.name}</b><small>${esc(a.desc)} · ${a.gems}💎${a.title ? ` · "${a.title}"` : ''}</small></div>`).join('')}</div>
-    </section>
-    <section class="card">
-      <h3>📈 Estatísticas</h3>
-      <div class="grid2">
-        <span>Ouro (vida toda)</span><b>${fmt(s.stats.totalGold)}</b>
-        <span>Construções erguidas</span><b>${s.stats.built}</b>
-        <span>Invasões</span><b>${s.stats.raidsWon}V / ${s.stats.raidsLost}D</b>
-        <span>Expedições</span><b>${s.stats.expeditions}</b>
-        <span>Ascensões</span><b>${s.stats.ascensions}</b>
-        <span>Tempo de jogo</span><b>${fmtTime(s.stats.playTime)}</b>
-      </div>
-    </section>
-    <section class="card">
-      <h3>⚙️ Configurações</h3>
-      <div class="row wrap">
-        <button data-action="toggleSound">${s.settings.sound ? '🔊 Som ligado' : '🔇 Som desligado'}</button>
-        <button data-action="toggleParticles">${s.settings.particles ? '✨ Partículas' : '▫️ Sem partículas'}</button>
-      </div>
-      <div class="row wrap"><button data-action="exportSave">💾 Exportar save</button></div>
-      <div class="row"><input id="saveCode" placeholder="Cole um save exportado"><button data-action="importSave">Importar</button></div>
-      <button class="danger" data-action="hardReset">🗑️ Apagar progresso</button>
-    </section>`;
-}
-
-// ------------------------------------------------------------------ visitas
+// ================================================================ visitas
 function startVisit(k) {
-  visiting = k;
-  renderer.view = { grid: k.grid };
-  renderer.selected = null;
+  ui.visiting = k;
+  ui.renderer.view = { grid: k.grid };
+  ui.renderer.selected = null;
   setMode({ type: 'select' });
-  game.recordVisit(k.id || k.name);
+  ui.game.recordVisit(k.id || k.name);
   const el = $('#visitBar');
   el.hidden = false;
-  el.innerHTML = `<span class="banner" style="--bc:${bannerColor(k.banner)}">${emblemIcon(k.emblem)}</span>
-    <span>Visitando <b>${esc(k.name)}</b> · ${esc(k.title)} · Poder ${fmt(k.power)}</span><button data-action="endVisit">🏠 Voltar ao meu reino</button>`;
-  renderTileInfo();
-  renderTutorial();
+  el.innerHTML = `<span class="banner sm" style="--bc:${bannerColor(k.banner)}">${ico(emblemIcon(k.emblem))}</span>
+    <span>Visitando <b>${esc(k.name)}</b> · ${esc(k.title)} · Poder ${fmt(k.power)}</span><button class="btn small" data-action="endVisit">${ico('house')} Voltar ao meu reino</button>`;
+  renderTileInfo(true);
 }
 
 function endVisit() {
-  visiting = null;
-  renderer.view = null;
+  ui.visiting = null;
+  if (ui.renderer) ui.renderer.view = null;
   $('#visitBar').hidden = true;
 }
 
-// ------------------------------------------------------------------ efeitos ambientes
+// ================================================================ efeitos ambientes
 let ambientTick = 0;
 function ambientFx() {
-  if (!game.state.settings.particles || visiting || document.hidden) return;
+  if (!ui.config.particles || ui.visiting || document.hidden) return;
   ambientTick++;
   if (ambientTick % 3 !== 0) return;
-  const e = game.econ;
   const producers = [];
-  e.tiles.forEach((info, i) => { if (info && Object.values(info.out).some((v) => v > 0)) producers.push([i, info]); });
-  if (!producers.length) return;
+  ui.game.econ.tiles.forEach((info, i) => { if (info && Object.values(info.out).some((v) => v > 0)) producers.push([i, info]); });
   for (let k = 0; k < Math.min(3, producers.length); k++) {
     const [i, info] = producers[Math.floor(Math.random() * producers.length)];
-    const [r, v] = Object.entries(info.out).sort((a, b) => b[1] - a[1])[0];
-    if (v <= 0) continue;
-    renderer.addFloat(i % 12, Math.floor(i / 12), `+${fmt(v * 3)}${RESOURCES[r].icon}`, '#fff');
+    const [res, v] = Object.entries(info.out).sort((a, b) => b[1] - a[1])[0];
+    if (v > 0) ui.renderer.addFloat(i % 12, Math.floor(i / 12), `+${fmt(v * 3)}`, '#ffffff', iconKey(res, FLOAT_COLORS[res]));
   }
 }
 
-// ------------------------------------------------------------------ modais e toasts
-let pendingConfirm = null;
-function showModal(html, cls = '') {
-  const m = $('#modal');
-  if (!m.hidden) { modalQueue.push([html, cls]); return; }
-  m.innerHTML = `<div class="sheet ${cls}">${html}</div>`;
-  m.hidden = false;
-}
-function closeModal() {
-  $('#modal').hidden = true;
-  pendingConfirm = null;
-  const next = modalQueue.shift();
-  if (next) showModal(...next);
-}
-function confirmModal(html, fn) {
-  pendingConfirm = fn;
-  showModal(`${html.startsWith('<') ? html : `<p>${html}</p>`}<div class="row"><button class="primary" data-action="confirmYes">Confirmar</button><button data-action="closeModal">Cancelar</button></div>`);
-}
-
-function toast(text, kind = 'info') {
-  const box = $('#toasts');
-  const el = document.createElement('div');
-  el.className = `toast ${kind}`;
-  el.textContent = text;
-  box.prepend(el);
-  while (box.children.length > 5) box.lastChild.remove();
-  setTimeout(() => el.classList.add('out'), 4200);
-  setTimeout(() => el.remove(), 4800);
-}
-
+// ================================================================ telas modais
 function showIntro() {
   showModal(`
-    <h2>👑 Reino de Bolso</h2>
+    <h2>${resIco('crowns')} Funde o seu reino</h2>
     <p>Você herdou um terreno, uma casa e uma fazenda. O resto é com você.</p>
     <ul class="intro">
-      <li>🧩 <b>A posição importa:</b> cada prédio ganha (ou perde) bônus dos vizinhos.</li>
-      <li>⚔️ <b>Hordas atacam</b> de tempos em tempos. Construa defesa.</li>
-      <li>🦸 <b>Colecione heróis</b>, mande em expedições e monte seu Conselho.</li>
-      <li>👑 <b>Ascenda</b> para recomeçar mais forte. Cada temporada muda as regras.</li>
-      <li>🌙 O reino <b>produz mesmo com você fora</b>. Entre 5 minutos ou fique 2 horas.</li>
+      <li>${ico('hero-architect')}<span><b>A posição importa:</b> cada prédio ganha (ou perde) bônus dos 4 vizinhos. Escolha um prédio e passe pelo mapa para ver.</span></li>
+      <li>${ico('swords')}<span><b>Hordas atacam</b> sempre por um lado anunciado. Defenda esse lado.</span></li>
+      <li>${ico('tab-heroes')}<span><b>Novas abas aparecem</b> conforme o reino cresce: heróis, temporada, social e legado.</span></li>
+      <li>${ico('time')}<span>O reino <b>produz mesmo com você fora</b>. Entre 5 minutos ou fique 2 horas.</span></li>
     </ul>
-    <label>Nome do reino <input id="introName" maxlength="24" placeholder="Reino de Bolso"></label>
-    <div class="swatches">${BANNERS.filter((b) => b.free).map((b, i) => `<label class="sw" style="--bc:${b.color}"><input type="radio" name="introBanner" value="${b.id}" ${i === 0 ? 'checked' : ''}></label>`).join('')}</div>
-    <button class="primary big" data-action="startGame">Fundar meu reino</button>`, 'intro');
+    <label for="introName">Nome do reino</label>
+    <input type="text" id="introName" maxlength="24" placeholder="Reino de Bolso" data-autofocus>
+    <label>Estandarte</label>
+    <div class="swatches">${BANNERS.filter((b) => b.free).map((b, i) => `<label class="sw" style="--bc:${b.color}" aria-label="${b.name}"><input type="radio" name="introBanner" value="${b.id}" ${i === 0 ? 'checked' : ''}></label>`).join('')}</div>
+    <button class="btn big primary" data-action="startKingdom">${ico('build')} Fundar meu reino</button>`);
+}
+
+function showHowTo() {
+  showModal(`<h2>${ico('info')} Como jogar</h2>
+    <ul class="intro">
+      <li>${ico('build')}<span>Escolha um prédio na paleta e toque no mapa. No celular, o primeiro toque mostra a prévia e o segundo constrói.</span></li>
+      <li>${ico('hero-architect')}<span>Os números verdes e vermelhos mostram o bônus de cada vizinho, e a dica no topo mostra quanto o prédio vai render ali.</span></li>
+      <li>${ico('people')}<span>Casas trazem moradores; prédios precisam de trabalhadores. Falta de gente reduz toda a produção.</span></li>
+      <li>${ico('swords')}<span>A próxima horda sempre diz de que lado vem. Torres e muralhas perto daquela borda contam inteiras.</span></li>
+      <li>${ico('cart')}<span>Carroças do mercador aparecem no mapa por 20 segundos: toque nelas.</span></li>
+      <li>${ico('crowns')}<span>Quando o crescimento desacelerar, ascenda: recomece num mapa novo com bônus permanentes.</span></li>
+      <li>${ico('keyboard')}<span>Teclado: setas movem o cursor, Enter confirma, 1 a 9 escolhem prédios, Esc abre o menu. Tudo remapeável em Opções.</span></li>
+    </ul>
+    <button class="btn big primary" data-action="closeModal" data-autofocus>Entendi</button>`, '', { priority: true });
+}
+
+function showGameMenu() {
+  play('open', 0.6);
+  showModal(`<h2>${ico('menu')} Menu</h2>
+    <div class="stack">
+      <button class="btn big primary" data-action="closeModal" data-autofocus>${ico('play')} Continuar</button>
+      <button class="btn big" data-action="options">${ico('settings')} Opções</button>
+      <button class="btn big" data-action="saveMenu">${ico('save')} Save e backups</button>
+      <button class="btn big" data-action="howTo">${ico('info')} Como jogar</button>
+      <button class="btn big" data-action="credits">${ico('scroll')} Créditos</button>
+      <button class="btn big" data-action="toMainMenu">${ico('exit')} Salvar e voltar ao menu principal</button>
+    </div>`);
+}
+
+function showOptions(replace = false) {
+  const c = ui.config;
+  const slider = (k, label, min, max, icon) => `<label for="opt-${k}">${ico(icon)} ${label}: <span data-out="${k}">${Math.round(c[k] * 100)}%</span></label>
+    <input type="range" id="opt-${k}" min="${min}" max="${max}" step="5" value="${Math.round(c[k] * 100)}" data-config="${k}">`;
+  const check = (k, label) => `<label class="check"><input type="checkbox" data-config="${k}" ${c[k] ? 'checked' : ''}> ${label}</label>`;
+  const keys = KEY_ACTIONS.map((a) => `<span>${a.label}</span><button class="btn small ${remapping === a.id ? 'primary' : ''}" data-action="remap" data-arg="${a.id}">${remapping === a.id ? 'Pressione uma tecla...' : esc(keyLabel(c.keys[a.id]))}</button>`).join('');
+  const m = musicInfo();
+  const html = `<h2>${ico('settings')} Opções</h2>
+    <h3>Som</h3>
+    ${slider('musicVolume', 'Música', 0, 100, 'music')}
+    ${m ? `<p class="muted">Faixa: ${esc(m.title)} (${esc(m.author)}, ${esc(m.license)}).</p>` : '<p class="muted">Música não instalada. O passo a passo está no EXECUTAR.md.</p>'}
+    ${slider('sfxVolume', 'Efeitos', 0, 100, 'speaker')}
+    <h3>Visual e acessibilidade</h3>
+    ${slider('fontScale', 'Tamanho do texto', 85, 150, 'font')}
+    ${check('particles', 'Partículas, aldeões e números flutuantes')}
+    ${check('reduceMotion', 'Reduzir movimento (sem tremor, flash nem animações)')}
+    ${check('highContrast', 'Alto contraste')}
+    <h3>Teclado</h3>
+    <div class="keys">${keys}</div>
+    <div class="row"><button class="btn small" data-action="resetKeys">Restaurar teclas padrão</button></div>
+    <button class="btn big primary" data-action="closeModal">Fechar</button>`;
+  if (replace && modalOpen()) { $('#modal .sheet').innerHTML = html; return; }
+  showModal(html, '', { priority: true });
+}
+
+async function showCredits() {
+  showModal(`<h2>${ico('scroll')} Créditos</h2><p class="muted">Carregando...</p>`, '', { priority: true });
+  let icons = {};
+  let sfx = {};
+  try { icons = await (await fetch('assets/icons/game-icons/credits.json')).json(); } catch { icons = {}; }
+  try { sfx = await (await fetch('assets/sfx/credits.json')).json(); } catch { sfx = {}; }
+  const byAuthor = {};
+  for (const v of Object.values(icons)) byAuthor[v.author] = (byAuthor[v.author] || 0) + 1;
+  const authorNames = { lorc: 'Lorc', delapouite: 'Delapouite', skoll: 'Skoll', sbed: 'Sbed', willdabeast: 'Willdabeast', guard13007: 'Guard13007' };
+  const packs = [...new Set(Object.values(sfx).map((v) => v.pack.replace(/^Kenney\s*–\s*/, '')))];
+  const m = musicInfo();
+  const html = `<h2>${ico('scroll')} Créditos</h2>
+    <p><b>Reino de Bolso</b>, versão ${GAME_VERSION}.</p>
+    <h3>Arte</h3>
+    <ul class="credits">
+      <li><b>Medieval RTS</b> e <b>UI Pack</b>, por Kenney (kenney.nl). Licença CC0 1.0.</li>
+      <li>Ícones de <a href="https://game-icons.net" target="_blank" rel="noopener">game-icons.net</a>, licença <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>. Icons made by ${Object.entries(byAuthor).map(([a, n]) => `<b>${authorNames[a] ?? esc(a)}</b> (${n})`).join(', ')}. Cores alteradas e fundo removido.</li>
+      <li>Fonte <b>Nunito</b>, por The Nunito Project Authors. SIL Open Font License 1.1.</li>
+    </ul>
+    <h3>Som</h3>
+    <ul class="credits">
+      <li>${packs.map((p) => `<b>${esc(p)}</b>`).join(', ')}, por Kenney (kenney.nl). Licença CC0 1.0.</li>
+      ${m ? `<li>Música: <b>${esc(m.title)}</b>, por ${esc(m.author)}. Licença ${esc(m.license)}.</li>` : '<li>Música: nenhuma instalada.</li>'}
+    </ul>
+    <p class="muted">Lista completa, arquivo por arquivo, no ASSETS.md do repositório.</p>
+    <button class="btn big primary" data-action="closeModal">Fechar</button>`;
+  if (modalOpen()) $('#modal .sheet').innerHTML = html;
+}
+
+function showSaveMenu() {
+  const backups = listBackups(store);
+  showModal(`<h2>${ico('save')} Save e backups</h2>
+    <p class="muted">O jogo salva sozinho a cada 10 segundos e guarda ${BACKUP_SLOTS} backups em rodízio (um a cada 5 minutos).</p>
+    <h3>Exportar</h3>
+    <button class="btn" data-action="exportSave">${ico('copy')} Copiar código do save</button>
+    <h3>Importar</h3>
+    <textarea id="saveCode" class="code" placeholder="Cole aqui um código de save" aria-label="Código de save"></textarea>
+    <div class="row"><button class="btn" data-action="importSave">${ico('save')} Importar</button></div>
+    <h3>Backups automáticos</h3>
+    ${backups.length ? backups.map((b) => (b.broken ? `<p class="muted">Slot ${b.slot + 1}: danificado</p>` : `<div class="row"><span>${esc(b.name)} · ${new Date(b.at).toLocaleString('pt-BR')} · ${fmt(b.gold)} de ouro</span><button class="btn small" data-action="restoreBackup" data-arg="${b.slot}">Restaurar</button></div>`)).join('') : '<p class="muted">Nenhum backup ainda (o primeiro é feito na primeira gravação).</p>'}
+    <h3>Zona de perigo</h3>
+    <button class="btn danger" data-action="hardReset">${ico('demolish')} Apagar o reino atual</button>
+    <div class="row"><button class="btn big primary" data-action="closeModal">Fechar</button></div>`, '', { priority: true });
 }
 
 function showDaily() {
-  const st = game.dailyStatus();
-  const streak = game.state.daily.streak;
-  showModal(`<h3>📅 Recompensa diária</h3>
+  const st = ui.game.dailyStatus();
+  const streak = ui.game.state.daily.streak;
+  showModal(`<h2>${ico('calendar')} Recompensa diária</h2>
     <div class="daily">${DAILY_REWARDS.map((r) => {
-      const day = r.day;
       const cur = ((st.available ? st.nextStreak : streak) - 1) % 7 + 1;
-      const done = st.available ? day < cur : day <= cur;
-      return `<div class="dr ${done ? 'done' : ''} ${st.available && day === cur ? 'today' : ''}"><b>Dia ${day}</b><span>${r.label}</span></div>`;
+      const done = st.available ? r.day < cur : r.day <= cur;
+      return `<div class="dr ${done ? 'done' : ''} ${st.available && r.day === cur ? 'today' : ''}"><b>Dia ${r.day}</b><span>${r.label}</span></div>`;
     }).join('')}</div>
-    ${st.available ? `<button class="primary big" data-action="daily">Resgatar: ${st.reward.label}</button>` : '<p class="muted">Já resgatada hoje. Volte amanhã para manter a sequência!</p><button data-action="closeModal">Fechar</button>'}`);
+    ${st.available ? `<button class="btn big primary" data-action="daily" data-autofocus>Resgatar: ${st.reward.label}</button>` : '<p class="muted">Já resgatada hoje. Volte amanhã para manter a sequência.</p><button class="btn big" data-action="closeModal">Fechar</button>'}`);
 }
 
 function showOffline(sum) {
   const g = sum.gains;
-  showModal(`<h3>🌙 Enquanto você esteve fora (${fmtTime(sum.elapsed)})</h3>
+  showModal(`<h2>${ico('time')} Enquanto você esteve fora (${fmtTime(sum.elapsed)})</h2>
     <p>Seu reino trabalhou com ${Math.round(sum.efficiency * 100)}% de eficiência${sum.capped ? ` por até ${fmtTime(sum.simulated)} (limite offline)` : ''}.</p>
-    <div class="gains">${['gold', 'food', 'wood', 'stone'].map((r) => `<div><span>${RESOURCES[r].icon}</span><b class="${g[r] < 0 ? 'neg' : ''}">${g[r] >= 0 ? '+' : ''}${fmt(g[r])}</b></div>`).join('')}</div>
-    ${sum.expeditionsReady ? `<p>🧭 ${sum.expeditionsReady} expedição(ões) prontas para coletar!</p>` : ''}
+    <div class="gains">${['gold', 'food', 'wood', 'stone'].map((r) => `<div>${resIco(r)}<b class="${g[r] < 0 ? 'neg' : ''}">${g[r] >= 0 ? '+' : ''}${fmt(g[r])}</b></div>`).join('')}</div>
+    ${sum.expeditionsReady ? `<p>${ico('expedition')} ${sum.expeditionsReady} expedição(ões) pronta(s) para coletar.</p>` : ''}
     ${sum.capped ? '<p class="muted">Aumente o limite com o talento Vigília ou o herói O Relojoeiro.</p>' : ''}
-    <button class="primary big" data-action="closeModal">Continuar</button>`);
+    <button class="btn big primary" data-action="closeModal" data-autofocus>Continuar</button>`);
 }
 
-function showRecruit(r) {
-  const h = r.hero;
+function showRecruit(res) {
+  const h = res.hero;
   const rar = RARITIES[h.rarity];
-  if (h.rarity === 'lendario') sfx.legendary(); else sfx.chest();
-  showModal(`<div class="reveal" style="--rc:${rar.color}">
-      <div class="big-icon">${h.icon}</div>
+  play(h.rarity === 'lendario' || h.rarity === 'epico' ? 'legendary' : 'recruit');
+  showModal(`<div class="reveal" style="--rc:var(--${h.rarity})">
+      <div class="portrait">${ico(h.icon)}</div>
       <p class="rarity">${rar.name}</p>
-      <h2>${h.name}</h2>
-      <p>${r.isNew ? 'Novo herói!' : r.gemsRefund ? `Já está no máximo: +${r.gemsRefund} 💎` : `Duplicado! Agora ★${r.stars}`}</p>
-      <p class="muted">${describeBonus(h.bonus.type, h.bonus.value * heroMultiplier(r.stars))} · ⚔ ${h.power * r.stars}</p>
+      <h2 style="justify-content:center">${h.name}</h2>
+      <p>${res.isNew ? 'Novo herói!' : res.gemsRefund ? `Já está no máximo: +${res.gemsRefund} gemas.` : `Repetido! Agora com ${res.stars} estrelas.`}</p>
+      <p class="muted">${describeBonus(h.bonus.type, h.bonus.value * heroMultiplier(res.stars))} · poder ${h.power * res.stars}</p>
       <em>${esc(h.lore)}</em>
-    </div><button class="primary big" data-action="closeModal">Bem-vindo(a)!</button>`, 'reveal-sheet');
-}
-
-function renderAll() {
-  endVisit();
-  renderer.selected = null;
-  setMode({ type: 'select' });
-  setSound(game.state.settings.sound);
-  renderPalette();
-  renderHud();
-  renderSide(true);
-  renderTileInfo();
+    </div><button class="btn big primary" data-action="closeModal" data-autofocus>Bem-vindo(a)!</button>`);
 }

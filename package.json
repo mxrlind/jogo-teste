@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "start": "node tools/serve.js",
-    "test": "node --test tests/*.test.js",
+    "test": "node --test tests/*.test.js && node tools/emoji-scan.js",
     "simulate": "node tools/simulate.js"
   },
   "engines": { "node": ">=18" },

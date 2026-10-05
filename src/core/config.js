@@ -14,7 +14,7 @@ export const KEY_ACTIONS = [
   { id: 'upgrade', label: 'Melhorar o prédio selecionado', key: 'u' },
   { id: 'move', label: 'Mover o prédio selecionado', key: 'm' },
   { id: 'sell', label: 'Demolir o prédio selecionado', key: 'delete' },
-  { id: 'nextTab', label: 'Próxima aba do painel', key: 'tab' },
+  { id: 'nextTab', label: 'Próxima aba do painel', key: 't' },
 ];
 
 export function defaultConfig() {

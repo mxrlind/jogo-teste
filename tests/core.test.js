@@ -411,8 +411,9 @@ test('config: padrões, limites e atalhos', () => {
 
 test('formatação de números e tempo', () => {
   assert.equal(fmt(999), '999');
-  assert.equal(fmt(1500), '1.5K');
-  assert.equal(fmt(2.5e9), '2.5B');
+  assert.equal(fmt(1500), '1,5K');
+  assert.equal(fmt(2.5e9), '2,5B');
+  assert.equal(fmt(0.25), '0,3');
   assert.equal(fmtTime(65), '1m 05s');
   assert.equal(fmtTime(3700), '1h 1m');
 });
