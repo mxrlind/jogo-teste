@@ -361,3 +361,21 @@ test('formatação de números e tempo', () => {
   assert.equal(fmtTime(65), '1m 05s');
   assert.equal(fmtTime(3700), '1h 1m');
 });
+
+test('social: visitar o mesmo reino várias vezes no dia conta uma vez só', () => {
+  const g = freshGame();
+  g.state.season.missions = { day: 'x', list: [{ id: 'visit', track: 'visit', target: 3, xp: 40, progress: 0, claimed: false }] };
+  assert.equal(g.recordVisit('r1'), true);
+  assert.equal(g.recordVisit('r1'), false);
+  assert.equal(g.recordVisit('r1'), false);
+  assert.equal(g.state.season.missions.list[0].progress, 1);
+  g.greetRival('r1');
+  assert.equal(g.state.stats.visits, 1, 'saudar o mesmo reino no mesmo dia não conta de novo');
+});
+
+test('offline: ausência curta (< 1 min) não some com o baú', () => {
+  const g = freshGame();
+  g.state.chest = { x: 4, y: 4, expiresAt: T0 + 100000 };
+  g.catchUp(T0 + 40000);
+  assert.ok(g.state.chest, 'baú continua');
+});

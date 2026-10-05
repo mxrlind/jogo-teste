@@ -30,6 +30,11 @@ let renderer;
 let tab = 'reino';
 let visiting = null;
 let lastSave = 0;
+// Enquanto um ponteiro está pressionado, os painéis não são re-renderizados: trocar o nó entre
+// pointerdown e pointerup faz o navegador descartar o "click" (bug de clique perdido).
+let pointerHeld = false;
+// Fila de modais: um modal novo espera o atual fechar (ex.: resumo offline + recompensa diária).
+const modalQueue = [];
 
 // ------------------------------------------------------------------ boot
 export function boot() {
@@ -38,7 +43,8 @@ export function boot() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (raw) state = deserialize(raw);
   } catch (err) {
-    console.warn('Save ilegível, começando do zero.', err);
+    console.warn('Save ilegível: cópia guardada em', SAVE_KEY + ':corrompido', err);
+    try { localStorage.setItem(SAVE_KEY + ':corrompido', localStorage.getItem(SAVE_KEY)); } catch { /* sem espaço */ }
   }
   const isNew = !state;
   if (!state) state = createState();
@@ -51,6 +57,9 @@ export function boot() {
   });
 
   document.addEventListener('click', onClick);
+  document.addEventListener('pointerdown', () => { pointerHeld = true; }, true);
+  document.addEventListener('pointerup', () => { pointerHeld = false; }, true);
+  document.addEventListener('pointercancel', () => { pointerHeld = false; }, true);
   document.addEventListener('keydown', onKey);
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); else game.tick(Date.now()); });
   window.addEventListener('beforeunload', save);
@@ -67,7 +76,7 @@ export function boot() {
     renderHud();
     if (Date.now() - lastSave > 10000) save();
   }, 250);
-  setInterval(() => { renderSide(); renderPalette(); renderTileInfo(); ambientFx(); }, 1000);
+  setInterval(() => { if (!pointerHeld) { renderSide(); renderPalette(); renderTileInfo(); } ambientFx(); }, 1000);
   const loop = () => { renderer.draw(game); requestAnimationFrame(loop); };
   requestAnimationFrame(loop);
 
@@ -228,7 +237,7 @@ const ACTIONS = {
   trade: (el) => { const [rid, res] = el.dataset.arg.split('|'); const r = game.tradeRival(rid, res); if (result(r)) toast(`🤝 Trocou ${fmt(r.amount)} ${RESOURCES[res].icon} por ${fmt(r.gold)} 💰`, 'good'); },
   visit: (el) => {
     const rival = game.rivals().find((r) => r.id === el.dataset.arg);
-    if (rival) startVisit({ name: rival.name, title: rival.title, banner: rival.banner, emblem: rival.emblem, power: rival.power, grid: rivalGrid(rival) });
+    if (rival) startVisit({ id: rival.id, name: rival.name, title: rival.title, banner: rival.banner, emblem: rival.emblem, power: rival.power, grid: rivalGrid(rival) });
   },
   visitCode: () => {
     try {
@@ -670,8 +679,7 @@ function startVisit(k) {
   renderer.view = { grid: k.grid };
   renderer.selected = null;
   setMode({ type: 'select' });
-  game.state.stats.visits++;
-  game.track('visit');
+  game.recordVisit(k.id || k.name);
   const el = $('#visitBar');
   el.hidden = false;
   el.innerHTML = `<span class="banner" style="--bc:${bannerColor(k.banner)}">${emblemIcon(k.emblem)}</span>
@@ -708,10 +716,16 @@ function ambientFx() {
 let pendingConfirm = null;
 function showModal(html, cls = '') {
   const m = $('#modal');
+  if (!m.hidden) { modalQueue.push([html, cls]); return; }
   m.innerHTML = `<div class="sheet ${cls}">${html}</div>`;
   m.hidden = false;
 }
-function closeModal() { $('#modal').hidden = true; pendingConfirm = null; }
+function closeModal() {
+  $('#modal').hidden = true;
+  pendingConfirm = null;
+  const next = modalQueue.shift();
+  if (next) showModal(...next);
+}
 function confirmModal(html, fn) {
   pendingConfirm = fn;
   showModal(`${html.startsWith('<') ? html : `<p>${html}</p>`}<div class="row"><button class="primary" data-action="confirmYes">Confirmar</button><button data-action="closeModal">Cancelar</button></div>`);

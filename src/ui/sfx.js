@@ -1,6 +1,13 @@
 // Efeitos sonoros sintetizados com WebAudio: sem arquivos de áudio.
 let ctx = null;
 let enabled = true;
+let unlocked = false;
+// Navegadores só permitem áudio após um gesto do usuário; antes disso os sons são ignorados.
+if (typeof window !== 'undefined') {
+  const unlock = () => { unlocked = true; ac(); window.removeEventListener('pointerdown', unlock); window.removeEventListener('keydown', unlock); };
+  window.addEventListener('pointerdown', unlock);
+  window.addEventListener('keydown', unlock);
+}
 
 export function setSound(on) { enabled = on; }
 
@@ -15,7 +22,7 @@ function ac() {
 }
 
 function tone(freq, dur = 0.1, type = 'sine', vol = 0.08, delay = 0, slide = 0) {
-  if (!enabled) return;
+  if (!enabled || !unlocked) return;
   const a = ac();
   if (!a) return;
   const t = a.currentTime + delay;
