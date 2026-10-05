@@ -41,7 +41,7 @@ export function createState({ seed = newSeed(), now = Date.now(), carry = null }
       gold: 100 + startTalent.startGold,
       food: 50,
       wood: 30 + startTalent.startWood,
-      stone: 20,
+      stone: 25, // paga a primeira muralha (tutorial, passo 4)
       gems: carry?.res?.gems ?? 0,
       crowns: carry?.res?.crowns ?? 0,
     },

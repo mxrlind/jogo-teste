@@ -49,11 +49,11 @@ Plano: a Fase 3 troca cada ícone por um asset real (seção 7) e o teste `npm t
 | B4 | Média | `src/ui/app.js:682` (antes: `stats.visits++` a cada visita) | Clicar em "Visitar" 3× completava a missão "Visite 3 reinos". Saudar contava a visita de novo. | **Corrigido**: `Game.recordVisit` conta 1× por reino por dia (`game.js:638`) + teste |
 | B5 | Baixa | `src/core/game.js:123` | Uma ausência de 30–60 s sumia com o baú e empurrava a próxima invasão. | **Corrigido**: só para ausências ≥ 1 min + teste |
 | B6 | Baixa | `src/ui/sfx.js:25` | Sons tocados antes de qualquer gesto criavam um `AudioContext` bloqueado pela política de autoplay (aviso no console). | **Corrigido**: áudio só depois do 1º gesto |
-| B7 | Média | `src/core/game.js:60` | Abas em segundo plano têm `setInterval` limitado pelo navegador. Com mais de 30 s sem tick, a volta conta como "offline" a 60%, então o jogador perde 40% só por trocar de aba. | Pendente (Fase 3: aba oculta deve simular a 100% até o limite) |
-| B8 | Baixa | `src/core/rng.js:36`, `src/core/game.js:534` | Dia diário pela data local; `now - 86400000` erra na troca de horário de verão. A doc dizia que as missões eram "iguais para todos", mas isso só vale no mesmo fuso. | Pendente (calcular "ontem" pela data, corrigir a doc) |
-| B9 | Baixa | `src/core/economy.js:136` | A felicidade de tavernas e templos ignora a falta de trabalhadores, e só a produção é afetada. É inconsistente. | Pendente (decisão de design) |
-| B10 | Baixa | `src/ui/app.js` (abas) | Tooltips (`title=`) são a única explicação de vários elementos, e não existem no toque. | Pendente (Fase 3) |
-| B11 | Baixa | `index.html:10-12` | As fontes vêm do Google Fonts. Offline ou em rede restrita, gera erro no console e troca a fonte. | Pendente (fontes locais em `/assets/fonts`) |
+| B7 | Média | `src/core/game.js:60` | Abas em segundo plano têm `setInterval` limitado pelo navegador. Com mais de 30 s sem tick, a volta conta como "offline" a 60%, então o jogador perde 40% só por trocar de aba. | **Corrigido**: aba oculta simula com eficiência total (`tick(now, { background })`) + teste |
+| B8 | Baixa | `src/core/rng.js:36`, `src/core/game.js:534` | Dia diário pela data local; `now - 86400000` erra na troca de horário de verão. A doc dizia que as missões eram "iguais para todos", mas isso só vale no mesmo fuso. | **Corrigido**: "ontem" calculado pela data + teste de horário de verão |
+| B9 | Baixa | `src/core/economy.js:136` | A felicidade de tavernas e templos ignora a falta de trabalhadores, e só a produção é afetada. É inconsistente. | Pendente: mantido como está (decisão de design ainda aberta) |
+| B10 | Baixa | `src/ui/app.js` (abas) | Tooltips (`title=`) são a única explicação de vários elementos, e não existem no toque. | **Corrigido**: chips do HUD e prédios bloqueados explicam ao tocar |
+| B11 | Baixa | `index.html:10-12` | As fontes vêm do Google Fonts. Offline ou em rede restrita, gera erro no console e troca a fonte. | **Corrigido**: Nunito local em `assets/fonts/` |
 
 ## 4. Performance
 
@@ -230,7 +230,7 @@ Legenda: **Tem** · **Mal feito** · **Falta** · **N/A** (não se aplica ao gê
 | *Extra:* funciona offline (PWA) | Falta | Útil para "jogo de bolso" |
 | *Extra:* varredura de emoji automatizada | Tem | `tools/emoji-scan.js` (entra no `npm test` na Fase 3) |
 
-## 11. Plano da Fase 3 (aguardando seu ok)
+## 11. Plano da Fase 3 (aprovado e executado; resultado na seção 12)
 
 Ordem pedida: bugs > core loop > save > sensação > interface > extras.
 
@@ -242,3 +242,36 @@ Ordem pedida: bugs > core loop > save > sensação > interface > extras.
 6. **Extras**: acessibilidade (teclado no mapa, remapeamento, contraste), PWA offline.
 
 Entregáveis ao fim: ASSETS.md, EXECUTAR.md, CHANGELOG.md, ROADMAP.md e GDD.md atualizados, com a varredura de emoji, o console limpo e a simulação documentados.
+
+## 12. Situação depois da Fase 3 (versão 0.2.0)
+
+O que mudou em cada item "Falta" ou "Mal feito" do checklist da seção 10. O que segue pendente está no [ROADMAP](../ROADMAP.md).
+
+| Item | Agora | Como |
+|---|---|---|
+| Core loop nos primeiros 60 s | Tem | Tutorial com foco no elemento certo, abas que aparecem aos poucos, prévia "+X/s" |
+| Compra em lote / melhorar tudo | Tem | "Melhorar ao máximo" e "Melhorar tudo" no painel do prédio |
+| Prévia do ganho antes de comprar | Tem | Construir, melhorar e mover mostram o ganho por segundo |
+| Indicador de "quando ascender" | Tem | Painel de Legado diz quantas Coroas a rodada rende e se vale |
+| Decisão ativa nas hordas | Parcial | Horda anunciada por um lado; a decisão é onde reforçar. A batalha em si continua automática |
+| Automação no meio do jogo | Falta | Fora do escopo desta versão |
+| Variedade no fim do jogo | Mal feito | Sem mudança; depende de conteúdo novo (ROADMAP) |
+| Efeitos sonoros reais | Tem | Kenney Interface, RPG, Impact e Music Jingles (CC0) |
+| Música com loop | Parcial | O jogo toca e credita a faixa; o arquivo depende de você (EXECUTAR.md, passo 3) |
+| Controle de volume | Tem | Música e efeitos separados |
+| Animações | Tem | Moinho, aldeões, invasores, carroça, "pop" ao construir; animação de entrada nos modais e avisos |
+| Desbloqueio gradual | Tem | Abas e prédios liberam conforme o reino cresce |
+| Menu principal, menu de jogo, opções, créditos, carregamento | Tem | Todos novos |
+| Favicon, ícone do app, manifest | Tem | Gerados a partir dos sprites (`tools/make-icons.py`) |
+| Responsivo sem hover | Tem | Toque explica o que o hover explicava |
+| Backups em rodízio, checksum, migração v1 → v2 | Tem | `src/core/storage.js`, `src/core/state.js`, com testes |
+| Tamanho do texto, alto contraste, reduzir movimento | Tem | Opções → Visual e acessibilidade |
+| Teclado e remapeamento | Tem | Cursor no mapa, atalhos em todos os painéis, todas as teclas remapeáveis |
+| Tema claro/escuro | Mudou | Um tema só (claro, "papel"), mais o modo alto contraste |
+| Daltonismo | Mal feito | A prévia mostra sinais e números, mas os tiles ainda usam verde/vermelho |
+| Erros no console | Tem | Zero erros no Chromium (carregar, jogar, salvar, recarregar) |
+| Performance | Tem | Terreno em cache, HUD montado uma vez, painéis só re-renderizam quando mudam |
+| Funciona offline (PWA) | Tem | `sw.js` guarda os arquivos depois da primeira visita |
+| Varredura de emoji no `npm test` | Tem | Falha o teste se achar qualquer emoji |
+
+**Defeito novo encontrado na verificação final**: fome em espiral (população presa em 1 morador). Corrigido; detalhes em [BALANCEAMENTO](BALANCEAMENTO.md#41-marcos-temporada-fundação-8-h-versão-020).

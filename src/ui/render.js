@@ -43,6 +43,8 @@ export class MapRenderer {
 
   resize() {
     const parent = this.canvas.parentElement.getBoundingClientRect();
+    // Elemento oculto: espera o ResizeObserver avisar quando aparecer de novo.
+    if (parent.width === 0 && parent.height === 0) return;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const fill = this.canvas.dataset.fill === 'cover';
     const size = fill ? Math.max(parent.width, parent.height) : Math.max(240, Math.floor(Math.min(parent.width, parent.height || parent.width)));
@@ -153,7 +155,7 @@ export class MapRenderer {
     const now = performance.now();
     const state = game?.state;
     const grid = this.view?.grid ?? state?.grid;
-    if (!grid) return;
+    if (!grid || !this.size) return;
     const econ = this.view ? null : game.econ;
     const T = this.tile;
     const motion = this.motionOn();
@@ -185,7 +187,7 @@ export class MapRenderer {
           if (p >= 1 || !motion) this.pops.delete(i);
           else scale = p < 0.6 ? 0.75 + (p / 0.6) * 0.4 : 1.15 - ((p - 0.6) / 0.4) * 0.15;
         }
-        const dim = info && (!info.active || (info.workers > 0 && econ.staffing < 0.5));
+        const dim = info && (!info.active || (info.workers > 0 && info.staff < 0.5));
         ctx.globalAlpha = dim ? 0.6 : 1;
         const w = (spr.full ? T : T * 0.92) * scale;
         const cx = x * T + T / 2;

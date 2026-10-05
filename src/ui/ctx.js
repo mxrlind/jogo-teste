@@ -36,7 +36,7 @@ export function deltaText(d) {
   if (!d) return '';
   const parts = [];
   const names = { gold: 'ouro', food: 'comida', wood: 'madeira', stone: 'pedra' };
-  for (const r of Object.keys(names)) if (Math.abs(d[r]) >= 0.01) parts.push(`${d[r] > 0 ? '+' : ''}${fmt(d[r])} ${names[r]}/s`);
+  for (const r of Object.keys(names)) if (Math.abs(d[r]) >= 0.05) parts.push(`${d[r] > 0 ? '+' : ''}${fmt(d[r])} ${names[r]}/s`);
   if (Math.abs(d.defense) >= 0.5) parts.push(`${d.defense > 0 ? '+' : ''}${fmt(d.defense)} defesa`);
   if (d.popCap) parts.push(`+${d.popCap} moradores`);
   if (Math.abs(d.happiness) >= 0.5) parts.push(`${d.happiness > 0 ? '+' : ''}${fmt(d.happiness)} felicidade`);

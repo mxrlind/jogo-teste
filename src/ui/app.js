@@ -37,6 +37,7 @@ let lastSave = 0;
 let menuRenderer = null;
 let menuLoop = 0;
 let remapping = null;
+let lastModeExit = 0; // Esc logo após sair de um modo não deve abrir o menu (achado do teste com jogador novo)
 
 // ================================================================ boot
 export async function boot() {
@@ -289,6 +290,7 @@ function onHover(t) {
 }
 
 function setMode(mode) {
+  if (mode.type === 'select' && ui.renderer.mode?.type !== 'select') lastModeExit = Date.now();
   ui.renderer.mode = mode;
   document.body.dataset.mode = mode.type;
   ui.hoverDelta = null;
@@ -327,6 +329,7 @@ function onKey(e) {
     if (r.mode.type !== 'select' || r.selected || r.cursor) {
       setMode({ type: 'select' }); r.selected = null; r.cursor = null; renderTileInfo(true); return;
     }
+    if (Date.now() - lastModeExit < 1500) return;
     showGameMenu();
     return;
   }

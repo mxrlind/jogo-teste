@@ -23,4 +23,4 @@ createServer(async (req, res) => {
   } catch {
     res.writeHead(404).end('404');
   }
-}).listen(port, () => console.log(`👑 Reino de Bolso em http://localhost:${port}`));
+}).listen(port, () => console.log(`Reino de Bolso em http://localhost:${port}`));

@@ -1,74 +1,208 @@
 # ASSETS
 
-Todo asset usado ou publicado com o jogo, com fonte, autor e licença. Mantenha esta tabela atualizada a cada arquivo novo em `/assets`.
+Todo asset usado ou publicado com o jogo, com onde é usado, fonte, autor, licença e link. **Gerado por `python3 tools/build-assets-md.py`**: rode de novo sempre que mudar algo em `/assets`.
 
-## Licenças em resumo
+## Licenças
 
-| Licença | Exige | Pacotes |
+| Licença | O que exige | Onde se aplica |
 |---|---|---|
-| [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | Nada (crédito é cortesia) | Kenney Medieval RTS, Kenney UI Pack |
-| [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) | **Crédito ao autor** e link para a licença, num lugar visível (tela de créditos + este arquivo) | game-icons.net (Lorc, Delapouite, Skoll) |
-| [SIL OFL 1.1](https://openfontlicense.org/) | Manter o aviso de licença junto da fonte; não vender a fonte sozinha | Nunito |
+| [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | Nada (crédito é cortesia, e damos) | Kenney: Medieval RTS, UI Pack, Interface Sounds, RPG Audio, Impact Sounds, Music Jingles |
+| [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Crédito ao autor ("Icons made by {autor}"), link da licença e indicação de mudanças. Atendido na tela de Créditos do jogo e neste arquivo | Ícones de game-icons.net |
+| [SIL OFL 1.1](https://openfontlicense.org/) | Manter o aviso de licença junto da fonte; não vender a fonte isolada | Nunito |
 
-Arquivos de licença originais estão junto de cada pacote: `assets/sprites/medieval-rts/License.txt`, `assets/ui/kenney-ui-pack/License.txt`, `assets/icons/game-icons/License.txt`, `assets/fonts/Nunito-OFL.txt`.
+Os arquivos de licença originais estão junto de cada pacote: `assets/sprites/medieval-rts/License.txt`, `assets/ui/kenney-ui-pack/License.txt`, `assets/icons/game-icons/License.txt`, `assets/sfx/License-*.txt`, `assets/fonts/Nunito-OFL.txt`.
 
 ## Origem dos downloads
 
-A rede da sessão de desenvolvimento bloqueia kenney.nl e game-icons.net, então os arquivos vieram de:
-- **Kenney**: espelho público [github.com/ETdoFresh/kenney.nl](https://github.com/ETdoFresh/kenney.nl), que contém os ZIPs extraídos com o `License.txt` original. Páginas oficiais: [Medieval RTS](https://kenney.nl/assets/medieval-rts), [UI Pack](https://kenney.nl/assets/ui-pack). O EXECUTAR.md explica como conferir.
-- **game-icons.net**: repositório oficial [github.com/game-icons/icons](https://github.com/game-icons/icons). O fundo preto de cada SVG foi removido e a cor trocada por `currentColor` para tingir via CSS (modificação permitida pela CC BY, e declarada aqui).
-- **Nunito**: pacote npm [@fontsource/nunito](https://www.npmjs.com/package/@fontsource/nunito) 5.x (arquivos do Google Fonts).
+A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.io, freesound.org e game-icons.net. Por isso:
+- **Kenney**: espelho público [github.com/ETdoFresh/kenney.nl](https://github.com/ETdoFresh/kenney.nl) (ZIPs extraídos, com o `License.txt` original). Como a licença é CC0, a redistribuição é permitida. O [EXECUTAR.md](EXECUTAR.md) explica como conferir com os ZIPs oficiais.
+- **game-icons.net**: repositório oficial [github.com/game-icons/icons](https://github.com/game-icons/icons). **Modificações**: fundo preto removido e cor trocada por `currentColor` (tingida por CSS).
+- **Sons Kenney**: convertidos de OGG para MP3 (96 kbps) para tocar em todos os navegadores. **Modificação**: só conversão de formato.
+- **Nunito**: pacote npm [@fontsource/nunito](https://www.npmjs.com/package/@fontsource/nunito) (arquivos do Google Fonts).
+- **Ícone do app**: composição gerada por `tools/make-icons.py` com dois sprites CC0 do Medieval RTS.
 
-## Sprites e interface (Kenney, CC0)
-
-| Arquivo | Onde é usado | Fonte | Autor | Licença | Link |
-|---|---|---|---|---|---|
-| `assets/sprites/medieval-rts/Tile/*.png` (58, 128 px) | Terreno do mapa (grama 57/58, floresta 42/43/46/47, água 27/28, pedra 15/16, plantação 56) | Kenney – Medieval RTS | Kenney Vleugels | CC0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
-| `assets/sprites/medieval-rts/Structure/*.png` (23) | Prédios (mapeamento em `src/ui/sprites.js`) | Kenney – Medieval RTS | Kenney Vleugels | CC0 | idem |
-| `assets/sprites/medieval-rts/Environment/*.png` (21) | Rochas, minério, arbustos, fogueira | Kenney – Medieval RTS | Kenney Vleugels | CC0 | idem |
-| `assets/sprites/medieval-rts/Unit/*.png` (24) | Reservado (aldeões animados, Fase 3) | Kenney – Medieval RTS | Kenney Vleugels | CC0 | idem |
-| `assets/ui/kenney-ui-pack/*.png` (9) | Painéis e botões | Kenney – UI Pack | Kenney Vleugels | CC0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
-
-## Ícones (game-icons.net, CC BY 3.0)
+## Sprites do mapa (Kenney – Medieval RTS, CC0)
 
 | Arquivo | Onde é usado | Fonte | Autor | Licença | Link |
 |---|---|---|---|---|---|
-| `assets/icons/game-icons/gold.svg` | ícone de interface (gold) | game-icons.net | Delapouite | CC BY 3.0 | [delapouite/two-coins.html](https://game-icons.net/1x1/delapouite/two-coins.html) |
-| `assets/icons/game-icons/food.svg` | ícone de interface (food) | game-icons.net | Lorc | CC BY 3.0 | [lorc/wheat.html](https://game-icons.net/1x1/lorc/wheat.html) |
-| `assets/icons/game-icons/wood.svg` | ícone de interface (wood) | game-icons.net | Delapouite | CC BY 3.0 | [delapouite/wood-pile.html](https://game-icons.net/1x1/delapouite/wood-pile.html) |
-| `assets/icons/game-icons/stone.svg` | ícone de interface (stone) | game-icons.net | Lorc | CC BY 3.0 | [lorc/stone-block.html](https://game-icons.net/1x1/lorc/stone-block.html) |
-| `assets/icons/game-icons/gems.svg` | ícone de interface (gems) | game-icons.net | Lorc | CC BY 3.0 | [lorc/cut-diamond.html](https://game-icons.net/1x1/lorc/cut-diamond.html) |
-| `assets/icons/game-icons/crowns.svg` | ícone de interface (crowns) | game-icons.net | Delapouite | CC BY 3.0 | [delapouite/imperial-crown.html](https://game-icons.net/1x1/delapouite/imperial-crown.html) |
-| `assets/icons/game-icons/pop.svg` | ícone de interface (pop) | game-icons.net | Delapouite | CC BY 3.0 | [delapouite/person.html](https://game-icons.net/1x1/delapouite/person.html) |
-| `assets/icons/game-icons/happiness.svg` | ícone de interface (happiness) | game-icons.net | Skoll | CC BY 3.0 | [skoll/hearts.html](https://game-icons.net/1x1/skoll/hearts.html) |
-| `assets/icons/game-icons/defense.svg` | ícone de interface (defense) | game-icons.net | Lorc | CC BY 3.0 | [lorc/checked-shield.html](https://game-icons.net/1x1/lorc/checked-shield.html) |
-| `assets/icons/game-icons/raid.svg` | ícone de interface (raid) | game-icons.net | Lorc | CC BY 3.0 | [lorc/crossed-swords.html](https://game-icons.net/1x1/lorc/crossed-swords.html) |
-| `assets/icons/game-icons/time.svg` | ícone de interface (time) | game-icons.net | Lorc | CC BY 3.0 | [lorc/hourglass.html](https://game-icons.net/1x1/lorc/hourglass.html) |
-| `assets/icons/game-icons/build.svg` | ícone de interface (build) | game-icons.net | Lorc | CC BY 3.0 | [lorc/hammer-nails.html](https://game-icons.net/1x1/lorc/hammer-nails.html) |
-| `assets/icons/game-icons/upgrade.svg` | ícone de interface (upgrade) | game-icons.net | Delapouite | CC BY 3.0 | [delapouite/upgrade.html](https://game-icons.net/1x1/delapouite/upgrade.html) |
-| `assets/icons/game-icons/map.svg` | ícone de interface (map) | game-icons.net | Lorc | CC BY 3.0 | [lorc/treasure-map.html](https://game-icons.net/1x1/lorc/treasure-map.html) |
-| `assets/icons/game-icons/trophy.svg` | ícone de interface (trophy) | game-icons.net | Delapouite | CC BY 3.0 | [delapouite/trophy-cup.html](https://game-icons.net/1x1/delapouite/trophy-cup.html) |
-| `assets/icons/game-icons/settings.svg` | ícone de interface (settings) | game-icons.net | Lorc | CC BY 3.0 | [lorc/gears.html](https://game-icons.net/1x1/lorc/gears.html) |
-| `assets/icons/game-icons/scroll.svg` | ícone de interface (scroll) | game-icons.net | Lorc | CC BY 3.0 | [lorc/scroll-unfurled.html](https://game-icons.net/1x1/lorc/scroll-unfurled.html) |
-| `assets/icons/game-icons/castle.svg` | ícone de interface (castle) | game-icons.net | Delapouite | CC BY 3.0 | [delapouite/castle.html](https://game-icons.net/1x1/delapouite/castle.html) |
-| `assets/icons/game-icons/hero-farmer.svg` | retrato de herói (hero-farmer) | game-icons.net | Delapouite | CC BY 3.0 | [delapouite/farmer.html](https://game-icons.net/1x1/delapouite/farmer.html) |
-| `assets/icons/game-icons/hero-archer.svg` | retrato de herói (hero-archer) | game-icons.net | Delapouite | CC BY 3.0 | [delapouite/archer.html](https://game-icons.net/1x1/delapouite/archer.html) |
-| `assets/icons/game-icons/hero-wizard.svg` | retrato de herói (hero-wizard) | game-icons.net | Delapouite | CC BY 3.0 | [delapouite/wizard-face.html](https://game-icons.net/1x1/delapouite/wizard-face.html) |
-| `assets/icons/game-icons/hero-dwarf.svg` | retrato de herói (hero-dwarf) | game-icons.net | Delapouite | CC BY 3.0 | [delapouite/dwarf-face.html](https://game-icons.net/1x1/delapouite/dwarf-face.html) |
-| `assets/icons/game-icons/hero-elf.svg` | retrato de herói (hero-elf) | game-icons.net | Delapouite | CC BY 3.0 | [delapouite/woman-elf-face.html](https://game-icons.net/1x1/delapouite/woman-elf-face.html) |
-| `assets/icons/game-icons/hero-dragon.svg` | retrato de herói (hero-dragon) | game-icons.net | Lorc | CC BY 3.0 | [lorc/dragon-head.html](https://game-icons.net/1x1/lorc/dragon-head.html) |
-| `assets/icons/game-icons/hero-queen.svg` | retrato de herói (hero-queen) | game-icons.net | Lorc | CC BY 3.0 | [lorc/queen-crown.html](https://game-icons.net/1x1/lorc/queen-crown.html) |
-| `assets/icons/game-icons/hero-guard.svg` | retrato de herói (hero-guard) | game-icons.net | Delapouite | CC BY 3.0 | [delapouite/guards.html](https://game-icons.net/1x1/delapouite/guards.html) |
-| `assets/icons/game-icons/hero-explorer.svg` | retrato de herói (hero-explorer) | game-icons.net | Lorc | CC BY 3.0 | [lorc/compass.html](https://game-icons.net/1x1/lorc/compass.html) |
-| `assets/icons/game-icons/hero-bard.svg` | retrato de herói (hero-bard) | game-icons.net | Delapouite | CC BY 3.0 | [delapouite/musical-notes.html](https://game-icons.net/1x1/delapouite/musical-notes.html) |
-| `assets/icons/game-icons/hero-clock.svg` | retrato de herói (hero-clock) | game-icons.net | Skoll | CC BY 3.0 | [skoll/pocket-watch.html](https://game-icons.net/1x1/skoll/pocket-watch.html) |
+| `assets/sprites/medieval-rts/Tile/` (58 PNG, 128 px: `medievalTile_01.png` a `medievalTile_58.png`) | terreno: grama 57/58, floresta 42/43/46/47, água 27/28, pedra (montanha) 15/16, plantação da Fazenda 56; demais reservados | Kenney – Medieval RTS | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
+| `assets/sprites/medieval-rts/Structure/` (23 PNG, 128 px: `medievalStructure_01.png` a `medievalStructure_23.png`) | prédios (casa 18, serraria 21, pedreira 20, mercado 22, moinho 19 + hélice 13, armazém 9, taverna 23, muralha 2, torre 1, templo 4, estátua 12), carroça do mercador 7, castelo 6 (logo e ícone) | Kenney – Medieval RTS | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
+| `assets/sprites/medieval-rts/Environment/` (21 PNG, 128 px: `medievalEnvironment_01.png` a `medievalEnvironment_21.png`) | rochas 7/8, rochedo da montanha 9/11, mina de ouro 18, jardim 19, fogueira 20; demais reservados | Kenney – Medieval RTS | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
+| `assets/sprites/medieval-rts/Unit/` (24 PNG, 128 px: `medievalUnit_01.png` a `medievalUnit_24.png`) | invasores 8/9/10, aldeões 1/13/19/24; demais reservados | Kenney – Medieval RTS | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
+
+## Interface (Kenney – UI Pack, CC0)
+
+| Arquivo | Onde é usado | Fonte | Autor | Licença | Link |
+|---|---|---|---|---|---|
+| `assets/ui/kenney-ui-pack/blue_button00.png` | reservado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+| `assets/ui/kenney-ui-pack/blue_panel.png` | reservado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+| `assets/ui/kenney-ui-pack/green_button00.png` | botão positivo | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+| `assets/ui/kenney-ui-pack/green_button01.png` | botão positivo pressionado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+| `assets/ui/kenney-ui-pack/grey_box.png` | caixa de seleção vazia | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+| `assets/ui/kenney-ui-pack/grey_button00.png` | botão padrão | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+| `assets/ui/kenney-ui-pack/grey_button01.png` | botão padrão pressionado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+| `assets/ui/kenney-ui-pack/grey_panel.png` | painéis e janelas | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+| `assets/ui/kenney-ui-pack/grey_sliderHorizontal.png` | reservado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+| `assets/ui/kenney-ui-pack/red_button00.png` | botão de perigo | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+| `assets/ui/kenney-ui-pack/red_button01.png` | botão de perigo pressionado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+| `assets/ui/kenney-ui-pack/yellow_boxCheckmark.png` | caixa de seleção marcada | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+| `assets/ui/kenney-ui-pack/yellow_button00.png` | botão principal | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+| `assets/ui/kenney-ui-pack/yellow_button01.png` | botão principal pressionado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+| `assets/ui/kenney-ui-pack/yellow_panel.png` | reservado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+| `assets/ui/kenney-ui-pack/yellow_sliderDown.png` | reservado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+
+## Ícones (game-icons.net, CC BY 3.0) — 102 arquivos
+
+| Arquivo | Onde é usado | Fonte | Autor | Licença | Link |
+|---|---|---|---|---|---|
+| `assets/icons/game-icons/banner.svg` | recompensa de estandarte | game-icons.net (`lorc/flying-flag.svg`) | Lorc | CC BY 3.0 | [lorc/flying-flag.svg](https://game-icons.net/1x1/lorc/flying-flag.html) |
+| `assets/icons/game-icons/boost.svg` | bênção | game-icons.net (`delapouite/sparkles.svg`) | Delapouite | CC BY 3.0 | [delapouite/sparkles.svg](https://game-icons.net/1x1/delapouite/sparkles.html) |
+| `assets/icons/game-icons/build.svg` | construir, novo reino | game-icons.net (`lorc/hammer-nails.svg`) | Lorc | CC BY 3.0 | [lorc/hammer-nails.svg](https://game-icons.net/1x1/lorc/hammer-nails.html) |
+| `assets/icons/game-icons/calendar.svg` | recompensa diária | game-icons.net (`delapouite/calendar.svg`) | Delapouite | CC BY 3.0 | [delapouite/calendar.svg](https://game-icons.net/1x1/delapouite/calendar.html) |
+| `assets/icons/game-icons/cart.svg` | carroça do mercador (interface) | game-icons.net (`delapouite/wooden-crate.svg`) | Delapouite | CC BY 3.0 | [delapouite/wooden-crate.svg](https://game-icons.net/1x1/delapouite/wooden-crate.html) |
+| `assets/icons/game-icons/castle.svg` | aba Reino | game-icons.net (`delapouite/castle.svg`) | Delapouite | CC BY 3.0 | [delapouite/castle.svg](https://game-icons.net/1x1/delapouite/castle.html) |
+| `assets/icons/game-icons/check.svg` | confirmado | game-icons.net (`delapouite/check-mark.svg`) | Delapouite | CC BY 3.0 | [delapouite/check-mark.svg](https://game-icons.net/1x1/delapouite/check-mark.html) |
+| `assets/icons/game-icons/clear.svg` | limpar terreno | game-icons.net (`delapouite/sickle.svg`) | Delapouite | CC BY 3.0 | [delapouite/sickle.svg](https://game-icons.net/1x1/delapouite/sickle.html) |
+| `assets/icons/game-icons/close.svg` | fechar | game-icons.net (`sbed/cancel.svg`) | Sbed | CC BY 3.0 | [sbed/cancel.svg](https://game-icons.net/1x1/sbed/cancel.html) |
+| `assets/icons/game-icons/contrast.svg` | reservado (alto contraste) | game-icons.net (`delapouite/yin-yang.svg`) | Delapouite | CC BY 3.0 | [delapouite/yin-yang.svg](https://game-icons.net/1x1/delapouite/yin-yang.html) |
+| `assets/icons/game-icons/copy.svg` | copiar código | game-icons.net (`lorc/papers.svg`) | Lorc | CC BY 3.0 | [lorc/papers.svg](https://game-icons.net/1x1/lorc/papers.html) |
+| `assets/icons/game-icons/crowns.svg` | Coroas, Ascensão, aba Legado | game-icons.net (`delapouite/imperial-crown.svg`) | Delapouite | CC BY 3.0 | [delapouite/imperial-crown.svg](https://game-icons.net/1x1/delapouite/imperial-crown.html) |
+| `assets/icons/game-icons/defense.svg` | defesa | game-icons.net (`lorc/checked-shield.svg`) | Lorc | CC BY 3.0 | [lorc/checked-shield.svg](https://game-icons.net/1x1/lorc/checked-shield.html) |
+| `assets/icons/game-icons/demolish.svg` | demolir | game-icons.net (`lorc/demolish.svg`) | Lorc | CC BY 3.0 | [lorc/demolish.svg](https://game-icons.net/1x1/lorc/demolish.html) |
+| `assets/icons/game-icons/emblem-eagle.svg` | emblema do reino | game-icons.net (`lorc/eagle-emblem.svg`) | Lorc | CC BY 3.0 | [lorc/eagle-emblem.svg](https://game-icons.net/1x1/lorc/eagle-emblem.html) |
+| `assets/icons/game-icons/emblem-lion.svg` | emblema do reino | game-icons.net (`lorc/lion.svg`) | Lorc | CC BY 3.0 | [lorc/lion.svg](https://game-icons.net/1x1/lorc/lion.html) |
+| `assets/icons/game-icons/emblem-rose.svg` | emblema do reino | game-icons.net (`lorc/rose.svg`) | Lorc | CC BY 3.0 | [lorc/rose.svg](https://game-icons.net/1x1/lorc/rose.html) |
+| `assets/icons/game-icons/emblem-shield.svg` | emblema do reino | game-icons.net (`sbed/shield.svg`) | Sbed | CC BY 3.0 | [sbed/shield.svg](https://game-icons.net/1x1/sbed/shield.html) |
+| `assets/icons/game-icons/emblem-skull.svg` | emblema do reino | game-icons.net (`lorc/skull-crossed-bones.svg`) | Lorc | CC BY 3.0 | [lorc/skull-crossed-bones.svg](https://game-icons.net/1x1/lorc/skull-crossed-bones.html) |
+| `assets/icons/game-icons/emblem-tree.svg` | emblema do reino | game-icons.net (`lorc/oak.svg`) | Lorc | CC BY 3.0 | [lorc/oak.svg](https://game-icons.net/1x1/lorc/oak.html) |
+| `assets/icons/game-icons/emblem-wolf.svg` | emblema do reino | game-icons.net (`lorc/wolf-head.svg`) | Lorc | CC BY 3.0 | [lorc/wolf-head.svg](https://game-icons.net/1x1/lorc/wolf-head.html) |
+| `assets/icons/game-icons/event-blood-moon.svg` | evento relâmpago | game-icons.net (`lorc/moon.svg`) | Lorc | CC BY 3.0 | [lorc/moon.svg](https://game-icons.net/1x1/lorc/moon.html) |
+| `assets/icons/game-icons/event-caravan.svg` | evento relâmpago | game-icons.net (`delapouite/camel-head.svg`) | Delapouite | CC BY 3.0 | [delapouite/camel-head.svg](https://game-icons.net/1x1/delapouite/camel-head.html) |
+| `assets/icons/game-icons/event-gold-rush.svg` | evento relâmpago | game-icons.net (`willdabeast/gold-bar.svg`) | Willdabeast | CC BY 3.0 | [willdabeast/gold-bar.svg](https://game-icons.net/1x1/willdabeast/gold-bar.html) |
+| `assets/icons/game-icons/event-harvest.svg` | evento relâmpago | game-icons.net (`delapouite/basket.svg`) | Delapouite | CC BY 3.0 | [delapouite/basket.svg](https://game-icons.net/1x1/delapouite/basket.html) |
+| `assets/icons/game-icons/event-inspiration.svg` | evento relâmpago | game-icons.net (`delapouite/sparkles.svg`) | Delapouite | CC BY 3.0 | [delapouite/sparkles.svg](https://game-icons.net/1x1/delapouite/sparkles.html) |
+| `assets/icons/game-icons/event-work.svg` | evento relâmpago | game-icons.net (`lorc/hammer-nails.svg`) | Lorc | CC BY 3.0 | [lorc/hammer-nails.svg](https://game-icons.net/1x1/lorc/hammer-nails.html) |
+| `assets/icons/game-icons/exit.svg` | voltar ao menu | game-icons.net (`delapouite/exit-door.svg`) | Delapouite | CC BY 3.0 | [delapouite/exit-door.svg](https://game-icons.net/1x1/delapouite/exit-door.html) |
+| `assets/icons/game-icons/expedition.svg` | expedições | game-icons.net (`lorc/compass.svg`) | Lorc | CC BY 3.0 | [lorc/compass.svg](https://game-icons.net/1x1/lorc/compass.html) |
+| `assets/icons/game-icons/font.svg` | tamanho do texto | game-icons.net (`lorc/scroll-unfurled.svg`) | Lorc | CC BY 3.0 | [lorc/scroll-unfurled.svg](https://game-icons.net/1x1/lorc/scroll-unfurled.html) |
+| `assets/icons/game-icons/food.svg` | recurso Comida | game-icons.net (`lorc/wheat.svg`) | Lorc | CC BY 3.0 | [lorc/wheat.svg](https://game-icons.net/1x1/lorc/wheat.html) |
+| `assets/icons/game-icons/gems.svg` | recurso Gemas | game-icons.net (`lorc/cut-diamond.svg`) | Lorc | CC BY 3.0 | [lorc/cut-diamond.svg](https://game-icons.net/1x1/lorc/cut-diamond.html) |
+| `assets/icons/game-icons/gold.svg` | recurso Ouro (HUD, custos, números flutuantes) | game-icons.net (`delapouite/two-coins.svg`) | Delapouite | CC BY 3.0 | [delapouite/two-coins.svg](https://game-icons.net/1x1/delapouite/two-coins.html) |
+| `assets/icons/game-icons/greet.svg` | saudar reino | game-icons.net (`delapouite/shaking-hands.svg`) | Delapouite | CC BY 3.0 | [delapouite/shaking-hands.svg](https://game-icons.net/1x1/delapouite/shaking-hands.html) |
+| `assets/icons/game-icons/happiness.svg` | felicidade (legado) | game-icons.net (`skoll/hearts.svg`) | Skoll | CC BY 3.0 | [skoll/hearts.svg](https://game-icons.net/1x1/skoll/hearts.html) |
+| `assets/icons/game-icons/heart.svg` | felicidade | game-icons.net (`skoll/hearts.svg`) | Skoll | CC BY 3.0 | [skoll/hearts.svg](https://game-icons.net/1x1/skoll/hearts.html) |
+| `assets/icons/game-icons/hero-alchemist.svg` | retrato de herói | game-icons.net (`lorc/fizzing-flask.svg`) | Lorc | CC BY 3.0 | [lorc/fizzing-flask.svg](https://game-icons.net/1x1/lorc/fizzing-flask.html) |
+| `assets/icons/game-icons/hero-archer.svg` | retrato de herói | game-icons.net (`delapouite/archer.svg`) | Delapouite | CC BY 3.0 | [delapouite/archer.svg](https://game-icons.net/1x1/delapouite/archer.html) |
+| `assets/icons/game-icons/hero-architect.svg` | retrato de herói | game-icons.net (`lorc/compass.svg`) | Lorc | CC BY 3.0 | [lorc/compass.svg](https://game-icons.net/1x1/lorc/compass.html) |
+| `assets/icons/game-icons/hero-bard.svg` | retrato de herói | game-icons.net (`delapouite/musical-notes.svg`) | Delapouite | CC BY 3.0 | [delapouite/musical-notes.svg](https://game-icons.net/1x1/delapouite/musical-notes.html) |
+| `assets/icons/game-icons/hero-clock.svg` | retrato de herói | game-icons.net (`skoll/pocket-watch.svg`) | Skoll | CC BY 3.0 | [skoll/pocket-watch.svg](https://game-icons.net/1x1/skoll/pocket-watch.html) |
+| `assets/icons/game-icons/hero-collector.svg` | retrato de herói | game-icons.net (`lorc/swap-bag.svg`) | Lorc | CC BY 3.0 | [lorc/swap-bag.svg](https://game-icons.net/1x1/lorc/swap-bag.html) |
+| `assets/icons/game-icons/hero-dragon.svg` | retrato de herói | game-icons.net (`lorc/dragon-head.svg`) | Lorc | CC BY 3.0 | [lorc/dragon-head.svg](https://game-icons.net/1x1/lorc/dragon-head.html) |
+| `assets/icons/game-icons/hero-druid.svg` | retrato de herói | game-icons.net (`lorc/oak.svg`) | Lorc | CC BY 3.0 | [lorc/oak.svg](https://game-icons.net/1x1/lorc/oak.html) |
+| `assets/icons/game-icons/hero-dwarf.svg` | retrato de herói | game-icons.net (`delapouite/dwarf-face.svg`) | Delapouite | CC BY 3.0 | [delapouite/dwarf-face.svg](https://game-icons.net/1x1/delapouite/dwarf-face.html) |
+| `assets/icons/game-icons/hero-elf.svg` | retrato de herói | game-icons.net (`delapouite/woman-elf-face.svg`) | Delapouite | CC BY 3.0 | [delapouite/woman-elf-face.svg](https://game-icons.net/1x1/delapouite/woman-elf-face.html) |
+| `assets/icons/game-icons/hero-explorer.svg` | retrato de herói | game-icons.net (`lorc/compass.svg`) | Lorc | CC BY 3.0 | [lorc/compass.svg](https://game-icons.net/1x1/lorc/compass.html) |
+| `assets/icons/game-icons/hero-farmer.svg` | retrato de herói | game-icons.net (`delapouite/farmer.svg`) | Delapouite | CC BY 3.0 | [delapouite/farmer.svg](https://game-icons.net/1x1/delapouite/farmer.html) |
+| `assets/icons/game-icons/hero-guard.svg` | retrato de herói | game-icons.net (`delapouite/guards.svg`) | Delapouite | CC BY 3.0 | [delapouite/guards.svg](https://game-icons.net/1x1/delapouite/guards.html) |
+| `assets/icons/game-icons/hero-knight.svg` | retrato de herói | game-icons.net (`lorc/visored-helm.svg`) | Lorc | CC BY 3.0 | [lorc/visored-helm.svg](https://game-icons.net/1x1/lorc/visored-helm.html) |
+| `assets/icons/game-icons/hero-mason.svg` | retrato de herói | game-icons.net (`delapouite/stone-wall.svg`) | Delapouite | CC BY 3.0 | [delapouite/stone-wall.svg](https://game-icons.net/1x1/delapouite/stone-wall.html) |
+| `assets/icons/game-icons/hero-merchant.svg` | retrato de herói | game-icons.net (`delapouite/shop.svg`) | Delapouite | CC BY 3.0 | [delapouite/shop.svg](https://game-icons.net/1x1/delapouite/shop.html) |
+| `assets/icons/game-icons/hero-queen.svg` | retrato de herói | game-icons.net (`lorc/queen-crown.svg`) | Lorc | CC BY 3.0 | [lorc/queen-crown.svg](https://game-icons.net/1x1/lorc/queen-crown.html) |
+| `assets/icons/game-icons/hero-wizard.svg` | retrato de herói | game-icons.net (`delapouite/wizard-face.svg`) | Delapouite | CC BY 3.0 | [delapouite/wizard-face.svg](https://game-icons.net/1x1/delapouite/wizard-face.html) |
+| `assets/icons/game-icons/hero-woodcutter.svg` | retrato de herói | game-icons.net (`lorc/wood-axe.svg`) | Lorc | CC BY 3.0 | [lorc/wood-axe.svg](https://game-icons.net/1x1/lorc/wood-axe.html) |
+| `assets/icons/game-icons/house.svg` | voltar ao meu reino, conquista | game-icons.net (`delapouite/house.svg`) | Delapouite | CC BY 3.0 | [delapouite/house.svg](https://game-icons.net/1x1/delapouite/house.html) |
+| `assets/icons/game-icons/info.svg` | informações, heróis não descobertos | game-icons.net (`delapouite/info.svg`) | Delapouite | CC BY 3.0 | [delapouite/info.svg](https://game-icons.net/1x1/delapouite/info.html) |
+| `assets/icons/game-icons/keyboard.svg` | atalhos de teclado | game-icons.net (`delapouite/keyboard.svg`) | Delapouite | CC BY 3.0 | [delapouite/keyboard.svg](https://game-icons.net/1x1/delapouite/keyboard.html) |
+| `assets/icons/game-icons/lock.svg` | bloqueado | game-icons.net (`lorc/padlock.svg`) | Lorc | CC BY 3.0 | [lorc/padlock.svg](https://game-icons.net/1x1/lorc/padlock.html) |
+| `assets/icons/game-icons/map.svg` | território, expansão | game-icons.net (`lorc/treasure-map.svg`) | Lorc | CC BY 3.0 | [lorc/treasure-map.svg](https://game-icons.net/1x1/lorc/treasure-map.html) |
+| `assets/icons/game-icons/menu.svg` | menu do jogo | game-icons.net (`delapouite/hamburger-menu.svg`) | Delapouite | CC BY 3.0 | [delapouite/hamburger-menu.svg](https://game-icons.net/1x1/delapouite/hamburger-menu.html) |
+| `assets/icons/game-icons/mission.svg` | missões, tutorial | game-icons.net (`delapouite/scroll-quill.svg`) | Delapouite | CC BY 3.0 | [delapouite/scroll-quill.svg](https://game-icons.net/1x1/delapouite/scroll-quill.html) |
+| `assets/icons/game-icons/motion.svg` | reservado (movimento) | game-icons.net (`lorc/wind-slap.svg`) | Lorc | CC BY 3.0 | [lorc/wind-slap.svg](https://game-icons.net/1x1/lorc/wind-slap.html) |
+| `assets/icons/game-icons/move.svg` | mover prédio | game-icons.net (`delapouite/move.svg`) | Delapouite | CC BY 3.0 | [delapouite/move.svg](https://game-icons.net/1x1/delapouite/move.html) |
+| `assets/icons/game-icons/music.svg` | volume da música | game-icons.net (`delapouite/musical-notes.svg`) | Delapouite | CC BY 3.0 | [delapouite/musical-notes.svg](https://game-icons.net/1x1/delapouite/musical-notes.html) |
+| `assets/icons/game-icons/people.svg` | moradores e trabalhadores | game-icons.net (`delapouite/person.svg`) | Delapouite | CC BY 3.0 | [delapouite/person.svg](https://game-icons.net/1x1/delapouite/person.html) |
+| `assets/icons/game-icons/play.svg` | continuar | game-icons.net (`guard13007/play-button.svg`) | Guard13007 | CC BY 3.0 | [guard13007/play-button.svg](https://game-icons.net/1x1/guard13007/play-button.html) |
+| `assets/icons/game-icons/pop.svg` | moradores (legado) | game-icons.net (`delapouite/person.svg`) | Delapouite | CC BY 3.0 | [delapouite/person.svg](https://game-icons.net/1x1/delapouite/person.html) |
+| `assets/icons/game-icons/raid.svg` | horda | game-icons.net (`lorc/crossed-swords.svg`) | Lorc | CC BY 3.0 | [lorc/crossed-swords.svg](https://game-icons.net/1x1/lorc/crossed-swords.html) |
+| `assets/icons/game-icons/save.svg` | save e backups | game-icons.net (`delapouite/save.svg`) | Delapouite | CC BY 3.0 | [delapouite/save.svg](https://game-icons.net/1x1/delapouite/save.html) |
+| `assets/icons/game-icons/scroll.svg` | pergaminho, créditos, crônica | game-icons.net (`lorc/scroll-unfurled.svg`) | Lorc | CC BY 3.0 | [lorc/scroll-unfurled.svg](https://game-icons.net/1x1/lorc/scroll-unfurled.html) |
+| `assets/icons/game-icons/season-catastrophe.svg` | tema de temporada / emblema | game-icons.net (`lorc/volcano.svg`) | Lorc | CC BY 3.0 | [lorc/volcano.svg](https://game-icons.net/1x1/lorc/volcano.html) |
+| `assets/icons/game-icons/season-expansion.svg` | tema de temporada / emblema | game-icons.net (`lorc/compass.svg`) | Lorc | CC BY 3.0 | [lorc/compass.svg](https://game-icons.net/1x1/lorc/compass.html) |
+| `assets/icons/game-icons/season-foundation.svg` | tema de temporada / emblema | game-icons.net (`delapouite/brick-wall.svg`) | Delapouite | CC BY 3.0 | [delapouite/brick-wall.svg](https://game-icons.net/1x1/delapouite/brick-wall.html) |
+| `assets/icons/game-icons/season-war.svg` | tema de temporada / emblema | game-icons.net (`lorc/crossed-swords.svg`) | Lorc | CC BY 3.0 | [lorc/crossed-swords.svg](https://game-icons.net/1x1/lorc/crossed-swords.html) |
+| `assets/icons/game-icons/settings.svg` | opções | game-icons.net (`lorc/gears.svg`) | Lorc | CC BY 3.0 | [lorc/gears.svg](https://game-icons.net/1x1/lorc/gears.html) |
+| `assets/icons/game-icons/speaker.svg` | volume de efeitos | game-icons.net (`delapouite/speaker.svg`) | Delapouite | CC BY 3.0 | [delapouite/speaker.svg](https://game-icons.net/1x1/delapouite/speaker.html) |
+| `assets/icons/game-icons/speaker-off.svg` | som desligado | game-icons.net (`delapouite/speaker-off.svg`) | Delapouite | CC BY 3.0 | [delapouite/speaker-off.svg](https://game-icons.net/1x1/delapouite/speaker-off.html) |
+| `assets/icons/game-icons/speedup.svg` | acelerar expedição | game-icons.net (`lorc/lightning-frequency.svg`) | Lorc | CC BY 3.0 | [lorc/lightning-frequency.svg](https://game-icons.net/1x1/lorc/lightning-frequency.html) |
+| `assets/icons/game-icons/star.svg` | passe de temporada, estrelas | game-icons.net (`delapouite/round-star.svg`) | Delapouite | CC BY 3.0 | [delapouite/round-star.svg](https://game-icons.net/1x1/delapouite/round-star.html) |
+| `assets/icons/game-icons/stats.svg` | economia, estatísticas | game-icons.net (`delapouite/histogram.svg`) | Delapouite | CC BY 3.0 | [delapouite/histogram.svg](https://game-icons.net/1x1/delapouite/histogram.html) |
+| `assets/icons/game-icons/stone.svg` | recurso Pedra | game-icons.net (`lorc/stone-block.svg`) | Lorc | CC BY 3.0 | [lorc/stone-block.svg](https://game-icons.net/1x1/lorc/stone-block.html) |
+| `assets/icons/game-icons/sun.svg` | reservado | game-icons.net (`lorc/sun.svg`) | Lorc | CC BY 3.0 | [lorc/sun.svg](https://game-icons.net/1x1/lorc/sun.html) |
+| `assets/icons/game-icons/swords.svg` | hordas, conquista | game-icons.net (`lorc/crossed-swords.svg`) | Lorc | CC BY 3.0 | [lorc/crossed-swords.svg](https://game-icons.net/1x1/lorc/crossed-swords.html) |
+| `assets/icons/game-icons/tab-heroes.svg` | aba Heróis | game-icons.net (`lorc/visored-helm.svg`) | Lorc | CC BY 3.0 | [lorc/visored-helm.svg](https://game-icons.net/1x1/lorc/visored-helm.html) |
+| `assets/icons/game-icons/tab-profile.svg` | aba Perfil | game-icons.net (`lorc/shield-echoes.svg`) | Lorc | CC BY 3.0 | [lorc/shield-echoes.svg](https://game-icons.net/1x1/lorc/shield-echoes.html) |
+| `assets/icons/game-icons/tab-social.svg` | aba Social | game-icons.net (`delapouite/village.svg`) | Delapouite | CC BY 3.0 | [delapouite/village.svg](https://game-icons.net/1x1/delapouite/village.html) |
+| `assets/icons/game-icons/talent-butler.svg` | talento da Árvore de Legado | game-icons.net (`lorc/top-hat.svg`) | Lorc | CC BY 3.0 | [lorc/top-hat.svg](https://game-icons.net/1x1/lorc/top-hat.html) |
+| `assets/icons/game-icons/talent-engineering.svg` | talento da Árvore de Legado | game-icons.net (`delapouite/hand-saw.svg`) | Delapouite | CC BY 3.0 | [delapouite/hand-saw.svg](https://game-icons.net/1x1/delapouite/hand-saw.html) |
+| `assets/icons/game-icons/talent-harvest.svg` | talento da Árvore de Legado | game-icons.net (`delapouite/corn.svg`) | Delapouite | CC BY 3.0 | [delapouite/corn.svg](https://game-icons.net/1x1/delapouite/corn.html) |
+| `assets/icons/game-icons/talent-inheritance.svg` | talento da Árvore de Legado | game-icons.net (`lorc/locked-chest.svg`) | Lorc | CC BY 3.0 | [lorc/locked-chest.svg](https://game-icons.net/1x1/lorc/locked-chest.html) |
+| `assets/icons/game-icons/talent-mining.svg` | talento da Árvore de Legado | game-icons.net (`delapouite/gold-mine.svg`) | Delapouite | CC BY 3.0 | [delapouite/gold-mine.svg](https://game-icons.net/1x1/delapouite/gold-mine.html) |
+| `assets/icons/game-icons/talent-round-table.svg` | talento da Árvore de Legado | game-icons.net (`delapouite/round-table.svg`) | Delapouite | CC BY 3.0 | [delapouite/round-table.svg](https://game-icons.net/1x1/delapouite/round-table.html) |
+| `assets/icons/game-icons/talent-vigil.svg` | talento da Árvore de Legado | game-icons.net (`lorc/night-sky.svg`) | Lorc | CC BY 3.0 | [lorc/night-sky.svg](https://game-icons.net/1x1/lorc/night-sky.html) |
+| `assets/icons/game-icons/talent-walls.svg` | talento da Árvore de Legado | game-icons.net (`delapouite/castle-ruins.svg`) | Delapouite | CC BY 3.0 | [delapouite/castle-ruins.svg](https://game-icons.net/1x1/delapouite/castle-ruins.html) |
+| `assets/icons/game-icons/time.svg` | tempo, offline | game-icons.net (`lorc/hourglass.svg`) | Lorc | CC BY 3.0 | [lorc/hourglass.svg](https://game-icons.net/1x1/lorc/hourglass.html) |
+| `assets/icons/game-icons/trade.svg` | troca | game-icons.net (`lorc/trade.svg`) | Lorc | CC BY 3.0 | [lorc/trade.svg](https://game-icons.net/1x1/lorc/trade.html) |
+| `assets/icons/game-icons/trophy.svg` | conquistas, ranking | game-icons.net (`delapouite/trophy-cup.svg`) | Delapouite | CC BY 3.0 | [delapouite/trophy-cup.svg](https://game-icons.net/1x1/delapouite/trophy-cup.html) |
+| `assets/icons/game-icons/upgrade.svg` | melhorar | game-icons.net (`delapouite/upgrade.svg`) | Delapouite | CC BY 3.0 | [delapouite/upgrade.svg](https://game-icons.net/1x1/delapouite/upgrade.html) |
+| `assets/icons/game-icons/visit.svg` | visitar reino | game-icons.net (`lorc/magnifying-glass.svg`) | Lorc | CC BY 3.0 | [lorc/magnifying-glass.svg](https://game-icons.net/1x1/lorc/magnifying-glass.html) |
+| `assets/icons/game-icons/warning.svg` | aviso (HUD e mapa) | game-icons.net (`lorc/hazard-sign.svg`) | Lorc | CC BY 3.0 | [lorc/hazard-sign.svg](https://game-icons.net/1x1/lorc/hazard-sign.html) |
+| `assets/icons/game-icons/wood.svg` | recurso Madeira | game-icons.net (`delapouite/wood-pile.svg`) | Delapouite | CC BY 3.0 | [delapouite/wood-pile.svg](https://game-icons.net/1x1/delapouite/wood-pile.html) |
+
+## Efeitos sonoros (Kenney, CC0)
+
+| Arquivo | Onde é usado | Fonte (arquivo original) | Autor | Licença | Link |
+|---|---|---|---|---|---|
+| `assets/sfx/achievement.mp3` | conquista | Kenney – Music Jingles (`Audio/Pizzicato jingles/jingles_PIZZI16.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/music-jingles](https://kenney.nl/assets/music-jingles) |
+| `assets/sfx/ascend.mp3` | Ascensão | Kenney – Music Jingles (`Audio/Pizzicato jingles/jingles_PIZZI12.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/music-jingles](https://kenney.nl/assets/music-jingles) |
+| `assets/sfx/build.mp3` | construir/mover | Kenney – Impact Sounds (`Audio/impactPlank_medium_001.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/impact-sounds](https://kenney.nl/assets/impact-sounds) |
+| `assets/sfx/cart.mp3` | carroça do mercador | Kenney – RPG Audio (`Audio/handleCoins2.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/rpg-audio](https://kenney.nl/assets/rpg-audio) |
+| `assets/sfx/chop.mp3` | limpar terreno | Kenney – RPG Audio (`Audio/chop.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/rpg-audio](https://kenney.nl/assets/rpg-audio) |
+| `assets/sfx/click.mp3` | cliques e seleção | Kenney – Interface Sounds (`Audio/click_002.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/interface-sounds](https://kenney.nl/assets/interface-sounds) |
+| `assets/sfx/close.mp3` | fechar janela | Kenney – Interface Sounds (`Audio/close_001.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/interface-sounds](https://kenney.nl/assets/interface-sounds) |
+| `assets/sfx/coin.mp3` | recompensas, expedição | Kenney – RPG Audio (`Audio/handleCoins.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/rpg-audio](https://kenney.nl/assets/rpg-audio) |
+| `assets/sfx/confirm.mp3` | missão, tutorial | Kenney – Interface Sounds (`Audio/confirmation_002.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/interface-sounds](https://kenney.nl/assets/interface-sounds) |
+| `assets/sfx/error.mp3` | ação inválida | Kenney – Interface Sounds (`Audio/error_004.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/interface-sounds](https://kenney.nl/assets/interface-sounds) |
+| `assets/sfx/event.mp3` | evento relâmpago | Kenney – Interface Sounds (`Audio/bong_001.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/interface-sounds](https://kenney.nl/assets/interface-sounds) |
+| `assets/sfx/expedition.mp3` | iniciar expedição | Kenney – RPG Audio (`Audio/beltHandle1.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/rpg-audio](https://kenney.nl/assets/rpg-audio) |
+| `assets/sfx/legendary.mp3` | herói épico/lendário | Kenney – Music Jingles (`Audio/Pizzicato jingles/jingles_PIZZI15.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/music-jingles](https://kenney.nl/assets/music-jingles) |
+| `assets/sfx/lose.mp3` | derrota em horda | Kenney – Music Jingles (`Audio/Pizzicato jingles/jingles_PIZZI01.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/music-jingles](https://kenney.nl/assets/music-jingles) |
+| `assets/sfx/mine.mp3` | construir pedreira/mina | Kenney – Impact Sounds (`Audio/impactMining_002.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/impact-sounds](https://kenney.nl/assets/impact-sounds) |
+| `assets/sfx/open.mp3` | abrir menu | Kenney – Interface Sounds (`Audio/open_001.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/interface-sounds](https://kenney.nl/assets/interface-sounds) |
+| `assets/sfx/recruit.mp3` | recrutar herói comum/raro | Kenney – RPG Audio (`Audio/bookOpen.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/rpg-audio](https://kenney.nl/assets/rpg-audio) |
+| `assets/sfx/tab.mp3` | trocar de aba | Kenney – Interface Sounds (`Audio/switch_002.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/interface-sounds](https://kenney.nl/assets/interface-sounds) |
+| `assets/sfx/tier.mp3` | nível do passe, nova aba | Kenney – Music Jingles (`Audio/Pizzicato jingles/jingles_PIZZI10.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/music-jingles](https://kenney.nl/assets/music-jingles) |
+| `assets/sfx/upgrade.mp3` | melhorar prédio | Kenney – Interface Sounds (`Audio/maximize_003.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/interface-sounds](https://kenney.nl/assets/interface-sounds) |
+| `assets/sfx/warn.mp3` | aviso de horda | Kenney – Impact Sounds (`Audio/impactBell_heavy_000.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/impact-sounds](https://kenney.nl/assets/impact-sounds) |
+| `assets/sfx/win.mp3` | vitória, expansão | Kenney – Music Jingles (`Audio/Pizzicato jingles/jingles_PIZZI02.ogg`) | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/music-jingles](https://kenney.nl/assets/music-jingles) |
+
+## Música
+
+Nenhuma faixa instalada ainda. Recomendação e passo a passo: [EXECUTAR.md](EXECUTAR.md), seção "Música". O jogo funciona sem música.
 
 ## Fontes
 
 | Arquivo | Onde é usado | Fonte | Autor | Licença | Link |
 |---|---|---|---|---|---|
-| `assets/fonts/nunito-latin-400-normal.woff2`, `nunito-latin-ext-400-normal.woff2`, `nunito-latin-800-normal.woff2` | Todo o texto | Fontsource / Google Fonts | The Nunito Project Authors | SIL OFL 1.1 | [github.com/googlefonts/nunito](https://github.com/googlefonts/nunito) |
+| `assets/fonts/nunito-latin-400-normal.woff2` | todo o texto (400 corpo, 800 títulos e números) | Fontsource / Google Fonts | The Nunito Project Authors | SIL OFL 1.1 | [github.com/googlefonts/nunito](https://github.com/googlefonts/nunito) |
+| `assets/fonts/nunito-latin-800-normal.woff2` | todo o texto (400 corpo, 800 títulos e números) | Fontsource / Google Fonts | The Nunito Project Authors | SIL OFL 1.1 | [github.com/googlefonts/nunito](https://github.com/googlefonts/nunito) |
+| `assets/fonts/nunito-latin-ext-400-normal.woff2` | todo o texto (400 corpo, 800 títulos e números) | Fontsource / Google Fonts | The Nunito Project Authors | SIL OFL 1.1 | [github.com/googlefonts/nunito](https://github.com/googlefonts/nunito) |
 
-## Áudio
+## Ícone do app e favicon
 
-Ainda nenhum arquivo (Fase 3: Kenney Interface Sounds, RPG Audio, Impact Sounds, Music Jingles, CC0; música RandomMind, CC0, download manual).
+| Arquivo | Onde é usado | Fonte | Autor | Licença | Link |
+|---|---|---|---|---|---|
+| `assets/icons/app/apple-touch-icon.png` | favicon, ícone de tela inicial, manifest | composição de `medievalTile_57` + `medievalStructure_06` (Kenney – Medieval RTS) via `tools/make-icons.py` | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
+| `assets/icons/app/favicon-32.png` | favicon, ícone de tela inicial, manifest | composição de `medievalTile_57` + `medievalStructure_06` (Kenney – Medieval RTS) via `tools/make-icons.py` | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
+| `assets/icons/app/favicon-64.png` | favicon, ícone de tela inicial, manifest | composição de `medievalTile_57` + `medievalStructure_06` (Kenney – Medieval RTS) via `tools/make-icons.py` | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
+| `assets/icons/app/icon-192.png` | favicon, ícone de tela inicial, manifest | composição de `medievalTile_57` + `medievalStructure_06` (Kenney – Medieval RTS) via `tools/make-icons.py` | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
+| `assets/icons/app/icon-512.png` | favicon, ícone de tela inicial, manifest | composição de `medievalTile_57` + `medievalStructure_06` (Kenney – Medieval RTS) via `tools/make-icons.py` | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |

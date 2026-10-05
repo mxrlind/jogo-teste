@@ -99,7 +99,7 @@ export function hudInfo(key) {
     wood: 'Madeira vem das serrarias; cada floresta vizinha dá +40%.',
     stone: 'Pedra vem das pedreiras (rochas vizinhas dão +50%). Necessária para defesa e expansão.',
     gems: 'Gemas só se ganham jogando: invasões vencidas, carroças, missões, conquistas, passe e expedições.',
-    pop: `Moradores ${Math.floor(s.pop)} de ${e.popCap}. Os prédios pedem ${e.workersNeeded} trabalhadores; com menos, todos rendem ${Math.round(e.staffing * 100)}%.`,
+    pop: `Moradores ${Math.floor(s.pop)} de ${e.popCap}. Os prédios pedem ${e.workersNeeded} trabalhadores. Fazendas e moinhos são ocupados primeiro; com menos gente, os outros prédios rendem menos.`,
     happiness: `Felicidade ${Math.floor(e.happiness)}: multiplica toda a produção por ${e.happinessMult.toFixed(2)}. Tavernas, templos e decorações aumentam; pedreiras, minas e superlotação reduzem.`,
     raid: `A próxima horda vem do ${DIR_NAMES[s.raid.dir]}. Torres e muralhas desse lado do mapa contam 100%; do lado oposto, 50%. Heróis do Conselho sempre contam inteiros.`,
     event: s.event ? `${EVENT_BY_ID[s.event.id].name}: ${EVENT_BY_ID[s.event.id].desc}` : 'Nenhum evento agora.',
@@ -205,7 +205,7 @@ export function renderTileInfo(force = false) {
       ? info.adjParts.map((p) => `<li class="${p.value > 0 ? 'pos' : 'neg'}">${p.key in BUILDINGS ? BUILDINGS[p.key].name : TERRAIN[p.key].name} ${fmtPct(p.value)}</li>`).join('')
       : '<li class="muted">Nenhum vizinho com bônus</li>';
     const warn = !info.active ? `<p class="warn">${ico('warning')} Precisa estar encostada em ${TERRAIN[def.requiresAdj].name.toLowerCase()}.</p>`
-      : info.workers > 0 && g.econ.staffing < 1 ? `<p class="warn">${ico('warning')} Faltam trabalhadores: rendendo ${Math.round(g.econ.staffing * 100)}%. Construa ou melhore casas.</p>` : '';
+      : info.workers > 0 && info.staff < 1 ? `<p class="warn">${ico('warning')} Faltam trabalhadores: rendendo ${Math.round(info.staff * 100)}%. Construa ou melhore casas.</p>` : '';
     html = `<div class="title-row"><img src="${spriteOf(tile.b.id)}" alt=""><h3>${def.name} <small class="muted">nível ${tile.b.lvl}</small></h3></div>
       <p class="muted">${esc(def.desc)}</p>${warn}
       <div class="stats">${outputLines(info, def, sel.x, sel.y).map((l) => `<span>${l}</span>`).join('')}</div>

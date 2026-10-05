@@ -82,7 +82,7 @@ export const BUILDINGS = {
     cost: { stone: 25 }, workers: 0,
     defense: 3,
     adj: { muralha: 0.25, torre: 0.25 },
-    unlock: { buildings: 6 },
+    unlock: { buildings: 4 }, // o tutorial pede defesa no passo 4: precisa estar liberada
   },
   torre: {
     id: 'torre', name: 'Torre', category: 'defesa',

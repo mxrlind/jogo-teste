@@ -153,6 +153,13 @@ export function computeEconomy(state, now) {
   const happiness = Math.max(0, Math.min(100, happinessRaw));
   const happinessMult = 0.5 + happiness / 100;
   const staffing = workersNeeded > 0 ? Math.min(1, pop / workersNeeded) : 1;
+  // Moradores ocupam primeiro as vagas que produzem comida. Sem isso, a fome tira gente
+  // das fazendas na mesma proporção que do resto e o reino nunca se recupera.
+  let foodWorkers = 0;
+  tiles.forEach((info) => { if (info && info.active && BUILDINGS[info.id].prod?.food) foodWorkers += info.workers; });
+  const foodStaffing = foodWorkers > 0 ? Math.min(1, pop / foodWorkers) : 1;
+  const otherWorkers = workersNeeded - foodWorkers;
+  const otherStaffing = otherWorkers > 0 ? Math.max(0, Math.min(1, (pop - foodWorkers) / otherWorkers)) : 1;
   const occupancy = popCap > 0 ? Math.min(1, pop / popCap) : 0;
 
   const prodMult = {};
@@ -168,7 +175,8 @@ export function computeEconomy(state, now) {
   tiles.forEach((info, i) => {
     if (!info) return;
     const def = BUILDINGS[info.id];
-    const staff = info.workers > 0 ? staffing : 1;
+    const staff = info.workers === 0 ? 1 : info.active && def.prod?.food ? foodStaffing : otherStaffing;
+    info.staff = staff;
     const eff = info.active ? info.mult * staff : 0;
     if (def.prod) {
       for (const [r, base] of Object.entries(def.prod)) {

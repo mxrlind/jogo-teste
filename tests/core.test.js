@@ -104,6 +104,23 @@ test('economia: falta de trabalhadores reduz produção proporcionalmente', () =
   assert.ok(Math.abs(half - full / 2) < 1e-9);
 });
 
+test('economia: fazendas recebem trabalhadores primeiro e o reino sai da fome', () => {
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  put(s, 5, 5, 'grass', { id: 'fazenda', lvl: 1 });
+  for (let x = 2; x <= 9; x++) put(s, x, 8, 'forest');
+  for (let x = 2; x <= 9; x++) put(s, x, 7, 'grass', { id: 'serraria', lvl: 1 });
+  s.pop = 2;
+  const e = computeEconomy(s, T0);
+  assert.equal(e.tiles[idx(5, 5)].staff, 1);
+  assert.equal(e.tiles[idx(3, 7)].staff, 0);
+  // Fome extrema: 1 morador, estoque zerado. A comida precisa voltar a subir.
+  s.pop = 1;
+  s.res.food = 0;
+  assert.ok(computeEconomy(s, T0).rates.food > 0);
+});
+
 test('economia: mercados param quando a comida acaba', () => {
   const g = freshGame();
   const s = g.state;
