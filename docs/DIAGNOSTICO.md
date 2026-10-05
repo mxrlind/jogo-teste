@@ -77,7 +77,7 @@ Sem vazamentos aparentes: listas limitadas (`log` ≤ 50, `fx` filtrado, rivais 
 | Item | Onde | Impacto |
 |---|---|---|
 | UI por `innerHTML` em template strings gigantes | `src/ui/app.js` (793 linhas) | Difícil de manter; motivo do B1 |
-| Ícones embutidos nos dados (`icon: '🏠'`) | `src/data/*.js` | Mistura conteúdo com apresentação; impede trocar por assets |
+| Ícones embutidos nos dados (`icon: '<emoji>'`) | `src/data/*.js` | Mistura conteúdo com apresentação; impede trocar por assets |
 | Sem pré-carregamento de assets | — | Necessário quando houver sprites e áudio |
 | Configurações mínimas no save (`sound`, `particles`) | `src/core/state.js` | Volume, acessibilidade e atalhos exigem o save v2 (com migração) |
 | Docs longos e repetitivos | antigo `docs/GDD.md` (agora `docs/ESPECIFICACAO-SISTEMAS.md`), `README.md` | Substituídos por um GDD curto (este pedido) |

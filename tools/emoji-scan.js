@@ -16,7 +16,7 @@ const all = process.argv.includes('--all');
 const EMOJI = /[\p{Extended_Pictographic}\p{Emoji_Presentation}\u{FE0E}\u{FE0F}\u{200D}\u{20E3}\u{1F1E6}-\u{1F1FF}\u{1F3FB}-\u{1F3FF}\u{E0020}-\u{E007F}]/gu;
 
 const GAME = ['index.html', 'styles.css', 'src', 'assets', 'manifest.webmanifest'];
-const EXTRA = ['docs', 'tools', 'tests', 'README.md', 'CHANGELOG.md', 'ASSETS.md', 'EXECUTAR.md', 'package.json'];
+const EXTRA = ['docs', 'tools', 'tests', 'README.md', 'GDD.md', 'ROADMAP.md', 'CHANGELOG.md', 'ASSETS.md', 'EXECUTAR.md', 'package.json'];
 const TEXT_EXT = new Set(['.js', '.html', '.css', '.json', '.md', '.svg', '.webmanifest', '.txt', '']);
 
 function walk(p, out) {
