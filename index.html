@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Reino de Bolso</title>
+  <meta name="description" content="Idle Tycoon 2D social: construa seu reino, onde a posição de cada prédio importa.">
+  <meta name="theme-color" content="#1b1626">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👑</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-mode="select">
+  <header id="hud">
+    <div id="brand"></div>
+    <div id="hud-res"></div>
+    <div id="hud-status"></div>
+  </header>
+
+  <main id="layout">
+    <aside id="palette" aria-label="Construções"></aside>
+
+    <section id="stage">
+      <div id="tutorial" hidden></div>
+      <div id="visitBar" hidden></div>
+      <div id="modeHint" hidden></div>
+      <div id="mapWrap"><canvas id="map" aria-label="Mapa do reino"></canvas></div>
+      <div id="tileInfo" hidden></div>
+    </section>
+
+    <aside id="side">
+      <nav id="tabs"></nav>
+      <div id="side-body"></div>
+    </aside>
+  </main>
+
+  <div id="toasts" aria-live="polite"></div>
+  <div id="modal" hidden></div>
+
+  <noscript>Reino de Bolso precisa de JavaScript.</noscript>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
