@@ -8,22 +8,22 @@ export const XP_PER_TIER = 300;
 
 export const SEASON_THEMES = [
   {
-    id: 'fundacao', name: 'Fundação', icon: '🏗️', color: '#51cf66',
+    id: 'fundacao', name: 'Fundação', icon: 'season-foundation', color: '#51cf66',
     desc: 'Tempo de erguer o reino. Ouro +10%, casas +25% e construções -10%.',
     mods: { prod: { gold: 0.1 }, houseBonus: 0.25, cost: 0.1 },
   },
   {
-    id: 'guerra', name: 'Guerra', icon: '⚔️', color: '#ff6b6b',
+    id: 'guerra', name: 'Guerra', icon: 'season-war', color: '#ff6b6b',
     desc: 'Hordas mais frequentes, porém o saque é dobrado e a defesa ganha +25%.',
     mods: { raidInterval: 0.6, raidLoot: 1.0, defense: 0.25 },
   },
   {
-    id: 'expansao', name: 'Expansão', icon: '🗺️', color: '#4dabf7',
+    id: 'expansao', name: 'Expansão', icon: 'season-expansion', color: '#4dabf7',
     desc: 'Novas terras pela metade do preço e expedições +50%.',
     mods: { landCost: 0.5, expedition: 0.5 },
   },
   {
-    id: 'catastrofe', name: 'Catástrofe', icon: '🌋', color: '#ff922b',
+    id: 'catastrofe', name: 'Catástrofe', icon: 'season-catastrophe', color: '#ff922b',
     desc: 'O mundo treme: eventos mais frequentes, felicidade -10, mas +50% de Coroas.',
     mods: { eventRate: 2, happiness: -10, crowns: 0.5 },
   },
@@ -50,7 +50,7 @@ export const MISSION_POOL = [
   { id: 'upgrade', text: (n) => `Melhore ${n} prédios`, track: 'upgrade', amounts: [2, 4, 6], xp: 70 },
   { id: 'raid', text: (n) => `Vença ${n} invasões`, track: 'raidWin', amounts: [1, 2, 3], xp: 90 },
   { id: 'expedition', text: (n) => `Complete ${n} expedições`, track: 'expedition', amounts: [2, 3, 5], xp: 70 },
-  { id: 'chest', text: (n) => `Abra ${n} baús do mercador`, track: 'chest', amounts: [2, 3, 4], xp: 60 },
+  { id: 'chest', text: (n) => `Atenda ${n} carroças do mercador`, track: 'chest', amounts: [2, 3, 4], xp: 60 },
   { id: 'gold', text: (n) => `Ganhe ${n} de ouro`, track: 'gold', amounts: [2000, 10000, 50000], xp: 60, scale: true },
   { id: 'clear', text: (n) => `Limpe ${n} terrenos`, track: 'clear', amounts: [1, 2, 3], xp: 50 },
   { id: 'visit', text: (n) => `Visite ${n} reinos vizinhos`, track: 'visit', amounts: [1, 2, 3], xp: 40 },

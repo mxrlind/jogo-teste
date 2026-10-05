@@ -19,14 +19,27 @@ export const OFFLINE_THRESHOLD = 30; // s sem tick = sessão offline
 export const BASE_OFFLINE_HOURS = 4;
 export const BASE_OFFLINE_EFF = 0.6;
 
+// `focus` diz à interface o que destacar (prédio na paleta ou aba).
 export const TUTORIAL = [
-  { text: 'Construa uma 🪓 Serraria ao lado de uma 🌲 floresta.', done: (s) => countOf(s, 'serraria') >= 1, reward: { gold: 50 } },
-  { text: 'Construa mais uma 🏠 Casa — mais moradores, mais trabalho.', done: (s) => countOf(s, 'casa') >= 2, reward: { gold: 60, wood: 20 } },
-  { text: 'Use o pergaminho grátis: recrute um herói na aba Heróis.', done: (s) => Object.keys(s.heroes.owned).length >= 1, reward: { gold: 80 } },
-  { text: 'Hordas atacam a cada poucos minutos! Construa uma 🧱 Muralha ou 🗼 Torre.', done: (s) => countOf(s, 'muralha') + countOf(s, 'torre') >= 1, reward: { stone: 40 } },
-  { text: 'Construa um 🏪 Mercado encostado em casas.', done: (s) => countOf(s, 'mercado') >= 1, reward: { gold: 150 } },
+  { text: 'Construa uma Serraria encostada numa floresta: cada floresta vizinha dá +40% de madeira.', focus: { build: 'serraria' }, done: (s) => countOf(s, 'serraria') >= 1, reward: { gold: 50 } },
+  { text: 'Construa mais uma Casa: mais moradores, mais gente para trabalhar.', focus: { build: 'casa' }, done: (s) => countOf(s, 'casa') >= 2, reward: { gold: 60, wood: 20 } },
+  { text: 'Abriu a aba Heróis: use o pergaminho grátis para recrutar seu primeiro herói.', focus: { tab: 'herois' }, done: (s) => Object.keys(s.heroes.owned).length >= 1, reward: { gold: 80 } },
+  { text: 'Hordas atacam a cada poucos minutos, sempre por um lado do mapa. Construa uma Muralha ou Torre desse lado.', focus: { build: 'muralha' }, done: (s) => countOf(s, 'muralha') + countOf(s, 'torre') >= 1, reward: { stone: 40 } },
+  { text: 'Construa um Mercado encostado em casas: cada casa vizinha é um cliente.', focus: { build: 'mercado' }, done: (s) => countOf(s, 'mercado') >= 1, reward: { gold: 150 } },
   { text: 'Não existe "missão final": o reino é seu. Chegue a 10 construções e veja o que consegue criar.', done: (s) => s.grid.tiles.filter((t) => t.b).length >= 10, reward: { gems: 3 } },
 ];
+
+export const RAID_DIRS = ['n', 's', 'e', 'w'];
+export const DIR_NAMES = { n: 'Norte', s: 'Sul', e: 'Leste', w: 'Oeste' };
+
+// Regras de desbloqueio gradual das abas (as abas 'reino' e 'perfil' existem desde o início).
+export const TAB_UNLOCKS = {
+  herois: { hint: 'Abre depois das primeiras construções', check: (g) => g.state.tutorial.step >= 2 || g.state.stats.built >= 2 || g.state.stats.raidsWon + g.state.stats.raidsLost > 0 },
+  temporada: { hint: 'Abre com 10 construções ou 8 min de jogo', check: (g) => g.state.stats.playTime >= 480 || g.state.grid.tiles.filter((t) => t.b).length >= 10 },
+  social: { hint: 'Abre com 12 construções', check: (g) => g.state.grid.tiles.filter((t) => t.b).length >= 12 },
+  legado: { hint: 'Abre perto da primeira Coroa', check: (g) => g.state.stats.ascensions > 0 || g.state.stats.runGold >= CROWN_DIVISOR * 0.5 },
+};
+export const TAB_NAMES = { reino: 'Reino', herois: 'Heróis', temporada: 'Temporada', legado: 'Legado', social: 'Social', perfil: 'Perfil' };
 
 export class Game {
   constructor(state, now = Date.now()) {
@@ -46,20 +59,22 @@ export class Game {
     for (const fn of this.listeners[evt] || []) fn(data);
   }
 
-  log(text) {
-    this.state.log.unshift({ at: this.now, text });
+  log(text, icon = 'scroll') {
+    this.state.log.unshift({ at: this.now, text, icon });
     if (this.state.log.length > 50) this.state.log.pop();
   }
 
   // ------------------------------------------------------------ loop
-  tick(now = Date.now()) {
+  // background: true quando o intervalo longo veio de aba oculta/minimizada (o jogo continuava
+  // aberto). Nesse caso a produção é integral (100%), não a eficiência offline.
+  tick(now = Date.now(), { background = false } = {}) {
     const s = this.state;
     this.now = now;
     const dt = (now - s.lastTick) / 1000;
     if (dt <= 0) return;
     if (dt > OFFLINE_THRESHOLD) {
-      const summary = this.catchUp(now);
-      if (summary) this.emit('offline', summary);
+      const summary = this.catchUp(now, { efficiency: background ? 1 : undefined });
+      if (summary) this.emit(background ? 'background' : 'offline', summary);
       return;
     }
     s.lastTick = now;
@@ -71,7 +86,8 @@ export class Game {
       this.lastAchCheck = now;
       this.checkAchievements();
       this.checkTutorial();
-      if (syncSeason(s, now)) this.emit('toast', { text: '🎊 Uma nova temporada começou!', kind: 'season' });
+      this.checkUnlocks();
+      if (syncSeason(s, now)) this.emit('toast', { text: 'Uma nova temporada começou!', kind: 'season', icon: 'star' });
       if (syncMissions(s, now, this.goldScale())) this.emit('missions');
     }
   }
@@ -101,12 +117,12 @@ export class Game {
   }
 
   // Progresso offline: simulado em blocos para respeitar limites de armazenamento e comida.
-  catchUp(now) {
+  catchUp(now, { efficiency } = {}) {
     const s = this.state;
     const elapsed = (now - s.lastTick) / 1000;
     const mods = computeEconomy(s, now).mods;
     const capSec = (BASE_OFFLINE_HOURS + mods.offlineHours) * 3600;
-    const eff = Math.min(1, BASE_OFFLINE_EFF + mods.offlineEff);
+    const eff = efficiency ?? Math.min(1, BASE_OFFLINE_EFF + mods.offlineEff);
     const simSec = Math.min(elapsed, capSec);
     const before = { ...s.res, pop: s.pop };
     const chunk = Math.max(5, simSec / 400);
@@ -145,13 +161,13 @@ export class Game {
     if (!s.raid.warned && now >= s.raid.nextAt - RAID_WARNING * 1000) {
       s.raid.warned = true;
       s.raid.name = RAID_NAMES[Math.min(RAID_NAMES.length - 1, Math.floor(s.raid.level / 3))];
-      this.emit('raidWarning', { name: s.raid.name, strength: this.raidStrength(), defense: e.defense });
+      this.emit('raidWarning', { name: s.raid.name, strength: this.raidStrength(), defense: e.defense, dir: s.raid.dir });
     }
     if (now >= s.raid.nextAt) this.resolveRaid(now);
 
     // Eventos relâmpago
     if (s.event && s.event.endsAt <= now) {
-      this.emit('toast', { text: `${EVENT_BY_ID[s.event.id].icon} ${EVENT_BY_ID[s.event.id].name} terminou.`, kind: 'info' });
+      this.emit('toast', { text: `${EVENT_BY_ID[s.event.id].name} terminou.`, kind: 'info', icon: EVENT_BY_ID[s.event.id].icon });
       s.event = null;
     }
     if (!s.event && now >= s.nextEventAt) {
@@ -162,7 +178,7 @@ export class Game {
         s.raid.warned = false;
       }
       s.nextEventAt = now + (randInt(Math.random, EVENT_INTERVAL[0], EVENT_INTERVAL[1]) / e.mods.eventRate) * 1000;
-      this.log(`${ev.icon} Evento: ${ev.name}`);
+      this.log(`Evento: ${ev.name}`, ev.icon);
       this.emit('event', ev);
     }
 
@@ -190,7 +206,7 @@ export class Game {
     for (const [hid, h] of Object.entries(s.heroes.owned)) {
       if (h.expedition && !h.expedition.notified && h.expedition.endsAt <= now) {
         h.expedition.notified = true;
-        this.emit('toast', { text: `${HERO_BY_ID[hid].icon} ${HERO_BY_ID[hid].name} voltou da expedição!`, kind: 'good' });
+        this.emit('toast', { text: `${HERO_BY_ID[hid].name} voltou da expedição!`, kind: 'good', icon: HERO_BY_ID[hid].icon });
       }
     }
   }
@@ -222,7 +238,7 @@ export class Game {
       s.raid.level++;
       Object.assign(result, { win: true, loot, gems });
       this.track('raidWin');
-      this.log(`⚔️ Vitória contra ${name} (força ${strength}): +${Math.floor(loot)} ouro, +${gems} 💎`);
+      this.log(`Vitória contra ${name} (força ${strength}): +${Math.floor(loot)} de ouro, +${gems} gema(s)`, 'swords');
     } else {
       const lost = {};
       const newbie = s.stats.raidsWon + s.stats.raidsLost < RAID_NEWBIE_COUNT;
@@ -236,12 +252,16 @@ export class Game {
       s.stats.raidsLost++;
       s.raid.level = Math.max(0, s.raid.level - 1);
       Object.assign(result, { win: false, lost });
-      this.log(`🔥 ${name} saquearam o reino (força ${strength} vs defesa ${Math.floor(e.defense)}).`);
+      this.log(`${name} saquearam o reino (força ${strength} contra defesa ${Math.floor(e.defense)}).`, 'warning');
     }
     const interval = RAID_INTERVAL * e.mods.raidInterval * (0.8 + Math.random() * 0.4);
     s.raid.nextAt = now + interval * 1000;
     s.raid.warned = false;
     s.raid.name = null;
+    result.dir = s.raid.dir;
+    // A próxima horda já anuncia de onde vem: o jogador tem o intervalo inteiro para reforçar aquele lado.
+    s.raid.dir = RAID_DIRS[Math.floor(Math.random() * RAID_DIRS.length)];
+    this.econ = computeEconomy(s, now);
     this.emit('raid', result);
     return result;
   }
@@ -358,7 +378,7 @@ export class Game {
     if (!canAfford(s.res, cost)) return { ok: false, reason: 'Recursos insuficientes' };
     pay(s.res, cost);
     s.grid.ring++;
-    this.log(`🗺️ O reino se expandiu para o anel ${s.grid.ring}.`);
+    this.log(`O reino se expandiu para o anel ${s.grid.ring}.`, 'map');
     this.emit('expanded', { ring: s.grid.ring });
     return { ok: true };
   }
@@ -376,7 +396,7 @@ export class Game {
     if (result.isNew && s.heroes.council.length < councilSlots(this.econ.mods)) s.heroes.council.push(result.hero.id);
     this.econ = computeEconomy(s, this.now);
     this.track('recruit');
-    this.log(`📜 Recrutou ${result.hero.icon} ${result.hero.name}${result.isNew ? '' : ` (★${result.stars})`}`);
+    this.log(`Recrutou ${result.hero.name}${result.isNew ? '' : ` (${result.stars} estrelas)`}`, result.hero.icon);
     this.emit('recruited', result);
     return { ok: true, result };
   }
@@ -494,7 +514,7 @@ export class Game {
     if (!m || m.claimed || m.progress < m.target) return { ok: false, reason: 'Missão incompleta' };
     m.claimed = true;
     this.addXp(m.xp);
-    this.emit('toast', { text: `✅ Missão concluída: +${m.xp} XP de temporada`, kind: 'good' });
+    this.emit('toast', { text: `Missão concluída: +${m.xp} XP de temporada`, kind: 'good', icon: 'mission' });
     return { ok: true };
   }
 
@@ -525,13 +545,15 @@ export class Game {
     const reward = rewardFor(tier, s);
     s.season.claimed.push(tier);
     this.grant(reward);
-    this.emit('toast', { text: `🎁 Passe nível ${tier}: ${reward.label}`, kind: 'good' });
+    this.emit('toast', { text: `Passe nível ${tier}: ${reward.label}`, kind: 'good', icon: 'star' });
     return { ok: true, reward };
   }
 
   dailyStatus() {
     const today = dayKey(this.now);
-    const yesterday = dayKey(this.now - 86400000);
+    const y = new Date(this.now);
+    y.setDate(y.getDate() - 1); // pela data, não por 24 h: dias de troca de horário têm 23 ou 25 h
+    const yesterday = dayKey(y.getTime());
     const d = this.state.daily;
     const available = d.lastDay !== today;
     const nextStreak = d.lastDay === yesterday ? d.streak + 1 : 1;
@@ -550,7 +572,7 @@ export class Game {
     if (r.boost) this.grant({ type: 'boost', minutes: r.boost });
     if (r.scroll) s.items.scrolls += r.scroll;
     this.track('daily');
-    this.emit('toast', { text: `📅 Dia ${st.nextStreak} seguido: ${r.label}`, kind: 'good' });
+    this.emit('toast', { text: `Dia ${st.nextStreak} seguido: ${r.label}`, kind: 'good', icon: 'calendar' });
     return { ok: true };
   }
 
@@ -567,7 +589,7 @@ export class Game {
     s.res.crowns += crowns;
     s.stats.ascensions++;
     const next = createState({ seed: newSeed(), now: this.now, carry: carryOver(s) });
-    next.log = [{ at: this.now, text: `👑 Ascensão nº ${next.stats.ascensions}: +${crowns} Coroas. Um novo reino começa.` }];
+    next.log = [{ at: this.now, text: `Ascensão nº ${next.stats.ascensions}: +${crowns} Coroas. Um novo reino começa.`, icon: 'crowns' }];
     this.state = next;
     this.econ = computeEconomy(next, this.now);
     this.emit('ascended', { crowns });
@@ -677,6 +699,92 @@ export class Game {
     return { ok: true, amount, gold };
   }
 
+  // ------------------------------------------------------------ melhorias em lote e prévias
+  // Melhora o prédio (x, y) quantos níveis der. Retorna quantos níveis subiu.
+  upgradeMax(x, y) {
+    let n = 0;
+    while (this.upgrade(x, y).ok) n++;
+    return n;
+  }
+
+  // Melhora todos os prédios de um tipo, sempre o de menor nível primeiro, enquanto der para pagar.
+  upgradeAll(id) {
+    const s = this.state;
+    let n = 0;
+    for (;;) {
+      let best = null;
+      s.grid.tiles.forEach((t, i) => {
+        if (t.b?.id !== id || !upgradeCost(id, t.b.lvl, this.econ.mods)) return;
+        if (!best || t.b.lvl < best.lvl) best = { i, lvl: t.b.lvl };
+      });
+      if (!best || !this.upgrade(best.i % GRID_W, Math.floor(best.i / GRID_W)).ok) break;
+      n++;
+    }
+    return n;
+  }
+
+  // Diferença de produção (por segundo), defesa e capacidade se `mutate` fosse aplicado.
+  // A população é considerada já crescida até a capacidade, para a prévia não mentir sobre casas.
+  previewDelta(mutate, undo) {
+    const s = this.state;
+    const settled = () => {
+      const pop = s.pop;
+      s.pop = Math.max(pop, computeEconomy(s, this.now).popCap);
+      const e = computeEconomy(s, this.now);
+      s.pop = pop;
+      return e;
+    };
+    const before = settled();
+    mutate();
+    const after = settled();
+    undo();
+    const d = { defense: after.defense - before.defense, popCap: after.popCap - before.popCap, happiness: after.happiness - before.happiness };
+    for (const r of PROD_RES) d[r] = after.rates[r] - before.rates[r];
+    return d;
+  }
+
+  previewBuild(id, x, y) {
+    const tile = this.tileAt(x, y);
+    if (tile.b) return null;
+    return this.previewDelta(() => { tile.b = { id, lvl: 1 }; }, () => { tile.b = null; });
+  }
+
+  previewUpgrade(x, y) {
+    const tile = this.tileAt(x, y);
+    if (!tile.b || !upgradeCost(tile.b.id, tile.b.lvl, this.econ.mods)) return null;
+    return this.previewDelta(() => { tile.b.lvl++; }, () => { tile.b.lvl--; });
+  }
+
+  // Conselho de quando ascender (inspirado no "anjos ao resetar" do AdVenture Capitalist):
+  // recomendado quando a Ascensão pelo menos dobra as Coroas que você já conquistou.
+  ascendAdvice() {
+    const s = this.state;
+    const crowns = this.crownsOnAscend();
+    const spent = Object.entries(s.legacy).reduce((sum, [id, lvl]) => {
+      const t = TALENT_BY_ID[id];
+      return sum + (t ? (t.baseCost * lvl * (lvl + 1)) / 2 : 0);
+    }, 0);
+    const owned = s.res.crowns + spent;
+    const mult = 1 + this.econ.crownBonus + this.econ.mods.crowns;
+    const nextGold = CROWN_DIVISOR * ((crowns + 1) / mult) ** 2;
+    const rate = Math.max(0, this.econ.rates.gold);
+    const secondsToNext = rate > 0 ? Math.max(0, (nextGold - s.stats.runGold) / rate) : Infinity;
+    return { crowns, owned, recommended: crowns >= 1 && crowns >= Math.max(1, owned), secondsToNext };
+  }
+
+  // ------------------------------------------------------------ desbloqueio gradual
+  isTabUnlocked(tab) {
+    return this.state.unlocks.tabs.includes(tab);
+  }
+
+  checkUnlocks() {
+    for (const [tab, rule] of Object.entries(TAB_UNLOCKS)) {
+      if (this.isTabUnlocked(tab) || !rule.check(this)) continue;
+      this.state.unlocks.tabs.push(tab);
+      this.emit('unlock', { tab, name: TAB_NAMES[tab] });
+    }
+  }
+
   // ------------------------------------------------------------ conquistas e tutorial
   checkAchievements() {
     const s = this.state;
@@ -686,7 +794,7 @@ export class Game {
         s.achievements[a.id] = this.now;
         s.res.gems += a.gems;
         if (a.title && !s.cosmetics.titles.includes(a.title)) s.cosmetics.titles.push(a.title);
-        this.log(`🏆 Conquista: ${a.name}`);
+        this.log(`Conquista: ${a.name}`, a.icon);
         this.emit('achievement', a);
       }
     }

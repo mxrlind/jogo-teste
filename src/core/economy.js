@@ -7,7 +7,7 @@ import { HERO_BY_ID } from '../data/heroes.js';
 import { TALENT_BY_ID } from '../data/talents.js';
 import { EVENT_BY_ID } from '../data/events.js';
 import { seasonInfo } from './season.js';
-import { GRID_W, neighbors, idx, adjKey } from './map.js';
+import { GRID_W, GRID_H, neighbors, idx, adjKey } from './map.js';
 
 export const PROD_RES = ['gold', 'food', 'wood', 'stone'];
 
@@ -86,6 +86,15 @@ export function workersFor(def, lvl) {
 
 const isTerrainKey = (k) => k in TERRAIN;
 
+// Peso de uma defesa em (x, y) contra uma horda vinda de `dir`: 100% na borda de onde ela vem,
+// 50% na borda oposta. Assim a posição de torres e muralhas importa (pilar "o lugar importa").
+export function dirWeight(dir, x, y) {
+  const fy = y / (GRID_H - 1);
+  const fx = x / (GRID_W - 1);
+  const near = { n: 1 - fy, s: fy, w: 1 - fx, e: fx }[dir] ?? 0.5;
+  return 0.5 + 0.5 * near;
+}
+
 // Bônus de adjacência de um prédio hipotético `id` na posição (x, y).
 export function adjacencyAt(state, id, x, y, mods) {
   const def = BUILDINGS[id];
@@ -154,7 +163,7 @@ export function computeEconomy(state, now) {
   // 2ª passada: produção bruta
   const gross = { gold: 0, food: 0, wood: 0, stone: 0 };
   let foodDemandMarkets = 0;
-  let defense = 0;
+  const defDir = { n: 0, s: 0, e: 0, w: 0 };
   const marketTiles = [];
   tiles.forEach((info, i) => {
     if (!info) return;
@@ -177,7 +186,9 @@ export function computeEconomy(state, now) {
     }
     if (def.defense) {
       info.defense = def.defense * eff;
-      defense += info.defense;
+      const x = i % GRID_W;
+      const y = Math.floor(i / GRID_W);
+      for (const d of Object.keys(defDir)) defDir[d] += info.defense * dirWeight(d, x, y);
     }
   });
 
@@ -203,7 +214,9 @@ export function computeEconomy(state, now) {
     const owned = state.heroes.owned[hid];
     if (owned && !owned.expedition) heroPower += (HERO_BY_ID[hid]?.power || 0) * owned.stars;
   }
-  defense = (defense + heroPower) * (1 + mods.defense);
+  const defenseByDir = {};
+  for (const d of Object.keys(defDir)) defenseByDir[d] = (defDir[d] + heroPower) * (1 + mods.defense);
+  const defense = defenseByDir[state.raid?.dir] ?? defenseByDir.n;
 
   const rates = {
     gold: gross.gold,
@@ -214,7 +227,7 @@ export function computeEconomy(state, now) {
 
   return {
     mods, tiles, rates, gross, foodConsumption, popCap, workersNeeded, staffing, occupancy,
-    happiness, happinessMult, defense, heroPower, caps, crownBonus, marketRatio,
+    happiness, happinessMult, defense, defenseByDir, heroPower, caps, crownBonus, marketRatio,
   };
 }
 
