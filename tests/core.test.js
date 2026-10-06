@@ -642,3 +642,29 @@ test('desfazer: prêmio automático já gasto fecha a janela', () => {
   s.res.gems = 0; // gastou
   assert.equal(g.canUndo(), false);
 });
+
+test('vida da vila: vagas ocupadas como no motor (comida primeiro) e sobra dorme na rua', async () => {
+  const { VillageLife } = await import('../src/ui/villagers.js');
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  put(s, 4, 4, 'grass', { id: 'casa', lvl: 1 });
+  put(s, 5, 4, 'grass', { id: 'serraria', lvl: 1 });
+  put(s, 6, 4, 'grass', { id: 'fazenda', lvl: 1 });
+  s.pop = 3; // fazenda (2 vagas) é ocupada primeiro, sobra 1 para a serraria
+  g.econ = computeEconomy(s, T0);
+  const life = new VillageLife();
+  life.sync(g);
+  const jobs = [...life.people.values()].map((p) => p.job ?? p.kind).sort();
+  assert.deepEqual(jobs, ['fazenda', 'fazenda', 'serraria']);
+  s.pop = 7; // 4 vagas: 3 dormem
+  g.econ = computeEconomy(s, T0);
+  life.sync(g);
+  assert.equal([...life.people.values()].filter((p) => p.kind === 'sleep').length, 3);
+  // rotina do lavrador: trabalha na fazenda e leva comida a algum lugar
+  const farmer = [...life.people.values()].find((p) => p.job === 'fazenda');
+  life.plan(farmer, g);
+  assert.equal(farmer.stops[0].cell, idx(6, 4));
+  assert.equal(farmer.stops[0].tool, 'clear');
+  assert.equal(farmer.stops[1].carry, 'food');
+});

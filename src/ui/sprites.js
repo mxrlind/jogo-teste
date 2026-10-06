@@ -38,16 +38,34 @@ export const BUILDING_SPRITES = {
 
 export const LOCKED_OVERLAY = 'rgba(20, 22, 32, 0.62)';
 
-// Carroça do mercador (evento surpresa), invasores (time vermelho) e aldeões (time azul).
+// Carroça do mercador (evento surpresa) e invasores (time vermelho, que nenhum morador usa).
 export const CART_SPRITE = s(7);
 export const RAIDER_SPRITES = [u(9), u(10), u(8)];
-export const VILLAGER_SPRITES = [u(1), u(13), u(19), u(24)];
+
+// Profissões dos moradores (ver src/ui/villagers.js): sprite do Medieval RTS e ferramenta (ícone game-icons)
+// que aparece balançando enquanto trabalham. Times azul, verde e cinza; o vermelho é dos invasores.
+export const PROFESSIONS = {
+  fazenda: { name: 'Lavrador', sprite: u(13), tool: 'clear' },
+  moinho: { name: 'Moleira', sprite: u(12) },
+  serraria: { name: 'Lenhador', sprite: u(19), tool: 'hero-woodcutter' },
+  pedreira: { name: 'Pedreiro', sprite: u(1), tool: 'tool-pickaxe' },
+  mina: { name: 'Mineira', sprite: u(18), tool: 'tool-pickaxe' },
+  mercado: { name: 'Mercadora', sprite: u(24) },
+  armazem: { name: 'Intendente', sprite: u(17) },
+  taverna: { name: 'Taverneiro', sprite: u(23) },
+  torre: { name: 'Guarda', sprite: u(3) },
+  templo: { name: 'Sacerdote', sprite: u(2) },
+};
+// Sem emprego: dormem na rua, ao lado das casas.
+export const SLEEPER_SPRITES = [u(13), u(19), u(1), u(12)];
+export const TOOL_ICONS = ['clear', 'hero-woodcutter', 'tool-pickaxe'];
 
 
 export function allSpriteUrls() {
   const urls = new Set();
   for (const v of Object.values(TERRAIN_SPRITES)) [...v.base, ...(v.over || [])].forEach((u) => urls.add(u));
   for (const v of Object.values(BUILDING_SPRITES)) { urls.add(v.src); if (v.blades) urls.add(v.blades); }
-  [CART_SPRITE, ...RAIDER_SPRITES, ...VILLAGER_SPRITES].forEach((x) => urls.add(x));
+  [CART_SPRITE, ...RAIDER_SPRITES, ...SLEEPER_SPRITES].forEach((x) => urls.add(x));
+  for (const p of Object.values(PROFESSIONS)) urls.add(p.sprite);
   return [...urls];
 }

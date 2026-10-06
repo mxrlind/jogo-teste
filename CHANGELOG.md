@@ -2,6 +2,22 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.5.0] — 2026-10-06
+### Adicionado
+- **Vida da vila**: os moradores do mapa agora têm profissão e rotina, com sprite próprio do Medieval RTS por ofício e a ferramenta balançando enquanto trabalham.
+  - Lavrador colhe na fazenda (foice) e leva comida ao armazém, moinho ou mercado.
+  - Lenhador corta na floresta vizinha (machado), serra na serraria e leva a madeira ao armazém.
+  - Pedreiro e mineira usam a picareta na rocha ou montanha e levam pedra e ouro ao armazém.
+  - Moleira busca grão na fazenda; mercadora busca comida e entrega ouro nas casas; intendente recolhe dos produtores; taverneiro e sacerdote atendem e visitam as casas.
+  - Guarda patrulha entre torres e muralhas e, com a horda anunciada, corre para a borda de onde ela vem.
+  - De tempos em tempos cada um volta para descansar em casa.
+- **Sem emprego, dormem na rua**: quem sobra além das vagas de trabalho aparece deitado ao lado das casas, com "z" subindo. É um jeito visual de ver que falta prédio para tanta gente.
+- Quem trabalha onde segue a mesma regra da economia (fazendas e moinhos primeiro). Caminhos de verdade pela grama, parando na porta de cada prédio, com sombra e o recurso carregado acima da cabeça.
+- Ícone de picareta (game-icons.net, lorc, CC BY 3.0).
+
+### Desempenho
+- Até 32 trabalhadores e 8 dormindo visíveis; desenhar todos custa cerca de 0,6 ms por frame. Desligado junto com "Partículas" ou "Reduzir movimento".
+
 ## [0.4.0] — 2026-10-06
 ### Adicionado
 - **Desfazer a última construção**: por 5 segundos depois de construir aparece "no lugar errado? Desfazer", com barra de tempo. O custo volta por inteiro, junto com a estatística, o progresso de missão e o XP da obra. Atalho Z (remapeável em Opções).

@@ -4,7 +4,8 @@ import { BUILDINGS, TERRAIN } from '../data/buildings.js';
 import { GRID_W, GRID_H, idx, isUnlocked, neighbors, ringOf } from '../core/map.js';
 import { adjacencyAt } from '../core/economy.js';
 import { fmtPct } from '../core/format.js';
-import { TERRAIN_SPRITES, BUILDING_SPRITES, LOCKED_OVERLAY, CART_SPRITE, RAIDER_SPRITES, VILLAGER_SPRITES } from './sprites.js';
+import { TERRAIN_SPRITES, BUILDING_SPRITES, LOCKED_OVERLAY, CART_SPRITE, RAIDER_SPRITES } from './sprites.js';
+import { VillageLife } from './villagers.js';
 import { images, iconKey } from './assets.js';
 
 const pick = (arr, i) => arr[((i % arr.length) + arr.length) % arr.length];
@@ -25,13 +26,12 @@ export class MapRenderer {
     this.view = null; // { grid } para visitar outro reino ou o fundo do menu
     this.fx = [];
     this.pops = new Map(); // índice do tile -> início da animação de construção
-    this.villagers = [];
+    this.life = new VillageLife(); // moradores com profissão e rotina (src/ui/villagers.js)
     this.shake = 0;
     this.flash = null;
     this.lastTouch = null;
     this.terrainCache = document.createElement('canvas');
     this.terrainSig = '';
-    this.walkCache = { sig: null, walkable: [], target: 0 }; // tiles livres para aldeões (recalcula só se o mapa mudar)
     this.resize();
     if (window.ResizeObserver) new ResizeObserver(() => this.resize()).observe(canvas.parentElement);
     else window.addEventListener('resize', () => this.resize());
@@ -211,7 +211,7 @@ export class MapRenderer {
     }
 
     if (!this.view && state) {
-      this.drawVillagers(grid, now, T, motion);
+      if (motion && this.fxOn()) { this.life.update(game, now); this.life.draw(this, now, T); }
       this.drawCart(state, now, T, motion);
       this.drawRaiders(state, now, T, motion);
     }
@@ -311,43 +311,6 @@ export class MapRenderer {
       if (dir === 'n') { x = along; y = depth; } else if (dir === 's') { x = along; y = GRID_H - 1 - depth; } else if (dir === 'w') { x = depth; y = along; } else { x = GRID_W - 1 - depth; y = along; }
       const bob = motion ? Math.sin(now / 140 + k) * T * 0.05 : 0;
       this.img(pick(RAIDER_SPRITES, k), x * T + T * 0.1, y * T + T * 0.1 + bob, T * 0.8, T * 0.8);
-    }
-  }
-
-  drawVillagers(grid, now, T, motion) {
-    if (!motion || !this.fxOn()) return;
-    // terrainSig muda quando o terreno, um prédio ou o anel mudam: só então refazer a lista.
-    if (this.walkCache.sig !== this.terrainSig) {
-      const walkable = [];
-      let houses = 0;
-      grid.tiles.forEach((t, i) => {
-        if (t.b?.id === 'casa') houses++;
-        if (t.t === 'grass' && !t.b && isUnlocked(grid, i % GRID_W, Math.floor(i / GRID_W))) walkable.push(i);
-      });
-      this.walkCache = { sig: this.terrainSig, walkable, target: Math.min(4, Math.floor(houses / 2) + 1) };
-      // Aldeão parado num tile que virou prédio: escolhe outro destino.
-      for (const v of this.villagers) v.to = null;
-    }
-    const { walkable, target } = this.walkCache;
-    if (walkable.length < 4) return;
-    while (this.villagers.length < target) {
-      const at = pick(walkable, Math.floor(Math.random() * walkable.length));
-      this.villagers.push({ x: at % GRID_W, y: Math.floor(at / GRID_W), to: null, spr: pick(VILLAGER_SPRITES, this.villagers.length) });
-    }
-    if (this.villagers.length > target) this.villagers.length = target;
-    for (const v of this.villagers) {
-      if (!v.to) {
-        const near = walkable.filter((i) => Math.abs((i % GRID_W) - v.x) + Math.abs(Math.floor(i / GRID_W) - v.y) <= 3);
-        const i = pick(near.length ? near : walkable, Math.floor(Math.random() * 1000));
-        v.to = { x: i % GRID_W, y: Math.floor(i / GRID_W) };
-      }
-      const dx = v.to.x - v.x;
-      const dy = v.to.y - v.y;
-      const d = Math.hypot(dx, dy);
-      const step = 0.012;
-      if (d < step) v.to = null;
-      else { v.x += (dx / d) * step; v.y += (dy / d) * step; }
-      this.img(v.spr, v.x * T + T * 0.25, v.y * T + T * 0.2 + Math.sin(now / 120 + v.x) * T * 0.02, T * 0.5, T * 0.5);
     }
   }
 

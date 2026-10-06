@@ -1,5 +1,5 @@
 // Pré-carregamento de imagens (sprites e ícones coloridos para o canvas) com progresso.
-import { allSpriteUrls } from './sprites.js';
+import { allSpriteUrls, TOOL_ICONS } from './sprites.js';
 import { ICON_DIR } from './icons.js';
 
 export const images = new Map();
@@ -29,10 +29,15 @@ export async function loadColoredIcon(name, color) {
   return img;
 }
 
-// Ícones desenhados dentro do canvas (números flutuantes, avisos).
+// Cor de cada recurso quando desenhado no canvas (números flutuantes, carga dos moradores).
+export const RES_COLORS = { gold: '#f2b632', food: '#f0c27a', wood: '#c8834a', stone: '#d7dde0', gems: '#7cc6f0' };
+export const TOOL_COLOR = '#ece6da';
+
+// Ícones desenhados dentro do canvas (números flutuantes, avisos, ferramentas dos moradores).
 export const CANVAS_ICONS = [
-  ['gold', '#f2b632'], ['food', '#f0c27a'], ['wood', '#c8834a'], ['stone', '#d7dde0'], ['gems', '#7cc6f0'],
+  ...Object.entries(RES_COLORS),
   ['warning', '#ffb020'], ['swords', '#ff8a7a'], ['defense', '#9be7a8'], ['boost', '#ffe08a'],
+  ...TOOL_ICONS.map((n) => [n, TOOL_COLOR]),
 ];
 
 export async function preloadAll(extraUrls, onProgress) {
