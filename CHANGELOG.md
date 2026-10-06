@@ -10,6 +10,9 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 - **Rodadas anteriores** na aba Legado: as últimas 10 rodadas, com o resumo de cada uma.
 - Os números da rodada vêm de uma foto das estatísticas tirada no início de cada rodada. Saves de antes desta versão não têm essa foto: na primeira Ascensão depois da atualização, os números que dependem dela não aparecem (o jogo avisa), em vez de mostrar valores errados.
 
+### Mudou
+- **Moradores em "stop motion"**: andam a cerca de metade da velocidade e se movem em quadros de 0,2 s (5 por segundo), parados entre um quadro e outro. Cada quadro alterna a pose: pé no chão e no ar ao andar, ferramenta levantada e batendo ao trabalhar; o "z z z" de quem dorme também sobe em degraus. A rotina passou a ser calculada 5 vezes por segundo em vez de a cada frame.
+
 ## [0.5.0] — 2026-10-06
 ### Adicionado
 - **Vida da vila**: os moradores do mapa agora têm profissão e rotina, com sprite próprio do Medieval RTS por ofício e a ferramenta balançando enquanto trabalham.

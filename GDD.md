@@ -64,7 +64,7 @@
 
 **Lacunas do pacote e soluções**: montanha = chão de pedra + rochedo grande; "Fonte" virou **Fogueira**; o baú virou a **carroça do mercador** (sprite do pacote).
 
-**Animação**: hélice do moinho, "pop" ao construir, moradores com profissão e rotina (sprite e ferramenta por ofício; sem emprego dormem na rua), invasores marchando pelo lado anunciado, carroça balançando, partículas. Tudo respeita "Reduzir movimento".
+**Animação**: hélice do moinho, "pop" ao construir, moradores com profissão e rotina (sprite e ferramenta por ofício; sem emprego dormem na rua) em ritmo de stop motion, 5 quadros por segundo com duas poses, invasores marchando pelo lado anunciado, carroça balançando, partículas. Tudo respeita "Reduzir movimento".
 
 **Proibido**: emoji (varredura em `npm test`), fontes ou ícones de CDN, pixel art misturado ao vetor, ícones desenhados em CSS.
 

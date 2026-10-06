@@ -13,7 +13,10 @@ import { iconKey, RES_COLORS, TOOL_COLOR } from './assets.js';
 
 const MAX_WORKERS = 32; // moradores trabalhando visíveis ao mesmo tempo
 const MAX_SLEEPERS = 8;
-const SPEED = 1.25; // tiles por segundo
+const SPEED = 0.6; // tiles por segundo
+// Estilo "stop motion": a vila só avança em quadros de STEP segundos (5 por segundo). Entre um quadro e
+// outro ninguém se mexe; cada quadro é um passinho e alterna a pose (pé no chão / no ar, ferramenta em cima / embaixo).
+const STEP = 0.2;
 const SYNC_MS = 1000;
 const REST_EVERY = 3; // voltas de trabalho antes de descansar em casa
 const PRODUCERS = { fazenda: 'food', moinho: 'food', serraria: 'wood', pedreira: 'stone', mina: 'gold' };
@@ -79,7 +82,7 @@ export class VillageLife {
         this.people.set(key, {
           kind: 'work', job: w.job, at: w.at, home: w.home, sprite: PROFESSIONS[w.job].sprite, tool: PROFESSIONS[w.job].tool,
           x: start.x + rand(-0.15, 0.15), y: start.y + 0.3, path: [], stops: [], stop: 0, wait: rand(0, 1.2), state: 'wait',
-          carry: null, cycles: Math.floor(rand(0, REST_EVERY)), hidden: false, flip: false, phase: Math.random() * 6,
+          carry: null, cycles: Math.floor(rand(0, REST_EVERY)), hidden: false, flip: false, pose: Math.random() < 0.5 ? 1 : 0,
         });
       }
     }
@@ -187,10 +190,16 @@ export class VillageLife {
 
   // ---------------------------------------------------------------- tempo
   update(game, now) {
-    const dt = Math.min(0.1, Math.max(0, (now - (this.lastTime || now)) / 1000));
+    const dt = Math.max(0, (now - (this.lastTime || now)) / 1000);
     this.lastTime = now;
     if (game.state !== this.stateRef) { this.stateRef = game.state; this.people.clear(); this.lastSync = 0; } // reino novo ou ascendido
     if (now - this.lastSync > SYNC_MS) { this.lastSync = now; this.sync(game); }
+    // Acumula o tempo e avança em quadros fixos; no máximo 2 de uma vez (aba que volta de segundo plano não "teleporta").
+    this.acc = Math.min((this.acc || 0) + dt, STEP * 2);
+    while (this.acc >= STEP) { this.acc -= STEP; this.step(game, STEP); }
+  }
+
+  step(game, dt) {
     for (const p of this.people.values()) {
       if (p.kind !== 'work') continue;
       if (p.state === 'walk') {
@@ -208,10 +217,10 @@ export class VillageLife {
         const step = SPEED * dt;
         if (d <= step) { p.x = tgt.x; p.y = tgt.y; p.path.shift(); } else { p.x += (dx / d) * step; p.y += (dy / d) * step; }
         if (Math.abs(dx) > 0.01) p.flip = dx < 0;
-        p.phase += dt * 9;
+        p.pose ^= 1;
       } else {
         p.wait -= dt;
-        p.phase += dt * 6;
+        p.pose ^= 1;
         if (p.wait <= 0) this.next(p, game);
       }
     }
@@ -233,7 +242,8 @@ export class VillageLife {
       if (p.kind === 'sleep') { this.drawSleeper(r, p, now, cx, cy, size, T); continue; }
       const walking = p.state === 'walk';
       const working = p.state === 'act' && p.stops[p.stop]?.tool;
-      const bob = walking ? -Math.abs(Math.sin(p.phase)) * T * 0.035 : working ? -Math.abs(Math.sin(p.phase * 1.4)) * T * 0.02 : 0;
+      // duas poses por ação, trocadas a cada quadro
+      const bob = p.pose ? (walking ? -T * 0.04 : working ? -T * 0.025 : 0) : 0;
       ctx.save();
       ctx.translate(cx, cy + bob);
       if (p.flip) ctx.scale(-1, 1);
@@ -242,7 +252,7 @@ export class VillageLife {
         // ferramenta balançando na mão
         ctx.save();
         ctx.translate(size * 0.3, -size * 0.02);
-        ctx.rotate(-0.9 + Math.abs(Math.sin(p.phase * 1.4)) * 1.5);
+        ctx.rotate(p.pose ? -0.9 : 0.55); // ferramenta levantada / batendo
         r.img(iconKey(p.stops[p.stop].tool, TOOL_COLOR), -size * 0.06, -size * 0.42, size * 0.42, size * 0.42);
         ctx.restore();
       }
@@ -269,8 +279,9 @@ export class VillageLife {
     ctx.lineWidth = 2.5;
     ctx.strokeStyle = 'rgba(30, 30, 50, 0.55)';
     ctx.fillStyle = '#ffffff';
+    const frame = Math.floor(now / (STEP * 1000)) * STEP * 1000; // os "z" também sobem em degraus
     for (let k = 0; k < 3; k++) {
-      const t = ((now / 1600 + p.seed + k / 3) % 1);
+      const t = ((frame / 1600 + p.seed + k / 3) % 1);
       const zx = cx + size * 0.25 + t * size * 0.35;
       const zy = cy - size * 0.15 - t * size * 0.9;
       ctx.globalAlpha = Math.sin(t * Math.PI);
