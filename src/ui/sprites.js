@@ -43,12 +43,6 @@ export const CART_SPRITE = s(7);
 export const RAIDER_SPRITES = [u(9), u(10), u(8)];
 export const VILLAGER_SPRITES = [u(1), u(13), u(19), u(24)];
 
-const ICONS = 'assets/icons/game-icons';
-export const icon = (name) => `${ICONS}/${name}.svg`;
-
-export const RESOURCE_ICONS = {
-  gold: 'gold', food: 'food', wood: 'wood', stone: 'stone', gems: 'gems', crowns: 'crowns',
-};
 
 export function allSpriteUrls() {
   const urls = new Set();

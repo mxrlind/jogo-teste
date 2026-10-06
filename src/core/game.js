@@ -45,6 +45,7 @@ export class Game {
   constructor(state, now = Date.now()) {
     this.state = state;
     this.listeners = {};
+    this.quiet = false;
     this.lastAchCheck = 0;
     this.econ = computeEconomy(state, now);
     this.now = now;
@@ -55,7 +56,9 @@ export class Game {
     return this;
   }
 
+  // quiet = true silencia só os avisos de texto (ações em lote mostram um resumo no lugar).
   emit(evt, data) {
+    if (this.quiet && evt === 'toast') return;
     for (const fn of this.listeners[evt] || []) fn(data);
   }
 
@@ -276,7 +279,14 @@ export class Game {
   isAvailable(id) {
     const def = BUILDINGS[id];
     if (!def.unlock) return true;
-    return this.state.stats.built + 2 >= def.unlock.buildings || this.state.grid.tiles.filter((t) => t.b).length >= def.unlock.buildings;
+    return this.unlockProgress() >= def.unlock.buildings;
+  }
+
+  // Quantas construções contam para desbloquear prédios (o maior entre o histórico e o mapa atual).
+  unlockProgress() {
+    let onMap = 0;
+    for (const t of this.state.grid.tiles) if (t.b) onMap++;
+    return Math.max(this.state.stats.built + 2, onMap);
   }
 
   build(id, x, y) {

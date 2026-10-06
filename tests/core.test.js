@@ -542,3 +542,28 @@ test('recompensa diária: "ontem" pela data, mesmo na troca de horário de verã
   assert.ok(g.claimDaily().ok);
   assert.equal(g.state.daily.streak, 2);
 });
+
+test('desbloqueio: progresso conta o histórico e não volta a bloquear ao demolir', () => {
+  const g = freshGame();
+  assert.equal(g.unlockProgress(), 2); // casa + fazenda iniciais
+  assert.equal(g.isAvailable('pedreira'), false); // libera com 3
+  g.state.stats.built = 1;
+  assert.equal(g.unlockProgress(), 3);
+  assert.equal(g.isAvailable('pedreira'), true);
+  for (const t of g.state.grid.tiles) t.b = null; // demolir tudo não tira o que já foi liberado
+  assert.equal(g.isAvailable('pedreira'), true);
+});
+
+test('modo silencioso: ações em lote não disparam um aviso por item', () => {
+  const g = freshGame();
+  const toasts = [];
+  g.on('toast', (t) => toasts.push(t));
+  g.state.season.xp = 10000;
+  g.quiet = true;
+  assert.equal(g.claimTier(1).ok, true);
+  assert.equal(g.claimTier(2).ok, true);
+  g.quiet = false;
+  assert.equal(toasts.length, 0);
+  g.claimTier(3);
+  assert.equal(toasts.length, 1);
+});

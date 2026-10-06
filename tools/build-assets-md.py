@@ -84,7 +84,7 @@ def main():
     w('## Interface (Kenney – UI Pack, CC0)\n')
     w('| Arquivo | Onde é usado | Fonte | Autor | Licença | Link |')
     w('|---|---|---|---|---|---|')
-    ui_use = {'grey_panel': 'painéis e janelas', 'yellow_button00': 'botão principal', 'yellow_button01': 'botão principal pressionado',
+    ui_use = {'grey_panel': 'só na prévia de estilo (estilo.html); no jogo os painéis são CSS', 'yellow_button00': 'botão principal', 'yellow_button01': 'botão principal pressionado',
               'grey_button00': 'botão padrão', 'grey_button01': 'botão padrão pressionado', 'green_button00': 'botão positivo',
               'green_button01': 'botão positivo pressionado', 'red_button00': 'botão de perigo', 'red_button01': 'botão de perigo pressionado',
               'grey_box': 'caixa de seleção vazia', 'yellow_boxCheckmark': 'caixa de seleção marcada'}

@@ -24,9 +24,6 @@ export function costHtml(cost, res) {
     .join(' ');
 }
 
-export function plainCost(cost) {
-  return Object.entries(cost).map(([r, v]) => `${fmt(v)} de ${(RESOURCES[r]?.name ?? 'pergaminho').toLowerCase()}`).join(', ');
-}
 
 export const bannerColor = (id) => BANNERS.find((b) => b.id === id)?.color ?? '#c92a2a';
 export const emblemIcon = (id) => EMBLEMS.find((e) => e.id === id)?.icon ?? 'crowns';

@@ -41,7 +41,7 @@ A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.i
 | `assets/ui/kenney-ui-pack/grey_box.png` | caixa de seleção vazia | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
 | `assets/ui/kenney-ui-pack/grey_button00.png` | botão padrão | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
 | `assets/ui/kenney-ui-pack/grey_button01.png` | botão padrão pressionado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
-| `assets/ui/kenney-ui-pack/grey_panel.png` | painéis e janelas | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+| `assets/ui/kenney-ui-pack/grey_panel.png` | só na prévia de estilo (estilo.html); no jogo os painéis são CSS | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
 | `assets/ui/kenney-ui-pack/grey_sliderHorizontal.png` | reservado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
 | `assets/ui/kenney-ui-pack/red_button00.png` | botão de perigo | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
 | `assets/ui/kenney-ui-pack/red_button01.png` | botão de perigo pressionado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
