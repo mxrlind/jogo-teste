@@ -8,9 +8,9 @@ Todo asset usado ou publicado com o jogo, com onde é usado, fonte, autor, licen
 |---|---|---|
 | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | Nada (crédito é cortesia, e damos) | Kenney: Medieval RTS, UI Pack, Interface Sounds, RPG Audio, Impact Sounds, Music Jingles |
 | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Crédito ao autor ("Icons made by {autor}"), link da licença e indicação de mudanças. Atendido na tela de Créditos do jogo e neste arquivo | Ícones de game-icons.net |
-| [SIL OFL 1.1](https://openfontlicense.org/) | Manter o aviso de licença junto da fonte; não vender a fonte isolada | Nunito |
+| [SIL OFL 1.1](https://openfontlicense.org/) | Manter o aviso de licença junto da fonte; não vender a fonte isolada | Nunito, Cinzel, IM Fell English |
 
-Os arquivos de licença originais estão junto de cada pacote: `assets/sprites/medieval-rts/License.txt`, `assets/ui/kenney-ui-pack/License.txt`, `assets/icons/game-icons/License.txt`, `assets/sfx/License-*.txt`, `assets/fonts/Nunito-OFL.txt`.
+Os arquivos de licença originais estão junto de cada pacote: `assets/sprites/medieval-rts/License.txt`, `assets/ui/kenney-ui-pack/License.txt`, `assets/icons/game-icons/License.txt`, `assets/sfx/License-*.txt`, `assets/fonts/*-OFL.txt`.
 
 ## Origem dos downloads
 
@@ -18,7 +18,7 @@ A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.i
 - **Kenney**: espelho público [github.com/ETdoFresh/kenney.nl](https://github.com/ETdoFresh/kenney.nl) (ZIPs extraídos, com o `License.txt` original). Como a licença é CC0, a redistribuição é permitida. O [EXECUTAR.md](EXECUTAR.md) explica como conferir com os ZIPs oficiais.
 - **game-icons.net**: repositório oficial [github.com/game-icons/icons](https://github.com/game-icons/icons). **Modificações**: fundo preto removido e cor trocada por `currentColor` (tingida por CSS).
 - **Sons Kenney**: convertidos de OGG para MP3 (96 kbps) para tocar em todos os navegadores. **Modificação**: só conversão de formato.
-- **Nunito**: pacote npm [@fontsource/nunito](https://www.npmjs.com/package/@fontsource/nunito) (arquivos do Google Fonts).
+- **Nunito, Cinzel e IM Fell English**: pacotes npm [@fontsource/nunito](https://www.npmjs.com/package/@fontsource/nunito), [@fontsource/cinzel](https://www.npmjs.com/package/@fontsource/cinzel) e [@fontsource/im-fell-english](https://www.npmjs.com/package/@fontsource/im-fell-english) (arquivos do Google Fonts).
 - **Ícone do app**: composição gerada por `tools/make-icons.py` com dois sprites CC0 do Medieval RTS.
 
 ## Sprites do mapa (Kenney – Medieval RTS, CC0)
@@ -38,14 +38,14 @@ A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.i
 | `assets/ui/kenney-ui-pack/blue_panel.png` | reservado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
 | `assets/ui/kenney-ui-pack/green_button00.png` | botão positivo | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
 | `assets/ui/kenney-ui-pack/green_button01.png` | botão positivo pressionado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
-| `assets/ui/kenney-ui-pack/grey_box.png` | caixa de seleção vazia | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+| `assets/ui/kenney-ui-pack/grey_box.png` | reservado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
 | `assets/ui/kenney-ui-pack/grey_button00.png` | botão padrão | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
 | `assets/ui/kenney-ui-pack/grey_button01.png` | botão padrão pressionado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
 | `assets/ui/kenney-ui-pack/grey_panel.png` | só na prévia de estilo (estilo.html); no jogo os painéis são CSS | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
 | `assets/ui/kenney-ui-pack/grey_sliderHorizontal.png` | reservado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
 | `assets/ui/kenney-ui-pack/red_button00.png` | botão de perigo | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
 | `assets/ui/kenney-ui-pack/red_button01.png` | botão de perigo pressionado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
-| `assets/ui/kenney-ui-pack/yellow_boxCheckmark.png` | caixa de seleção marcada | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
+| `assets/ui/kenney-ui-pack/yellow_boxCheckmark.png` | reservado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
 | `assets/ui/kenney-ui-pack/yellow_button00.png` | botão principal | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
 | `assets/ui/kenney-ui-pack/yellow_button01.png` | botão principal pressionado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
 | `assets/ui/kenney-ui-pack/yellow_panel.png` | reservado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
@@ -194,6 +194,8 @@ Nenhuma faixa instalada ainda. Recomendação e passo a passo: [EXECUTAR.md](EXE
 
 | Arquivo | Onde é usado | Fonte | Autor | Licença | Link |
 |---|---|---|---|---|---|
+| `assets/fonts/cinzel-latin-700-normal.woff2` | títulos e cabeçalhos das janelas (tema medieval) | Fontsource / Google Fonts | The Cinzel Project Authors | SIL OFL 1.1 | [github.com/NDISCOVER/Cinzel](https://github.com/NDISCOVER/Cinzel) |
+| `assets/fonts/im-fell-english-latin-400-italic.woff2` | textos de ambientação em itálico nas janelas (lore, subtítulos) | Fontsource / Google Fonts | Igino Marini | SIL OFL 1.1 | [iginomarini.com/fell](https://iginomarini.com/fell/) |
 | `assets/fonts/nunito-latin-400-normal.woff2` | todo o texto (400 corpo, 800 títulos e números) | Fontsource / Google Fonts | The Nunito Project Authors | SIL OFL 1.1 | [github.com/googlefonts/nunito](https://github.com/googlefonts/nunito) |
 | `assets/fonts/nunito-latin-800-normal.woff2` | todo o texto (400 corpo, 800 títulos e números) | Fontsource / Google Fonts | The Nunito Project Authors | SIL OFL 1.1 | [github.com/googlefonts/nunito](https://github.com/googlefonts/nunito) |
 | `assets/fonts/nunito-latin-ext-400-normal.woff2` | todo o texto (400 corpo, 800 títulos e números) | Fontsource / Google Fonts | The Nunito Project Authors | SIL OFL 1.1 | [github.com/googlefonts/nunito](https://github.com/googlefonts/nunito) |

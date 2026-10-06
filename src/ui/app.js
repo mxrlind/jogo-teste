@@ -20,7 +20,7 @@ import { ico, resIco } from './icons.js';
 import { showModal, replaceModal, closeModal, confirmModal, runConfirm, toast, modalOpen, modalClosable } from './modals.js';
 import { renderHud, renderPalette, renderTileInfo, renderSide, renderModeHint, hudInfo, lockedTabHint, describeBonus } from './panels.js';
 
-const GAME_VERSION = '0.6.0';
+const GAME_VERSION = '0.7.0';
 const TAB_ORDER = ['reino', 'herois', 'temporada', 'legado', 'social', 'perfil'];
 const FLOAT_COLORS = RES_COLORS;
 
@@ -634,7 +634,7 @@ function ambientFx() {
 function showIntro() {
   showModal(`
     <h2>${resIco('crowns')} Funde o seu reino</h2>
-    <p>Você herdou um terreno, uma casa e uma fazenda. O resto é com você.</p>
+    <p class="flavor">Você herdou um terreno, uma casa e uma fazenda. O resto é com você.</p>
     <ul class="intro">
       <li>${ico('hero-architect')}<span><b>A posição importa:</b> cada prédio ganha (ou perde) bônus dos 4 vizinhos. Escolha um prédio e passe pelo mapa para ver.</span></li>
       <li>${ico('swords')}<span><b>Hordas atacam</b> sempre por um lado anunciado. Defenda esse lado.</span></li>
@@ -649,7 +649,8 @@ function showIntro() {
 }
 
 function showHowTo() {
-  showModal(`<h2>${ico('info')} Como jogar</h2>
+  showModal(`<h2>${ico('scroll')} Como jogar</h2>
+    <p class="flavor">Lições do velho conselheiro para quem acaba de herdar a coroa.</p>
     <ul class="intro">
       <li>${ico('build')}<span>Escolha um prédio na paleta e toque no mapa. No celular, o primeiro toque mostra a prévia e o segundo constrói. Errou o lugar? Você tem 5 segundos para desfazer.</span></li>
       <li>${ico('hero-architect')}<span>Os números verdes e vermelhos mostram o bônus de cada vizinho, e a dica no topo mostra quanto o prédio vai render ali.</span></li>
@@ -664,7 +665,8 @@ function showHowTo() {
 
 function showGameMenu() {
   play('open', 0.6);
-  showModal(`<h2>${ico('menu')} Menu</h2>
+  showModal(`<h2>${ico('castle')} Reino em pausa</h2>
+    <p class="flavor">O conselho aguarda as suas ordens.</p>
     <div class="stack">
       <button class="btn big primary" data-action="closeModal" data-autofocus>${ico('play')} Continuar</button>
       <button class="btn big" data-action="options">${ico('settings')} Opções</button>
@@ -717,7 +719,7 @@ async function showCredits() {
     <ul class="credits">
       <li><b>Medieval RTS</b> e <b>UI Pack</b>, por Kenney (kenney.nl). Licença CC0 1.0.</li>
       <li>Ícones de <a href="https://game-icons.net" target="_blank" rel="noopener">game-icons.net</a>, licença <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>. Icons made by ${Object.entries(byAuthor).map(([a, n]) => `<b>${authorNames[a] ?? esc(a)}</b> (${n})`).join(', ')}. Cores alteradas e fundo removido.</li>
-      <li>Fonte <b>Nunito</b>, por The Nunito Project Authors. SIL Open Font License 1.1.</li>
+      <li>Fontes <b>Nunito</b> (The Nunito Project Authors), <b>Cinzel</b> (The Cinzel Project Authors) e <b>IM Fell English</b> (Igino Marini). SIL Open Font License 1.1.</li>
     </ul>
     <h3>Som</h3>
     <ul class="credits">
@@ -749,6 +751,7 @@ function showDaily() {
   const st = ui.game.dailyStatus();
   const streak = ui.game.state.daily.streak;
   showModal(`<h2>${ico('calendar')} Recompensa diária</h2>
+    <p class="flavor">O tesoureiro traz o tributo do dia. Volte amanhã e ele será mais generoso.</p>
     <div class="daily">${DAILY_REWARDS.map((r) => {
       const cur = ((st.available ? st.nextStreak : streak) - 1) % 7 + 1;
       const done = st.available ? r.day < cur : r.day <= cur;
@@ -760,7 +763,8 @@ function showDaily() {
 
 function showOffline(sum) {
   const g = sum.gains;
-  showModal(`<h2>${ico('time')} Enquanto você esteve fora (${fmtTime(sum.elapsed)})</h2>
+  showModal(`<h2>${ico('time')} Enquanto você esteve fora</h2>
+    <p class="flavor">Os arautos contam o que se passou nestas ${fmtTime(sum.elapsed)} de ausência.</p>
     <p>Seu reino trabalhou com ${Math.round(sum.efficiency * 100)}% de eficiência${sum.capped ? ` por até ${fmtTime(sum.simulated)} (limite offline)` : ''}.</p>
     <div class="gains">${['gold', 'food', 'wood', 'stone'].map((r) => `<div>${resIco(r)}<b class="${g[r] < 0 ? 'neg' : ''}">${g[r] >= 0 ? '+' : ''}${fmt(g[r])}</b></div>`).join('')}</div>
     ${sum.expeditionsReady ? `<p>${ico('expedition')} ${sum.expeditionsReady} expedição(ões) pronta(s) para coletar.</p>` : ''}

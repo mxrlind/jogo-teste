@@ -53,15 +53,15 @@ def main():
     w('|---|---|---|')
     w('| [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | Nada (crédito é cortesia, e damos) | Kenney: Medieval RTS, UI Pack, Interface Sounds, RPG Audio, Impact Sounds, Music Jingles |')
     w('| [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Crédito ao autor ("Icons made by {autor}"), link da licença e indicação de mudanças. Atendido na tela de Créditos do jogo e neste arquivo | Ícones de game-icons.net |')
-    w('| [SIL OFL 1.1](https://openfontlicense.org/) | Manter o aviso de licença junto da fonte; não vender a fonte isolada | Nunito |')
+    w('| [SIL OFL 1.1](https://openfontlicense.org/) | Manter o aviso de licença junto da fonte; não vender a fonte isolada | Nunito, Cinzel, IM Fell English |')
     w('')
-    w('Os arquivos de licença originais estão junto de cada pacote: `assets/sprites/medieval-rts/License.txt`, `assets/ui/kenney-ui-pack/License.txt`, `assets/icons/game-icons/License.txt`, `assets/sfx/License-*.txt`, `assets/fonts/Nunito-OFL.txt`.\n')
+    w('Os arquivos de licença originais estão junto de cada pacote: `assets/sprites/medieval-rts/License.txt`, `assets/ui/kenney-ui-pack/License.txt`, `assets/icons/game-icons/License.txt`, `assets/sfx/License-*.txt`, `assets/fonts/*-OFL.txt`.\n')
     w('## Origem dos downloads\n')
     w('A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.io, freesound.org e game-icons.net. Por isso:')
     w('- **Kenney**: espelho público [github.com/ETdoFresh/kenney.nl](https://github.com/ETdoFresh/kenney.nl) (ZIPs extraídos, com o `License.txt` original). Como a licença é CC0, a redistribuição é permitida. O [EXECUTAR.md](EXECUTAR.md) explica como conferir com os ZIPs oficiais.')
     w('- **game-icons.net**: repositório oficial [github.com/game-icons/icons](https://github.com/game-icons/icons). **Modificações**: fundo preto removido e cor trocada por `currentColor` (tingida por CSS).')
     w('- **Sons Kenney**: convertidos de OGG para MP3 (96 kbps) para tocar em todos os navegadores. **Modificação**: só conversão de formato.')
-    w('- **Nunito**: pacote npm [@fontsource/nunito](https://www.npmjs.com/package/@fontsource/nunito) (arquivos do Google Fonts).')
+    w('- **Nunito, Cinzel e IM Fell English**: pacotes npm [@fontsource/nunito](https://www.npmjs.com/package/@fontsource/nunito), [@fontsource/cinzel](https://www.npmjs.com/package/@fontsource/cinzel) e [@fontsource/im-fell-english](https://www.npmjs.com/package/@fontsource/im-fell-english) (arquivos do Google Fonts).')
     w('- **Ícone do app**: composição gerada por `tools/make-icons.py` com dois sprites CC0 do Medieval RTS.\n')
 
     # Sprites
@@ -86,8 +86,7 @@ def main():
     w('|---|---|---|---|---|---|')
     ui_use = {'grey_panel': 'só na prévia de estilo (estilo.html); no jogo os painéis são CSS', 'yellow_button00': 'botão principal', 'yellow_button01': 'botão principal pressionado',
               'grey_button00': 'botão padrão', 'grey_button01': 'botão padrão pressionado', 'green_button00': 'botão positivo',
-              'green_button01': 'botão positivo pressionado', 'red_button00': 'botão de perigo', 'red_button01': 'botão de perigo pressionado',
-              'grey_box': 'caixa de seleção vazia', 'yellow_boxCheckmark': 'caixa de seleção marcada'}
+              'green_button01': 'botão positivo pressionado', 'red_button00': 'botão de perigo', 'red_button01': 'botão de perigo pressionado',}
     for f in sorted(os.listdir(os.path.join(A, 'ui', 'kenney-ui-pack'))):
         if not f.endswith('.png'):
             continue
@@ -135,7 +134,13 @@ def main():
     w('| Arquivo | Onde é usado | Fonte | Autor | Licença | Link |')
     w('|---|---|---|---|---|---|')
     for f in sorted(os.listdir(os.path.join(A, 'fonts'))):
-        if f.endswith('.woff2'):
+        if not f.endswith('.woff2'):
+            continue
+        if f.startswith('cinzel'):
+            w(f'| `assets/fonts/{f}` | títulos e cabeçalhos das janelas (tema medieval) | Fontsource / Google Fonts | The Cinzel Project Authors | SIL OFL 1.1 | [github.com/NDISCOVER/Cinzel](https://github.com/NDISCOVER/Cinzel) |')
+        elif f.startswith('im-fell'):
+            w(f'| `assets/fonts/{f}` | textos de ambientação em itálico nas janelas (lore, subtítulos) | Fontsource / Google Fonts | Igino Marini | SIL OFL 1.1 | [iginomarini.com/fell](https://iginomarini.com/fell/) |')
+        else:
             w(f'| `assets/fonts/{f}` | todo o texto (400 corpo, 800 títulos e números) | Fontsource / Google Fonts | The Nunito Project Authors | SIL OFL 1.1 | [github.com/googlefonts/nunito](https://github.com/googlefonts/nunito) |')
     w('')
     w('## Ícone do app e favicon\n')

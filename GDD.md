@@ -58,6 +58,7 @@
 | Interface (painéis, cartões, HUD) | CSS com tokens em `styles.css` | Moldura escura (tinta) + superfícies de pergaminho + filete dourado. Sem `backdrop-filter` sobre o mapa (custaria um desfoque por frame) |
 | Ícones (recursos, ações, heróis, conquistas) | **game-icons.net** (CC BY 3.0), SVG tingido por CSS mask | Silhueta de uma cor; dentro do mapa só como número flutuante e aviso |
 | Texto | **Nunito** (OFL), 400 no corpo e 800 em títulos e números | Mínimo 14 px; escala ajustável. Kenney Future foi testada e descartada: o R estilizado prejudica a leitura |
+| Janelas (modais e menu principal) | CSS + **Cinzel** (OFL) nos títulos e **IM Fell English** (OFL) itálico na ambientação | Pergaminho com textura, moldura de couro e latão, cantos e divisor ornamentados (SVG embutido), botões de madeira/latão/vermelho-sangue, lacre de cera para recordes. Números ficam em Nunito: os algarismos antigos da IM Fell atrapalham a leitura |
 | Overlays desenhados (seleção, prévia, rótulos, nível) | Primitivas do canvas na paleta | Só realces funcionais, nunca "arte" |
 
 **Paleta**: tinta `#2b2a33` · papel `#f4f1ea` · creme `#f3e3c0` · grama `#2e8b47` · dourado `#f2b632` · vermelho `#b8412f` · azul `#1f6fb2`. Raridades: comum `#6f7782`, raro `#2f7cc0`, épico `#7a52c4`, lendário `#b9820e`.

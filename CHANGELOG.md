@@ -2,6 +2,18 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.7.0] — 2026-10-06
+### Mudou: janelas com tema medieval
+- Modais e menu principal saíram do visual genérico (rótulos pequenos em caixa alta, selos em pílula, cartões brancos arredondados) para um tema medieval coeso: pergaminho envelhecido com textura, moldura de couro com filete de latão, cantos e divisor ornamentados e fundo escurecido com luz de vela.
+- Títulos e cabeçalhos em **Cinzel**; frases de ambientação em **IM Fell English** itálico. Números continuam em Nunito para não perder legibilidade.
+- Botões das janelas viram tábuas de madeira, com latão no principal e vermelho-sangue no de perigo; o fechar é uma argola de ferro; caixas de seleção em tinta e latão.
+- Resumo da Ascensão como crônica: quadros de livro-razão, lacre de cera nos recordes e faixa de pano no aviso de recordes. Recrutamento com medalhão de latão.
+- Linhas de ambientação nas janelas principais ("O conselho aguarda as suas ordens.", "O tesoureiro traz o tributo do dia...") e o menu de pausa virou "Reino em pausa".
+- Alto contraste continua com papel liso e tinta preta, sem textura nem ornamentos.
+
+### Adicionado
+- Fontes Cinzel (The Cinzel Project Authors) e IM Fell English itálico (Igino Marini), SIL OFL 1.1, servidas localmente com as licenças em `assets/fonts/`. Créditos do jogo e `ASSETS.md` atualizados.
+
 ## [0.6.0] — 2026-10-06
 ### Adicionado
 - **Tela de estatísticas ao Ascender**: abre logo depois da Ascensão com as Coroas ganhas (contando até o valor), duração da rodada e tempo com o jogo aberto, ouro da rodada, ouro por segundo no fim, Poder do Reino, construções e melhorias, prédios no mapa (maior nível e anel), hordas vencidas e perdidas, expedições, carroças e o **melhor combo** (o prédio com maior bônus de vizinhos).
