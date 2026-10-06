@@ -55,8 +55,8 @@ Medido no jogo: 120 frames seguidos sem nenhum acima de 20 ms (antes e depois).
 5. Toasts no desktop ficam no centro inferior, sobre a borda do mapa; como não capturam clique, não atrapalham, mas um jogador pode preferir no canto. Pode virar opção.
 
 ## 5. Próxima versão (sugestões)
-- Desfazer a última construção por 5 s (ROADMAP item 4): o erro mais comum de iniciante.
-- Tela de fim de rodada ao Ascender, com estatísticas (ROADMAP item 5).
+- Desfazer a última construção por 5 s: o erro mais comum de iniciante (entregue na 0.4.0).
+- Tela de fim de rodada ao Ascender, com estatísticas (ROADMAP, item 4 desde a 0.4.0).
 - Sprite diferente por nível (5 e 10) para o crescimento aparecer no mapa.
 - Autotile de bordas entre água, grama e pedra.
 - Teste com jogadores reais medindo onde o tutorial perde gente.
