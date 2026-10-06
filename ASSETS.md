@@ -28,7 +28,7 @@ A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.i
 | `assets/sprites/medieval-rts/Tile/` (58 PNG, 128 px: `medievalTile_01.png` a `medievalTile_58.png`) | terreno: grama 57/58, floresta 42/43/46/47, água 27/28, pedra (montanha) 15/16, plantação da Fazenda 56; demais reservados | Kenney – Medieval RTS | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
 | `assets/sprites/medieval-rts/Structure/` (23 PNG, 128 px: `medievalStructure_01.png` a `medievalStructure_23.png`) | prédios (casa 18, serraria 21, pedreira 20, mercado 22, moinho 19 + hélice 13, armazém 9, taverna 23, muralha 2, torre 1, templo 4, estátua 12), carroça do mercador 7, castelo 6 (logo e ícone) | Kenney – Medieval RTS | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
 | `assets/sprites/medieval-rts/Environment/` (21 PNG, 128 px: `medievalEnvironment_01.png` a `medievalEnvironment_21.png`) | rochas 7/8, rochedo da montanha 9/11, mina de ouro 18, jardim 19, fogueira 20; demais reservados | Kenney – Medieval RTS | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
-| `assets/sprites/medieval-rts/Unit/` (24 PNG, 128 px: `medievalUnit_01.png` a `medievalUnit_24.png`) | invasores 8/9/10, aldeões 1/13/19/24; demais reservados | Kenney – Medieval RTS | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
+| `assets/sprites/medieval-rts/Unit/` (24 PNG, 128 px: `medievalUnit_01.png` a `medievalUnit_24.png`) | invasores 8/9/10 (time vermelho); moradores por profissão: lavrador 13, moleira 12, lenhador 19, pedreiro 1, mineira 18, mercadora 24, intendente 17, taverneiro 23, guarda 3, sacerdote 2; sem emprego (dormindo) 1/12/13/19; demais reservados | Kenney – Medieval RTS | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
 
 ## Interface (Kenney – UI Pack, CC0)
 
@@ -51,7 +51,7 @@ A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.i
 | `assets/ui/kenney-ui-pack/yellow_panel.png` | reservado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
 | `assets/ui/kenney-ui-pack/yellow_sliderDown.png` | reservado | Kenney – UI Pack | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/ui-pack](https://kenney.nl/assets/ui-pack) |
 
-## Ícones (game-icons.net, CC BY 3.0) — 102 arquivos
+## Ícones (game-icons.net, CC BY 3.0) — 103 arquivos
 
 | Arquivo | Onde é usado | Fonte | Autor | Licença | Link |
 |---|---|---|---|---|---|
@@ -62,7 +62,7 @@ A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.i
 | `assets/icons/game-icons/cart.svg` | carroça do mercador (interface) | game-icons.net (`delapouite/wooden-crate.svg`) | Delapouite | CC BY 3.0 | [delapouite/wooden-crate.svg](https://game-icons.net/1x1/delapouite/wooden-crate.html) |
 | `assets/icons/game-icons/castle.svg` | aba Reino | game-icons.net (`delapouite/castle.svg`) | Delapouite | CC BY 3.0 | [delapouite/castle.svg](https://game-icons.net/1x1/delapouite/castle.html) |
 | `assets/icons/game-icons/check.svg` | confirmado | game-icons.net (`delapouite/check-mark.svg`) | Delapouite | CC BY 3.0 | [delapouite/check-mark.svg](https://game-icons.net/1x1/delapouite/check-mark.html) |
-| `assets/icons/game-icons/clear.svg` | limpar terreno | game-icons.net (`delapouite/sickle.svg`) | Delapouite | CC BY 3.0 | [delapouite/sickle.svg](https://game-icons.net/1x1/delapouite/sickle.html) |
+| `assets/icons/game-icons/clear.svg` | limpar terreno; foice do lavrador no mapa | game-icons.net (`delapouite/sickle.svg`) | Delapouite | CC BY 3.0 | [delapouite/sickle.svg](https://game-icons.net/1x1/delapouite/sickle.html) |
 | `assets/icons/game-icons/close.svg` | fechar | game-icons.net (`sbed/cancel.svg`) | Sbed | CC BY 3.0 | [sbed/cancel.svg](https://game-icons.net/1x1/sbed/cancel.html) |
 | `assets/icons/game-icons/contrast.svg` | reservado (alto contraste) | game-icons.net (`delapouite/yin-yang.svg`) | Delapouite | CC BY 3.0 | [delapouite/yin-yang.svg](https://game-icons.net/1x1/delapouite/yin-yang.html) |
 | `assets/icons/game-icons/copy.svg` | copiar código | game-icons.net (`lorc/papers.svg`) | Lorc | CC BY 3.0 | [lorc/papers.svg](https://game-icons.net/1x1/lorc/papers.html) |
@@ -109,7 +109,7 @@ A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.i
 | `assets/icons/game-icons/hero-merchant.svg` | retrato de herói | game-icons.net (`delapouite/shop.svg`) | Delapouite | CC BY 3.0 | [delapouite/shop.svg](https://game-icons.net/1x1/delapouite/shop.html) |
 | `assets/icons/game-icons/hero-queen.svg` | retrato de herói | game-icons.net (`lorc/queen-crown.svg`) | Lorc | CC BY 3.0 | [lorc/queen-crown.svg](https://game-icons.net/1x1/lorc/queen-crown.html) |
 | `assets/icons/game-icons/hero-wizard.svg` | retrato de herói | game-icons.net (`delapouite/wizard-face.svg`) | Delapouite | CC BY 3.0 | [delapouite/wizard-face.svg](https://game-icons.net/1x1/delapouite/wizard-face.html) |
-| `assets/icons/game-icons/hero-woodcutter.svg` | retrato de herói | game-icons.net (`lorc/wood-axe.svg`) | Lorc | CC BY 3.0 | [lorc/wood-axe.svg](https://game-icons.net/1x1/lorc/wood-axe.html) |
+| `assets/icons/game-icons/hero-woodcutter.svg` | retrato de herói; machado do lenhador no mapa | game-icons.net (`lorc/wood-axe.svg`) | Lorc | CC BY 3.0 | [lorc/wood-axe.svg](https://game-icons.net/1x1/lorc/wood-axe.html) |
 | `assets/icons/game-icons/house.svg` | voltar ao meu reino, conquista | game-icons.net (`delapouite/house.svg`) | Delapouite | CC BY 3.0 | [delapouite/house.svg](https://game-icons.net/1x1/delapouite/house.html) |
 | `assets/icons/game-icons/info.svg` | informações, heróis não descobertos | game-icons.net (`delapouite/info.svg`) | Delapouite | CC BY 3.0 | [delapouite/info.svg](https://game-icons.net/1x1/delapouite/info.html) |
 | `assets/icons/game-icons/keyboard.svg` | atalhos de teclado | game-icons.net (`delapouite/keyboard.svg`) | Delapouite | CC BY 3.0 | [delapouite/keyboard.svg](https://game-icons.net/1x1/delapouite/keyboard.html) |
@@ -151,6 +151,7 @@ A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.i
 | `assets/icons/game-icons/talent-vigil.svg` | talento da Árvore de Legado | game-icons.net (`lorc/night-sky.svg`) | Lorc | CC BY 3.0 | [lorc/night-sky.svg](https://game-icons.net/1x1/lorc/night-sky.html) |
 | `assets/icons/game-icons/talent-walls.svg` | talento da Árvore de Legado | game-icons.net (`delapouite/castle-ruins.svg`) | Delapouite | CC BY 3.0 | [delapouite/castle-ruins.svg](https://game-icons.net/1x1/delapouite/castle-ruins.html) |
 | `assets/icons/game-icons/time.svg` | tempo, offline | game-icons.net (`lorc/hourglass.svg`) | Lorc | CC BY 3.0 | [lorc/hourglass.svg](https://game-icons.net/1x1/lorc/hourglass.html) |
+| `assets/icons/game-icons/tool-pickaxe.svg` | picareta de pedreiro e mineira no mapa | game-icons.net (`lorc/mining.svg`) | Lorc | CC BY 3.0 | [lorc/mining.svg](https://game-icons.net/1x1/lorc/mining.html) |
 | `assets/icons/game-icons/trade.svg` | troca | game-icons.net (`lorc/trade.svg`) | Lorc | CC BY 3.0 | [lorc/trade.svg](https://game-icons.net/1x1/lorc/trade.html) |
 | `assets/icons/game-icons/trophy.svg` | conquistas, ranking | game-icons.net (`delapouite/trophy-cup.svg`) | Delapouite | CC BY 3.0 | [delapouite/trophy-cup.svg](https://game-icons.net/1x1/delapouite/trophy-cup.html) |
 | `assets/icons/game-icons/upgrade.svg` | melhorar | game-icons.net (`delapouite/upgrade.svg`) | Delapouite | CC BY 3.0 | [delapouite/upgrade.svg](https://game-icons.net/1x1/delapouite/upgrade.html) |

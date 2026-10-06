@@ -12,16 +12,16 @@ import { buildCost, canAfford, kingdomPower, heroMultiplier } from '../core/econ
 import { generateRivals, rivalGrid, encodeKingdom, decodeKingdom } from '../core/social.js';
 import { fmt, fmtTime } from '../core/format.js';
 import { MapRenderer } from './render.js';
-import { preloadAll, iconKey } from './assets.js';
+import { preloadAll, iconKey, RES_COLORS } from './assets.js';
 import { initAudio, loadSfx, play, setVolumes, hasMusic, musicInfo } from './audio.js';
 import { ui, $, esc, bannerColor, emblemIcon } from './ctx.js';
 import { ico, resIco } from './icons.js';
 import { showModal, replaceModal, closeModal, confirmModal, runConfirm, toast, modalOpen, modalClosable } from './modals.js';
 import { renderHud, renderPalette, renderTileInfo, renderSide, renderModeHint, hudInfo, lockedTabHint, describeBonus } from './panels.js';
 
-const GAME_VERSION = '0.4.0';
+const GAME_VERSION = '0.5.0';
 const TAB_ORDER = ['reino', 'herois', 'temporada', 'legado', 'social', 'perfil'];
-const FLOAT_COLORS = { gold: '#f2b632', food: '#f0c27a', wood: '#c8834a', stone: '#d7dde0', gems: '#7cc6f0' };
+const FLOAT_COLORS = RES_COLORS;
 
 // localStorage pode lançar exceção (modo privado, cota cheia): o jogo segue em memória.
 const memory = new Map();
@@ -686,7 +686,7 @@ function showOptions(replace = false) {
     ${slider('sfxVolume', 'Efeitos', 0, 100, 'speaker')}
     <h3>Visual e acessibilidade</h3>
     ${slider('fontScale', 'Tamanho do texto', 85, 150, 'font')}
-    ${check('particles', 'Partículas, aldeões e números flutuantes')}
+    ${check('particles', 'Partículas, moradores e números flutuantes')}
     ${check('reduceMotion', 'Reduzir movimento (sem tremor, flash nem animações)')}
     ${check('highContrast', 'Alto contraste')}
     <h3>Teclado</h3>

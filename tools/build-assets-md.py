@@ -19,7 +19,7 @@ ICON_USE_EXACT = {
     'happiness': 'felicidade (legado)', 'heart': 'felicidade', 'defense': 'defesa', 'raid': 'horda', 'swords': 'hordas, conquista',
     'time': 'tempo, offline', 'build': 'construir, novo reino', 'upgrade': 'melhorar', 'map': 'território, expansão',
     'trophy': 'conquistas, ranking', 'settings': 'opções', 'scroll': 'pergaminho, créditos, crônica', 'castle': 'aba Reino',
-    'banner': 'recompensa de estandarte', 'move': 'mover prédio', 'demolish': 'demolir', 'clear': 'limpar terreno', 'close': 'fechar',
+    'banner': 'recompensa de estandarte', 'move': 'mover prédio', 'demolish': 'demolir', 'clear': 'limpar terreno; foice do lavrador no mapa', 'hero-woodcutter': 'retrato de herói; machado do lenhador no mapa', 'tool-pickaxe': 'picareta de pedreiro e mineira no mapa', 'close': 'fechar',
     'check': 'confirmado', 'lock': 'bloqueado', 'warning': 'aviso (HUD e mapa)', 'menu': 'menu do jogo', 'speaker': 'volume de efeitos',
     'speaker-off': 'som desligado', 'music': 'volume da música', 'calendar': 'recompensa diária', 'mission': 'missões, tutorial',
     'star': 'passe de temporada, estrelas', 'boost': 'bênção', 'tab-heroes': 'aba Heróis', 'tab-social': 'aba Social',
@@ -73,7 +73,7 @@ def main():
         'Tile': 'terreno: grama 57/58, floresta 42/43/46/47, água 27/28, pedra (montanha) 15/16, plantação da Fazenda 56; demais reservados',
         'Structure': 'prédios (casa 18, serraria 21, pedreira 20, mercado 22, moinho 19 + hélice 13, armazém 9, taverna 23, muralha 2, torre 1, templo 4, estátua 12), carroça do mercador 7, castelo 6 (logo e ícone)',
         'Environment': 'rochas 7/8, rochedo da montanha 9/11, mina de ouro 18, jardim 19, fogueira 20; demais reservados',
-        'Unit': 'invasores 8/9/10, aldeões 1/13/19/24; demais reservados',
+        'Unit': 'invasores 8/9/10 (time vermelho); moradores por profissão: lavrador 13, moleira 12, lenhador 19, pedreiro 1, mineira 18, mercadora 24, intendente 17, taverneiro 23, guarda 3, sacerdote 2; sem emprego (dormindo) 1/12/13/19; demais reservados',
     }
     for d in ['Tile', 'Structure', 'Environment', 'Unit']:
         files = sorted(f for f in os.listdir(os.path.join(rts, d)) if f.endswith('.png'))
