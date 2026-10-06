@@ -2,6 +2,17 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.6.0] — 2026-10-06
+### Adicionado
+- **Tela de estatísticas ao Ascender**: abre logo depois da Ascensão com as Coroas ganhas (contando até o valor), duração da rodada e tempo com o jogo aberto, ouro da rodada, ouro por segundo no fim, Poder do Reino, construções e melhorias, prédios no mapa (maior nível e anel), hordas vencidas e perdidas, expedições, carroças e o **melhor combo** (o prédio com maior bônus de vizinhos).
+- **Recordes**: a partir da 2ª rodada, cartões que bateram a melhor marca anterior (ouro, ouro por segundo, combo, hordas vencidas, Poder) ganham o selo "Recorde".
+- **Próxima rodada**: a tela mostra os talentos que dá para comprar com as Coroas guardadas e leva direto à aba Legado.
+- **Rodadas anteriores** na aba Legado: as últimas 10 rodadas, com o resumo de cada uma.
+- Os números da rodada vêm de uma foto das estatísticas tirada no início de cada rodada. Saves de antes desta versão não têm essa foto: na primeira Ascensão depois da atualização, os números que dependem dela não aparecem (o jogo avisa), em vez de mostrar valores errados.
+
+### Mudou
+- **Moradores em "stop motion"**: andam a cerca de metade da velocidade e se movem em quadros de 0,2 s (5 por segundo), parados entre um quadro e outro. Cada quadro alterna a pose: pé no chão e no ar ao andar, ferramenta levantada e batendo ao trabalhar; o "z z z" de quem dorme também sobe em degraus. A rotina passou a ser calculada 5 vezes por segundo em vez de a cada frame.
+
 ## [0.5.0] — 2026-10-06
 ### Adicionado
 - **Vida da vila**: os moradores do mapa agora têm profissão e rotina, com sprite próprio do Medieval RTS por ofício e a ferramenta balançando enquanto trabalham.

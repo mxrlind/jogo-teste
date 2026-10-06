@@ -12,6 +12,7 @@ import { buildCost, canAfford, kingdomPower, heroMultiplier } from '../core/econ
 import { generateRivals, rivalGrid, encodeKingdom, decodeKingdom } from '../core/social.js';
 import { fmt, fmtTime } from '../core/format.js';
 import { MapRenderer } from './render.js';
+import { showRunSummary } from './ascension.js';
 import { preloadAll, iconKey, RES_COLORS } from './assets.js';
 import { initAudio, loadSfx, play, setVolumes, hasMusic, musicInfo } from './audio.js';
 import { ui, $, esc, bannerColor, emblemIcon } from './ctx.js';
@@ -19,7 +20,7 @@ import { ico, resIco } from './icons.js';
 import { showModal, replaceModal, closeModal, confirmModal, runConfirm, toast, modalOpen, modalClosable } from './modals.js';
 import { renderHud, renderPalette, renderTileInfo, renderSide, renderModeHint, hudInfo, lockedTabHint, describeBonus } from './panels.js';
 
-const GAME_VERSION = '0.5.0';
+const GAME_VERSION = '0.6.0';
 const TAB_ORDER = ['reino', 'herois', 'temporada', 'legado', 'social', 'perfil'];
 const FLOAT_COLORS = RES_COLORS;
 
@@ -259,7 +260,7 @@ function wireGame() {
     .on('background', (sum) => {
       if (sum.elapsed >= 60) toast(`Com a aba em segundo plano (${fmtTime(sum.elapsed)}): +${fmt(Math.max(0, sum.gains.gold))} de ouro.`, 'info', 'time');
     })
-    .on('ascended', ({ crowns }) => { play('ascend'); ui.renderer.doFlash('#f2b632', 1000); toast(`Você ascendeu! +${crowns} Coroas.`, 'good', 'crowns'); renderAll(); });
+    .on('ascended', ({ summary }) => { play('ascend'); ui.renderer.doFlash('#f2b632', 1000); renderAll(); showRunSummary(summary, { fresh: true }); });
 }
 
 // ================================================================ mapa: clique e hover
@@ -489,6 +490,8 @@ const ACTIONS = {
     if (adv.crowns < 1) { play('error'); toast('Ainda não há Coroas a ganhar.', 'bad', 'warning'); return; }
     confirmModal(`<h2>${resIco('crowns')} Ascender?</h2><p>O reino atual (prédios, recursos, terras) recomeça num mapa novo. Você ganha <b>${adv.crowns} Coroas</b> para a Árvore de Legado.</p><p>Ficam com você: heróis, gemas, Coroas, talentos, temporada, conquistas, cosméticos e estatísticas.</p>${adv.recommended ? '' : `<p class="warn">${ico('warning')} Ainda não é o momento recomendado: esta Ascensão não dobra as suas Coroas.</p>`}`, () => { result(ui.game.ascend()); ui.renderer.selected = null; }, { yes: 'Ascender' });
   },
+  toLegacy: () => { closeModal(); ui.tab = 'legado'; play('tab', 0.6); renderSide(true); },
+  runSummary: (el) => { const r = ui.game.state.runs?.[Number(el.dataset.arg)]; if (r) { play('open', 0.6); showRunSummary(r); } },
   talent: (el) => { if (result(ui.game.buyTalent(el.dataset.arg))) play('upgrade'); },
   greet: (el) => { const res = ui.game.greetRival(el.dataset.arg); if (result(res)) toast(res.gift ? 'Eles retribuíram com 1 gema!' : 'Saudação enviada (+10 XP).', 'good', 'greet'); },
   trade: (el) => {
