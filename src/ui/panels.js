@@ -1,5 +1,5 @@
 // HUD, paleta, painel do tile e abas do painel lateral. Só gera HTML/atualiza DOM; ações ficam em app.js.
-import { BUILDINGS, BUILDING_ORDER, RESOURCES, TERRAIN } from '../data/buildings.js';
+import { BUILDINGS, BUILDING_ORDER, RESOURCES, TERRAIN, MAX_LEVEL } from '../data/buildings.js';
 import { HEROES, RARITIES, EXPEDITIONS, RECRUIT_GEM_COST, MAX_STARS } from '../data/heroes.js';
 import { TALENTS, CROWN_DIVISOR } from '../data/talents.js';
 import { SEASON_TIERS, XP_PER_TIER } from '../data/seasons.js';
@@ -17,6 +17,7 @@ import { ui, $, esc, costHtml, bannerColor, emblemIcon, deltaText } from './ctx.
 import { ico, resIco } from './icons.js';
 
 const spriteOf = (id) => BUILDING_SPRITES[id]?.src;
+const touchUi = () => window.matchMedia?.('(pointer: coarse)').matches ?? false;
 
 // ================================================================ HUD
 let hudBuilt = false;
@@ -41,13 +42,31 @@ function buildHud() {
 const setText = (el, t) => { if (el.textContent !== t) el.textContent = t; };
 const setHtml = (el, h) => { if (el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; } };
 
+// Feedback de recurso: produção normal não anima; ganhos e gastos de uma vez (recompensa, obra) sim.
+let lastRes = {};
+let lastResState = null;
+function bump(chip, r, value, rate) {
+  const prev = lastRes[r];
+  lastRes[r] = value;
+  if (prev === undefined) return;
+  const d = value - prev;
+  const tickGain = Math.max(0, rate) * 0.6 + 0.5; // folga para o que a produção rende entre dois quadros do HUD
+  const kind = d > tickGain + Math.max(1, prev * 0.02) ? 'gain' : d < -Math.max(0.5, -Math.min(0, rate) * 0.6 + 0.5) ? 'spend' : null;
+  if (!kind) return;
+  chip.classList.remove('gain', 'spend');
+  void chip.offsetWidth; // reinicia a animação
+  chip.classList.add(kind);
+}
+
 export function renderHud() {
   const g = ui.game;
   const s = g.state;
   const e = g.econ;
   if (!hudBuilt) buildHud();
+  if (lastResState !== s) { lastRes = {}; lastResState = s; } // reino novo/importado/ascendido: sem "pulo" falso
   for (const r of RES_LIST) {
     const chip = $(`#chip-${r}`);
+    bump(chip, r, s.res[r], e.rates[r]);
     const pct = Math.min(100, (s.res[r] / e.caps[r]) * 100);
     chip.classList.toggle('full', pct >= 99.5);
     chip.title = `${RESOURCES[r].name}: ${fmt(s.res[r])} de ${fmt(e.caps[r])}`;
@@ -57,6 +76,7 @@ export function renderHud() {
     rate.classList.toggle('neg', e.rates[r] < 0);
     chip.querySelector('.bar').style.width = `${pct}%`;
   }
+  bump($('#chip-gems'), 'gems', s.res.gems, 0);
   setText($('#chip-gems .num'), fmt(s.res.gems));
   setText($('#chip-pop .num'), `${Math.floor(s.pop)}/${e.popCap}`);
   const popRate = $('#chip-pop .rate');
@@ -70,18 +90,20 @@ export function renderHud() {
   const safe = e.defense >= strength;
   const raid = $('#st-raid');
   raid.className = `status ${safe ? 'safe' : 'danger'} ${raidIn < 20 ? 'soon' : ''}`;
-  setHtml(raid, `${ico(safe ? 'defense' : 'warning')}<span>Defesa <b>${fmt(e.defense)}</b> x <b>${fmt(strength)}</b> · ${DIR_NAMES[s.raid.dir]} · ${fmtTime(raidIn)}</span>`);
+  // Duas linhas: o que é (horda, de onde, quando) e se a defesa daquele lado aguenta.
+  setHtml(raid, `${ico(safe ? 'defense' : 'warning')}<span><small>Horda pelo ${DIR_NAMES[s.raid.dir]} · ${s.raid.warned ? 'chegando' : fmtTime(raidIn)}</small>Defesa <b class="def">${fmt(e.defense)}</b> / ${fmt(strength)} ${safe ? '· protegido' : '· vulnerável'}</span>`);
+  raid.setAttribute('aria-label', `Próxima horda pelo ${DIR_NAMES[s.raid.dir]} em ${fmtTime(raidIn)}. Defesa ${fmt(e.defense)} contra força ${fmt(strength)}.`);
   const ev = s.event && s.event.endsAt > Date.now() ? EVENT_BY_ID[s.event.id] : null;
   const evEl = $('#st-event');
   evEl.hidden = !ev;
-  if (ev) setHtml(evEl, `${ico(ev.icon)}<span>${ev.name} · ${fmtTime((s.event.endsAt - Date.now()) / 1000)}</span>`);
+  if (ev) setHtml(evEl, `${ico(ev.icon)}<span><small>Evento · ${fmtTime((s.event.endsAt - Date.now()) / 1000)}</small>${ev.name}</span>`);
   const boostEl = $('#st-boost');
   boostEl.hidden = !(s.boostUntil > Date.now());
-  if (!boostEl.hidden) setHtml(boostEl, `${ico('boost')}<span>Bênção +50% · ${fmtTime((s.boostUntil - Date.now()) / 1000)}</span>`);
+  if (!boostEl.hidden) setHtml(boostEl, `${ico('boost')}<span><small>Bênção · ${fmtTime((s.boostUntil - Date.now()) / 1000)}</small>+50% produção</span>`);
   const adv = g.isTabUnlocked('legado') ? g.ascendAdvice() : null;
   const asc = $('#st-ascend');
   asc.hidden = !adv?.recommended;
-  if (adv?.recommended) setHtml(asc, `${ico('crowns')}<span>Vale ascender: +${adv.crowns} ${adv.crowns === 1 ? 'Coroa' : 'Coroas'}</span>`);
+  if (adv?.recommended) setHtml(asc, `${ico('crowns')}<span><small>Vale ascender</small>+${adv.crowns} ${adv.crowns === 1 ? 'Coroa' : 'Coroas'}</span>`);
 
   const k = s.kingdom;
   setHtml($('#brand'), `<span class="banner" style="--bc:${bannerColor(k.banner)}">${ico(emblemIcon(k.emblem))}</span>
@@ -114,7 +136,11 @@ export function renderTutorial() {
   if (s.tutorial.done || ui.visiting) { el.hidden = true; return; }
   const step = TUTORIAL[s.tutorial.step];
   el.hidden = false;
-  setHtml(el, `${ico('mission')}<b>Primeiros passos ${s.tutorial.step + 1}/${TUTORIAL.length}</b><span>${step.text}</span>`);
+  const dots = TUTORIAL.map((_, i) => `<i class="${i <= s.tutorial.step ? 'on' : ''}"></i>`).join('');
+  const before = el.dataset.step;
+  setHtml(el, `${ico('mission')}<span class="tt"><span class="step">Primeiros passos ${s.tutorial.step + 1}/${TUTORIAL.length}<span class="dots" aria-hidden="true">${dots}</span></span>${step.text}</span>`);
+  el.dataset.step = String(s.tutorial.step);
+  if (before !== undefined && before !== el.dataset.step) { el.classList.remove('advance'); void el.offsetWidth; el.classList.add('advance'); }
 }
 
 export function tutorialFocus() {
@@ -130,7 +156,7 @@ export function renderModeHint() {
     const def = BUILDINGS[m.id];
     const d = ui.hoverDelta;
     el.hidden = false;
-    setHtml(el, `<img src="${spriteOf(m.id)}" alt="" width="32" height="32"><span><b>${def.name}</b>: ${esc(def.desc)}${d ? `<br><span class="delta">Neste lugar: ${deltaText(d)}</span>` : '<br><span class="muted">Passe o mouse ou toque num tile para ver o ganho.</span>'}</span><button class="btn small" data-action="cancelMode">Cancelar</button>`);
+    setHtml(el, `<img src="${spriteOf(m.id)}" alt="" width="32" height="32"><span><b>${def.name}</b>: ${esc(def.desc)}${d ? `<br><span class="delta">Neste lugar: ${deltaText(d)}</span>` : `<br><span class="muted">${touchUi() ? 'Toque num tile para ver o ganho; toque de novo para construir.' : 'Passe o mouse num tile para ver o ganho; clique para construir.'}</span>`}</span><button class="btn small" data-action="cancelMode">Cancelar</button>`);
   } else if (m.type === 'move') {
     el.hidden = false;
     setHtml(el, `${ico('move')}<span>Escolha o novo lugar (mover é grátis).</span><button class="btn small" data-action="cancelMode">Cancelar</button>`);
@@ -152,14 +178,21 @@ export function renderPalette(force = false) {
     const cost = buildCost(s, id, mods);
     return { id, def, avail, n, cost, can: canAfford(s.res, cost), active: ui.renderer.mode.type === 'build' && ui.renderer.mode.id === id, focus: focus?.build === id };
   });
-  const sig = JSON.stringify(items.map((i) => [i.avail, i.can, i.active, i.focus, i.cost]));
+  const sig = JSON.stringify([g.unlockProgress(), items.map((i) => [i.avail, i.can, i.active, i.focus, i.cost])]);
   if (!force && sig === paletteSig) return;
   paletteSig = sig;
-  $('#palette').innerHTML = items.map((it) => {
-    if (!it.avail) return `<button class="pb locked" data-action="lockedBuilding" data-arg="${it.id}" aria-label="${it.def.name}: bloqueado"><img src="${spriteOf(it.id)}" alt=""><span class="pn">${ico('lock')} ${it.def.name}</span><span class="pc">Libera com ${it.def.unlock.buildings} construções</span></button>`;
-    return `<button class="pb ${it.can ? '' : 'poor'} ${it.active ? 'active' : ''} ${it.focus ? 'focus' : ''}" data-action="build" data-arg="${it.id}" aria-pressed="${it.active}">
-      <img src="${spriteOf(it.id)}" alt=""><span class="pn">${it.def.name}${it.n <= 9 ? `<kbd>${it.n}</kbd>` : ''}</span><span class="pc">${costHtml(it.cost, s.res)}</span></button>`;
-  }).join('');
+  // Bloqueados ficam compactos, depois dos disponíveis e em ordem de desbloqueio: o que dá para
+  // construir agora não se perde no meio de 11 cartões apagados (achado da revisão de UX).
+  const open = items.filter((it) => it.avail);
+  const locked = items.filter((it) => !it.avail).sort((a, b) => a.def.unlock.buildings - b.def.unlock.buildings);
+  const have = g.unlockProgress();
+  const nextAt = locked[0]?.def.unlock.buildings;
+  const openHtml = open.map((it) => `<button class="pb ${it.can ? '' : 'poor'} ${it.active ? 'active' : ''} ${it.focus ? 'focus' : ''}" data-action="build" data-arg="${it.id}" aria-pressed="${it.active}" title="${esc(it.def.desc)}">
+      <img src="${spriteOf(it.id)}" alt=""><span class="pn">${it.def.name}${it.n <= 9 ? `<kbd>${it.n}</kbd>` : ''}</span><span class="pc">${costHtml(it.cost, s.res)}</span></button>`).join('');
+  const lockedHtml = locked.map((it) => `<button class="pb locked ${it.def.unlock.buildings === nextAt ? 'next' : ''}" data-action="lockedBuilding" data-arg="${it.id}" aria-label="${it.def.name}: libera com ${it.def.unlock.buildings} construções">
+      <img src="${spriteOf(it.id)}" alt=""><span class="pn">${it.def.name}</span><span class="pc">${ico('lock')} ${it.def.unlock.buildings}</span></button>`).join('');
+  $('#palette').innerHTML = `<p class="pal-head"><span>Construir</span><span>${open.length}/${items.length}</span></p>${openHtml}`
+    + (locked.length ? `<p class="pal-head"><span>A desbloquear</span><span>${have}/${nextAt} obras</span></p>${lockedHtml}` : '');
 }
 
 // ================================================================ painel do tile
@@ -206,13 +239,15 @@ export function renderTileInfo(force = false) {
       : '<li class="muted">Nenhum vizinho com bônus</li>';
     const warn = !info.active ? `<p class="warn">${ico('warning')} Precisa estar encostada em ${TERRAIN[def.requiresAdj].name.toLowerCase()}.</p>`
       : info.workers > 0 && info.staff < 1 ? `<p class="warn">${ico('warning')} Faltam trabalhadores: rendendo ${Math.round(info.staff * 100)}%. Construa ou melhore casas.</p>` : '';
-    html = `<div class="title-row"><img src="${spriteOf(tile.b.id)}" alt=""><h3>${def.name} <small class="muted">nível ${tile.b.lvl}</small></h3></div>
+    const maxLvl = def.maxLevel ?? MAX_LEVEL;
+    html = `<div class="title-row"><img src="${spriteOf(tile.b.id)}" alt=""><h3><small class="muted">Nível ${tile.b.lvl} de ${maxLvl}</small>${def.name}</h3></div>
       <p class="muted">${esc(def.desc)}</p>${warn}
-      <div class="stats">${outputLines(info, def, sel.x, sel.y).map((l) => `<span>${l}</span>`).join('')}</div>
-      <p><b>Adjacência ${fmtPct(info.adjBonus)}</b></p><ul class="adj">${adj}</ul>
+      <div class="lbl"><span>Produção</span></div>
+      <div class="stats">${outputLines(info, def, sel.x, sel.y).map((l) => `<span>${l}</span>`).join('') || '<span class="muted">Sem produção direta</span>'}</div>
+      <div class="lbl"><span>Vizinhos</span><span class="${info.adjBonus > 0 ? 'pos' : info.adjBonus < 0 ? 'neg' : ''}">${fmtPct(info.adjBonus)}</span></div><ul class="adj">${adj}</ul>
       ${up ? `<div class="row"><button class="btn ${canAfford(s.res, up) ? 'primary' : 'poor'}" data-action="upgrade">${ico('upgrade')} Melhorar ${costHtml(up, s.res)}</button><span class="delta">${deltaText(upDelta)}</span></div>
       <div class="row"><button class="btn small" data-action="upgradeMax">Melhorar ao máximo possível</button>${sameType > 1 ? `<button class="btn small" data-action="upgradeAll">Melhorar todas as ${sameType} (${def.name})</button>` : ''}</div>` : '<p class="muted">Nível máximo.</p>'}
-      <div class="row"><button class="btn small" data-action="move">${ico('move')} Mover</button><button class="btn small danger" data-action="sell">${ico('demolish')} Demolir</button></div>`;
+      <hr class="divider"><div class="row"><button class="btn small" data-action="move">${ico('move')} Mover</button><button class="btn small danger" data-action="sell">${ico('demolish')} Demolir</button></div>`;
   } else {
     const ter = TERRAIN[tile.t];
     const img = TERRAIN_SPRITES[tile.t]?.base[0];
@@ -225,8 +260,13 @@ export function renderTileInfo(force = false) {
   const full = `<button class="btn small icon-only x" data-action="closeTile" aria-label="Fechar">${ico('close')}</button>${html}`;
   if (!force && full === tileSig) return;
   tileSig = full;
+  // Anima só quando abre ou troca de tile (não a cada atualização de números).
+  const key = `${sel.x},${sel.y}`;
+  const fresh = el.hidden || el.dataset.tile !== key;
+  el.dataset.tile = key;
   el.hidden = false;
   el.innerHTML = full;
+  if (fresh) { el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); }
 }
 
 // ================================================================ abas
@@ -271,13 +311,16 @@ function tabReino() {
   const missions = s.season.missions?.list ?? [];
   return `
     <section class="card">
-      <h3>${ico('mission')} Missões do dia</h3>
-      ${missions.map((m, i) => `<div class="mission ${m.claimed ? 'done' : ''}">
+      <h3>${ico('mission')} Missões do dia <span class="count">${missions.filter((m) => m.claimed).length}/${missions.length}</span></h3>
+      ${missions.map((m, i) => {
+        const ready = !m.claimed && m.progress >= m.target;
+        return `<div class="mission ${m.claimed ? 'done' : ''} ${ready ? 'ready' : ''}">
         <span>${esc(missionText(m))}</span>
-        <div class="bar" role="progressbar" aria-valuenow="${Math.round((m.progress / m.target) * 100)}"><i style="width:${(m.progress / m.target) * 100}%"></i><em>${fmt(m.progress)}/${fmt(m.target)}</em></div>
-        ${m.claimed ? `<span class="pos">${ico('check')}</span>` : `<button class="btn small ${m.progress >= m.target ? 'primary' : ''}" data-action="claimMission" data-arg="${i}" ${m.progress >= m.target ? '' : 'disabled'}>+${m.xp} XP</button>`}
-      </div>`).join('')}
-      <button class="btn ${daily.available ? 'primary' : ''}" data-action="showDaily">${ico('calendar')} Recompensa diária ${daily.available ? '(disponível)' : `· sequência de ${s.daily.streak}`}</button>
+        <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round((m.progress / m.target) * 100)}"><i style="width:${(m.progress / m.target) * 100}%"></i><em>${fmt(m.progress)}/${fmt(m.target)}</em></div>
+        ${m.claimed ? `<span class="xp">${ico('check')} Feita</span>` : ready ? `<button class="btn small primary" data-action="claimMission" data-arg="${i}" title="+${m.xp} XP de temporada">Resgatar</button>` : `<span class="xp" title="Recompensa ao concluir">+${m.xp} XP</span>`}
+      </div>`;
+      }).join('')}
+      <button class="btn ${daily.available ? 'primary' : ''}" data-action="showDaily">${ico('calendar')} ${daily.available ? 'Recompensa diária disponível' : `Recompensa diária · ${s.daily.streak} ${s.daily.streak === 1 ? 'dia seguido' : 'dias seguidos'}`}</button>
     </section>
     <section class="card">
       <h3>${ico('stats')} Economia</h3>
@@ -341,14 +384,14 @@ function tabHerois() {
         ? `<button class="btn small primary" data-action="collect" data-arg="${h.id}">${ico('check')} Coletar: ${ex.name}</button>`
         : `<div class="row">${ico('expedition')} ${ex.name} · ${fmtTime(left)} <button class="btn small" data-action="speedup" data-arg="${h.id}">${ico('speedup')} Acelerar (${speedUpCost(left)} ${resIco('gems')})</button></div>`;
     } else if (!inCouncil) {
-      exp = `<div class="row">${EXPEDITIONS.map((x) => `<button class="btn small" data-action="expedition" data-arg="${h.id}|${x.id}" title="${x.name}">${ico('expedition')} ${fmtTime(x.duration)}</button>`).join('')}</div>`;
+      exp = `<div class="lbl"><span>Enviar em expedição</span></div><div class="row">${EXPEDITIONS.map((x) => `<button class="btn small" data-action="expedition" data-arg="${h.id}|${x.id}" title="${x.name}" aria-label="${x.name}, ${fmtTime(x.duration)}">${ico('expedition')} ${fmtTime(x.duration)}</button>`).join('')}</div>`;
     }
     return `<div class="hero" style="--rc:var(--${h.rarity})">
       <div class="portrait">${ico(h.icon)}</div>
-      <div><span class="rar">${RARITIES[h.rarity].name}</span> <b>${h.name}</b> ${starsHtml(o.stars)}
+      <div><span class="rar">${RARITIES[h.rarity].name}${inCouncil ? '<span class="badge-on">No Conselho</span>' : ''}</span><b>${h.name}</b> ${starsHtml(o.stars)}
         <small>Poder ${h.power * o.stars} · ${describeBonus(h.bonus.type, h.bonus.value * heroMultiplier(o.stars))}</small>
         <em>${esc(h.lore)}</em>
-        ${o.expedition ? '' : `<div class="row"><button class="btn small ${inCouncil ? 'on' : ''}" data-action="council" data-arg="${h.id}">${inCouncil ? 'No Conselho (tirar)' : 'Pôr no Conselho'}</button></div>`}
+        ${o.expedition ? '' : `<div class="row"><button class="btn small ${inCouncil ? 'on' : ''}" data-action="council" data-arg="${h.id}">${inCouncil ? 'Tirar do Conselho' : 'Pôr no Conselho'}</button></div>`}
         ${exp}
       </div></div>`;
   };
@@ -363,7 +406,7 @@ function tabHerois() {
       </div>
     </section>
     <section class="card">
-      <h3>${ico('tab-heroes')} Conselho ${s.heroes.council.length}/${slots}</h3>
+      <h3>${ico('tab-heroes')} Conselho <span class="count">${s.heroes.council.length}/${slots} vagas</span></h3>
       <p class="muted">Heróis no Conselho dão bônus e defendem o reino de qualquer lado. Heróis fora dele podem partir em expedições.</p>
       ${owned.length ? owned.map(card).join('') : '<p class="muted">Nenhum herói ainda. Use o pergaminho grátis.</p>'}
       ${missing.length ? `<div class="collection">${missing.map((h) => `<span class="ghost" style="--rc:var(--${h.rarity})" title="${RARITIES[h.rarity].name}, ainda não encontrado">${ico('info')}</span>`).join('')}</div><p class="muted">${missing.length} heróis por descobrir.</p>` : '<p>Coleção completa.</p>'}
@@ -394,7 +437,7 @@ function tabTemporada() {
       <div class="bar big"><i style="width:${tier >= SEASON_TIERS ? 100 : (into / XP_PER_TIER) * 100}%"></i><em>Nível ${tier}/${SEASON_TIERS} · ${tier >= SEASON_TIERS ? 'máximo' : `${into}/${XP_PER_TIER} XP`}</em></div>
       ${unclaimed ? `<button class="btn primary" data-action="claimAllTiers">${ico('check')} Resgatar ${unclaimed} recompensa(s)</button>` : ''}
     </section>
-    <section class="card"><h3>${ico('star')} Passe de temporada (gratuito)</h3><div class="tiers">${tiers}</div>
+    <section class="card"><h3>${ico('star')} Passe de temporada <span class="count">gratuito</span></h3><div class="tiers">${tiers}</div>
     <p class="muted">XP vem de construir, melhorar, vencer invasões, expedições, carroças, missões e da recompensa diária.</p></section>`;
 }
 
@@ -406,7 +449,7 @@ function tabLegado() {
     <section class="card">
       <h3>${resIco('crowns')} Ascensão</h3>
       <p>Recomece o reino num mapa novo com bônus permanentes. Coroas vêm do ouro ganho nesta rodada (${fmt(s.stats.runGold)}).</p>
-      <p>Coroas guardadas: <b>${s.res.crowns}</b> · Ao ascender agora: <b>+${adv.crowns}</b>${g.econ.crownBonus ? ` <small class="muted">(templos +${Math.round(g.econ.crownBonus * 100)}%)</small>` : ''}</p>
+      <div class="kpis"><div><small>Coroas guardadas</small><b class="big-num c-crowns">${s.res.crowns}</b></div><div><small>Ao ascender agora</small><b class="big-num ${adv.crowns >= 1 ? 'pos' : 'muted'}">+${adv.crowns}</b>${g.econ.crownBonus ? ` <small class="muted">templos +${Math.round(g.econ.crownBonus * 100)}%</small>` : ''}</div></div>
       <p class="${adv.recommended ? 'pos' : 'muted'}">${adv.recommended ? 'Recomendado: esta Ascensão pelo menos dobra as Coroas que você já conquistou.' : adv.crowns < 1 ? `A primeira Coroa chega com ${fmt(CROWN_DIVISOR)} de ouro na rodada.` : 'Ainda não dobra as suas Coroas; esperar rende mais.'}${Number.isFinite(adv.secondsToNext) ? ` Próxima Coroa em cerca de ${fmtTime(adv.secondsToNext)}.` : ''}</p>
       <button class="btn ${adv.crowns >= 1 ? 'primary' : 'poor'}" data-action="ascend">${resIco('crowns')} Ascender</button>
     </section>
@@ -414,7 +457,7 @@ function tabLegado() {
       ${TALENTS.map((t) => {
         const lvl = s.legacy[t.id] || 0;
         const cost = g.talentCost(t.id);
-        return `<div class="talent">${ico(t.icon)}<div><b>${t.name}</b> <small class="muted">${lvl}/${t.max}</small><br><small>${t.desc(Math.max(1, lvl))}${lvl ? '' : ' (no nível 1)'}</small></div>
+        return `<div class="talent">${ico(t.icon)}<div><b>${t.name}</b>${t.max <= 10 ? `<span class="pips" aria-label="nível ${lvl} de ${t.max}">${Array.from({ length: t.max }, (_, i) => `<i class="${i < lvl ? 'on' : ''}"></i>`).join('')}</span>` : ` <small class="muted">${lvl}/${t.max}</small>`}<br><small>${t.desc(Math.max(1, lvl))}${lvl ? '' : ' (no nível 1)'}</small></div>
         ${cost == null ? `<span class="pos">${ico('check')}</span>` : `<button class="btn small ${s.res.crowns >= cost ? 'primary' : 'poor'}" data-action="talent" data-arg="${t.id}">${resIco('crowns')} ${cost}</button>`}</div>`;
       }).join('')}
       <p class="muted">Herança e Terras Ancestrais valem a partir da próxima Ascensão.</p>
@@ -431,13 +474,13 @@ function tabSocial() {
     <section class="card">
       <h3>${ico('trophy')} Ranking da região</h3>
       <ol class="rank">${list.map((r, i) => `<li class="${r.me ? 'me' : ''}">
-        <span class="pos">${i + 1}</span><span class="banner sm" style="--bc:${bannerColor(r.banner)}">${ico(emblemIcon(r.emblem))}</span>
+        <span class="rk">${i + 1}</span><span class="banner sm" style="--bc:${bannerColor(r.banner)}">${ico(emblemIcon(r.emblem))}</span>
         <span><b>${esc(r.name)}</b><small>${esc(r.ruler)} · ${esc(r.title)}</small></span><b>${fmt(r.power)}</b>
         ${r.me ? '' : `<span class="ra">
           <button class="btn small" data-action="visit" data-arg="${r.id}">${ico('visit')} Visitar</button>
           <button class="btn small" data-action="greet" data-arg="${r.id}" ${s.social.greets[r.id] === key ? 'disabled' : ''}>${ico('greet')} Saudar</button>
-          <button class="btn small" data-action="trade" data-arg="${r.id}|wood" title="Troca 25% da madeira por ouro (1 vez por hora)">${resIco('wood')} por ${resIco('gold')}</button>
-          <button class="btn small" data-action="trade" data-arg="${r.id}|stone" title="Troca 25% da pedra por ouro (1 vez por hora)">${resIco('stone')} por ${resIco('gold')}</button>
+          <button class="btn small" data-action="trade" data-arg="${r.id}|wood" title="Vende 25% da sua madeira por ouro (1 vez por hora)" aria-label="Vender madeira por ouro">${resIco('wood')}<i class="arr"></i>${resIco('gold')}</button>
+          <button class="btn small" data-action="trade" data-arg="${r.id}|stone" title="Vende 25% da sua pedra por ouro (1 vez por hora)" aria-label="Vender pedra por ouro">${resIco('stone')}<i class="arr"></i>${resIco('gold')}</button>
         </span>`}</li>`).join('')}</ol>
       <p class="muted">Poder do Reino soma ouro da vida toda, prédios, heróis, Ascensões e vitórias.</p>
     </section>

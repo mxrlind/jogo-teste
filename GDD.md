@@ -54,7 +54,8 @@
 | Camada | Fonte | Regras |
 |---|---|---|
 | Mundo (terreno, prédios, natureza, unidades) | **Kenney Medieval RTS** (CC0), PNG 128 px | Top-down, vetor plano. Um prédio = um tile. Nenhum outro pacote de mundo |
-| Interface (painéis, botões, caixas) | **Kenney UI Pack** (CC0), via `border-image` | Plano, cantos arredondados |
+| Interface (botões, caixas de seleção) | **Kenney UI Pack** (CC0), via `border-image` | Plano, cantos arredondados, com estados de hover, pressionado e desativado |
+| Interface (painéis, cartões, HUD) | CSS com tokens em `styles.css` | Moldura escura (tinta) + superfícies de pergaminho + filete dourado. Sem `backdrop-filter` sobre o mapa (custaria um desfoque por frame) |
 | Ícones (recursos, ações, heróis, conquistas) | **game-icons.net** (CC BY 3.0), SVG tingido por CSS mask | Silhueta de uma cor; dentro do mapa só como número flutuante e aviso |
 | Texto | **Nunito** (OFL), 400 no corpo e 800 em títulos e números | Mínimo 14 px; escala ajustável. Kenney Future foi testada e descartada: o R estilizado prejudica a leitura |
 | Overlays desenhados (seleção, prévia, rótulos, nível) | Primitivas do canvas na paleta | Só realces funcionais, nunca "arte" |

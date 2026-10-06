@@ -2,6 +2,41 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.3.0] — 2026-10-06
+Revisão de código, polimento visual e de UX. Nenhuma mecânica mudou; saves da 0.2.0 abrem sem migração. Detalhes e plano em [docs/REVISAO-0.3.md](docs/REVISAO-0.3.md).
+
+### Mudou: visual
+- Tema novo e coeso: moldura escura, painéis de pergaminho em CSS (camadas de sombra e filete dourado) no lugar do painel cinza do UI Pack; botões do UI Pack mantidos, agora com hover, pressionado e desativado distintos.
+- HUD escuro com recursos em destaque; o número "pula" quando você ganha ou gasta de uma vez (recompensa, obra).
+- Status da horda em duas linhas e em linguagem clara: "Horda pelo Norte · 5m 58s / Defesa 0 / 8 · vulnerável".
+- Paleta: o que dá para construir vem primeiro; bloqueados ficam compactos, em ordem de desbloqueio, com o próximo destacado e o progresso ("2/3 obras").
+- Mapa com moldura, seleção com cantoneiras douradas, prévia com cantos arredondados, onda ao construir e selo de nível com sombra.
+- Abas, cartões, barras de progresso, missões, passe, Legado (números em destaque e níveis em "pips"), ranking (pódio), recompensa diária (ícones), revelação de herói (raios), toasts e modais redesenhados.
+- Menu principal com vinheta e entrada animada; tela de carregamento com logo animada.
+
+### Mudou: UX
+- Missão incompleta mostra a recompensa como selo; o botão "Resgatar" só aparece quando dá para resgatar.
+- Todo modal tem botão de fechar (menos a fundação do reino, que precisa de uma escolha).
+- Esc encerra a visita a outro reino; escolher um prédio durante a visita volta ao seu reino.
+- "Resgatar todas" no passe mostra um aviso só, não um por nível.
+- Dica de construção fala em toque no celular e em mouse no PC.
+- Toasts no centro, sem cobrir a paleta; texto de desenvolvedor saiu do menu principal.
+
+### Corrigido
+- Menu principal redesenhava o mapa de fundo a 60 fps (cerca de 2.700 desenhos por segundo, sob um desfoque em tela cheia). Agora desenha uma vez e de novo só ao redimensionar.
+- Painel lateral parava de atualizar se o botão do mouse fosse solto fora da janela.
+- Save também no `pagehide` (celulares nem sempre disparam `beforeunload`).
+- Posição no ranking sempre verde: a classe colidia com a utilitária `.pos`; o pódio agora tem ouro, prata e bronze.
+- Servidor local sem tipo MIME para `.woff2`, `.mp3` e `.webmanifest`.
+
+### Desempenho
+- Aldeões: lista de tiles livres em cache (antes era refeita a cada frame).
+- Efeitos: array compactado no lugar, sem alocar um novo por frame.
+- Sem `backdrop-filter` sobre o mapa animado.
+
+### Removido
+- Código morto: `fmtCost` (também estava quebrado), `plainCost`, `icon` e `RESOURCE_ICONS`.
+
 ## [0.2.0] — 2026-10-05
 Saves da 0.1.0 continuam funcionando: são migrados automaticamente para o formato v2 na primeira abertura.
 

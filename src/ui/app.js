@@ -16,10 +16,10 @@ import { preloadAll, iconKey } from './assets.js';
 import { initAudio, loadSfx, play, setVolumes, hasMusic, musicInfo } from './audio.js';
 import { ui, $, esc, bannerColor, emblemIcon } from './ctx.js';
 import { ico, resIco } from './icons.js';
-import { showModal, closeModal, confirmModal, runConfirm, toast, modalOpen } from './modals.js';
+import { showModal, replaceModal, closeModal, confirmModal, runConfirm, toast, modalOpen, modalClosable } from './modals.js';
 import { renderHud, renderPalette, renderTileInfo, renderSide, renderModeHint, hudInfo, lockedTabHint, describeBonus } from './panels.js';
 
-const GAME_VERSION = '0.2.0';
+const GAME_VERSION = '0.3.0';
 const TAB_ORDER = ['reino', 'herois', 'temporada', 'legado', 'social', 'perfil'];
 const FLOAT_COLORS = { gold: '#f2b632', food: '#f0c27a', wood: '#c8834a', stone: '#d7dde0', gems: '#7cc6f0' };
 
@@ -35,7 +35,7 @@ let loaded = null; // resultado de loadSave no boot
 let loopsStarted = false;
 let lastSave = 0;
 let menuRenderer = null;
-let menuLoop = 0;
+let menuGrid = null;
 let remapping = null;
 let lastModeExit = 0; // Esc logo após sair de um modo não deve abrir o menu (achado do teste com jogador novo)
 
@@ -55,9 +55,12 @@ export async function boot() {
   document.addEventListener('pointerdown', () => { ui.pointerHeld = true; }, true);
   document.addEventListener('pointerup', () => { ui.pointerHeld = false; }, true);
   document.addEventListener('pointercancel', () => { ui.pointerHeld = false; }, true);
+  // Soltar o botão fora da janela não gera pointerup: sem isto o painel lateral parava de atualizar.
+  window.addEventListener('blur', () => { ui.pointerHeld = false; });
   document.addEventListener('visibilitychange', onVisibility);
   window.addEventListener('beforeunload', save);
-  $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal') closeModal(); });
+  window.addEventListener('pagehide', save); // celulares nem sempre disparam beforeunload
+  $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal' && modalClosable()) closeModal(); });
 
   initAudio(ui.config);
   let imgDone = 0; let imgTotal = 1; let sfxDone = 0; let sfxTotal = 1;
@@ -67,7 +70,7 @@ export async function boot() {
     $('#loading .progress').setAttribute('aria-valuenow', String(p));
     $('#loadText').textContent = `Carregando assets... ${p}%`;
   };
-  const uiImages = ['assets/ui/kenney-ui-pack/grey_panel.png', 'assets/ui/kenney-ui-pack/yellow_button00.png', 'assets/ui/kenney-ui-pack/grey_button00.png'];
+  const uiImages = ['assets/ui/kenney-ui-pack/yellow_button00.png', 'assets/ui/kenney-ui-pack/grey_button00.png'];
   await Promise.all([
     preloadAll(uiImages, (d, t) => { imgDone = d; imgTotal = t; progress(); }),
     loadSfx((d, t) => { sfxDone = d; sfxTotal = t; progress(); }),
@@ -123,20 +126,27 @@ function showMainMenu() {
     <button class="btn big ${has ? '' : 'primary'}" data-action="newGame">${ico('build')} Novo reino</button>
     <button class="btn big" data-action="howTo">${ico('info')} Como jogar</button>
     <div class="row"><button class="btn" style="flex:1" data-action="options">${ico('settings')} Opções</button><button class="btn" style="flex:1" data-action="credits">${ico('scroll')} Créditos</button></div>`;
-  $('#menuVersion').textContent = `Versão ${GAME_VERSION} · save v${SAVE_VERSION}${hasMusic() ? '' : ' · música não instalada (ver EXECUTAR.md)'}`;
+  $('#menuVersion').textContent = `Versão ${GAME_VERSION}`;
+  $('#menuVersion').title = `Formato de save v${SAVE_VERSION}${hasMusic() ? '' : ' · nenhuma música instalada (ver EXECUTAR.md)'}`;
   $('#menuButtons button')?.focus({ preventScroll: true });
   if (loaded?.recovered && loaded.state) toast(`O save principal estava danificado; recuperamos o backup (${loaded.source}). A cópia danificada foi guardada.`, 'bad', 'warning');
   else if (loaded?.recovered) toast('O save estava danificado e não havia backup íntegro. A cópia danificada foi guardada.', 'bad', 'warning');
   if (loaded) loaded.recovered = false;
 
+  // O fundo do menu é estático e fica borrado: desenha uma vez (e de novo só se a janela mudar de tamanho).
+  // Antes era redesenhado a 60 fps, com um filtro de desfoque em tela cheia por cima.
   const canvas = $('#menuMap');
   canvas.dataset.fill = 'cover';
-  if (!menuRenderer) menuRenderer = new MapRenderer(canvas, { getConfig: () => ui.config });
-  const grid = st ? st.grid : rivalGrid(generateRivals(7, Date.now(), Date.now())[6]);
-  menuRenderer.view = { grid };
-  cancelAnimationFrame(menuLoop);
-  const draw = () => { menuRenderer.draw({ state: { grid } }); if (!$('#mainMenu').hidden) menuLoop = requestAnimationFrame(draw); };
-  draw();
+  menuGrid = st ? st.grid : rivalGrid(generateRivals(7, Date.now(), Date.now())[6]);
+  if (!menuRenderer) menuRenderer = new MapRenderer(canvas, { getConfig: () => ui.config, onResize: drawMenuMap });
+  menuRenderer.view = { grid: menuGrid };
+  drawMenuMap();
+}
+
+function drawMenuMap() {
+  if (!menuRenderer || !menuGrid || $('#mainMenu').hidden) return;
+  // Os sprites já foram pré-carregados; o próximo frame garante que o canvas já tem o tamanho final.
+  requestAnimationFrame(() => menuRenderer.draw({ state: { grid: menuGrid } }));
 }
 
 function startGame(state, { isNew = false } = {}) {
@@ -164,21 +174,22 @@ function startGame(state, { isNew = false } = {}) {
 
 function startLoops() {
   loopsStarted = true;
+  const gameEl = $('#game');
   setInterval(() => {
-    if (!ui.game || $('#game').hidden) return;
+    if (!ui.game || gameEl.hidden) return;
     ui.game.tick(Date.now(), { background: document.hidden });
     renderHud();
     if (Date.now() - lastSave > 10000) save();
   }, 250);
   setInterval(() => {
-    if (!ui.game || $('#game').hidden || ui.pointerHeld) return;
+    if (!ui.game || gameEl.hidden || ui.pointerHeld) return;
     renderSide();
     renderPalette();
     renderTileInfo();
     ambientFx();
   }, 1000);
   const loop = () => {
-    if (ui.game && !$('#game').hidden) ui.renderer.draw(ui.game);
+    if (ui.game && !gameEl.hidden) ui.renderer.draw(ui.game);
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
@@ -299,6 +310,7 @@ function setMode(mode) {
 }
 
 function selectBuild(id) {
+  if (ui.visiting) { endVisit(); refreshAfterVisit(); }
   if (ui.renderer.mode.type === 'build' && ui.renderer.mode.id === id) setMode({ type: 'select' });
   else { ui.renderer.selected = null; setMode({ type: 'build', id }); renderTileInfo(true); }
   play('click', 0.6);
@@ -323,9 +335,10 @@ function onKey(e) {
   const action = actionForKey(ui.config, key);
   if (action === 'menu') {
     e.preventDefault();
-    if (modalOpen()) { closeModal(); return; }
+    if (modalOpen()) { if (modalClosable()) closeModal(); return; }
     if ($('#game').hidden || !ui.game) return;
     const r = ui.renderer;
+    if (ui.visiting) { endVisit(); refreshAfterVisit(); return; }
     if (r.mode.type !== 'select' || r.selected || r.cursor) {
       setMode({ type: 'select' }); r.selected = null; r.cursor = null; renderTileInfo(true); return;
     }
@@ -445,10 +458,17 @@ const ACTIONS = {
   speedup: (el) => result(ui.game.speedUpExpedition(el.dataset.arg)),
   claimTier: (el) => { if (result(ui.game.claimTier(Number(el.dataset.arg)))) play('coin'); },
   claimAllTiers: () => {
+    // Um aviso só no fim (antes eram até 30 toasts seguidos, um por nível).
     const max = Math.min(SEASON_TIERS, Math.floor(ui.game.state.season.xp / XP_PER_TIER));
-    for (let t = 1; t <= max; t++) if (!ui.game.state.season.claimed.includes(t)) ui.game.claimTier(t);
+    const labels = [];
+    ui.game.quiet = true;
+    try {
+      for (let t = 1; t <= max; t++) if (!ui.game.state.season.claimed.includes(t)) { const r = ui.game.claimTier(t); if (r.ok) labels.push(r.reward.label); }
+    } finally { ui.game.quiet = false; }
+    if (!labels.length) return;
     play('coin');
-    renderSide(true);
+    toast(`Resgatou ${labels.length} recompensa(s): ${labels.join(', ')}.`, 'good', 'star');
+    result({ ok: true });
   },
   claimMission: (el) => { if (result(ui.game.claimMission(Number(el.dataset.arg)))) play('confirm'); },
   daily: () => { closeModal(); if (result(ui.game.claimDaily())) play('coin'); },
@@ -556,6 +576,11 @@ function endVisit() {
   $('#visitBar').hidden = true;
 }
 
+function refreshAfterVisit() {
+  renderHud();
+  renderTileInfo(true);
+}
+
 // ================================================================ efeitos ambientes
 let ambientTick = 0;
 function ambientFx() {
@@ -586,7 +611,7 @@ function showIntro() {
     <input type="text" id="introName" maxlength="24" placeholder="Reino de Bolso" data-autofocus>
     <label>Estandarte</label>
     <div class="swatches">${BANNERS.filter((b) => b.free).map((b, i) => `<label class="sw" style="--bc:${b.color}" aria-label="${b.name}"><input type="radio" name="introBanner" value="${b.id}" ${i === 0 ? 'checked' : ''}></label>`).join('')}</div>
-    <button class="btn big primary" data-action="startKingdom">${ico('build')} Fundar meu reino</button>`);
+    <button class="btn big primary" data-action="startKingdom">${ico('build')} Fundar meu reino</button>`, '', { closable: false });
 }
 
 function showHowTo() {
@@ -626,7 +651,7 @@ function showOptions(replace = false) {
   const html = `<h2>${ico('settings')} Opções</h2>
     <h3>Som</h3>
     ${slider('musicVolume', 'Música', 0, 100, 'music')}
-    ${m ? `<p class="muted">Faixa: ${esc(m.title)} (${esc(m.author)}, ${esc(m.license)}).</p>` : '<p class="muted">Música não instalada. O passo a passo está no EXECUTAR.md.</p>'}
+    ${m ? `<p class="muted">Faixa: ${esc(m.title)} (${esc(m.author)}, ${esc(m.license)}).</p>` : '<p class="muted">Nenhuma faixa de música instalada.</p>'}
     ${slider('sfxVolume', 'Efeitos', 0, 100, 'speaker')}
     <h3>Visual e acessibilidade</h3>
     ${slider('fontScale', 'Tamanho do texto', 85, 150, 'font')}
@@ -637,7 +662,7 @@ function showOptions(replace = false) {
     <div class="keys">${keys}</div>
     <div class="row"><button class="btn small" data-action="resetKeys">Restaurar teclas padrão</button></div>
     <button class="btn big primary" data-action="closeModal">Fechar</button>`;
-  if (replace && modalOpen()) { $('#modal .sheet').innerHTML = html; return; }
+  if (replace && modalOpen()) { replaceModal(html); return; }
   showModal(html, '', { priority: true });
 }
 
@@ -667,7 +692,7 @@ async function showCredits() {
     </ul>
     <p class="muted">Lista completa, arquivo por arquivo, no ASSETS.md do repositório.</p>
     <button class="btn big primary" data-action="closeModal">Fechar</button>`;
-  if (modalOpen()) $('#modal .sheet').innerHTML = html;
+  if (modalOpen()) replaceModal(html);
 }
 
 function showSaveMenu() {
@@ -693,7 +718,8 @@ function showDaily() {
     <div class="daily">${DAILY_REWARDS.map((r) => {
       const cur = ((st.available ? st.nextStreak : streak) - 1) % 7 + 1;
       const done = st.available ? r.day < cur : r.day <= cur;
-      return `<div class="dr ${done ? 'done' : ''} ${st.available && r.day === cur ? 'today' : ''}"><b>Dia ${r.day}</b><span>${r.label}</span></div>`;
+      const icon = done ? ico('check') : r.gems ? resIco('gems') : r.boost ? ico('boost', 'c-gold') : r.scroll ? ico('scroll', 'c-crowns') : resIco('gold');
+      return `<div class="dr ${done ? 'done' : ''} ${st.available && r.day === cur ? 'today' : ''}"><b>Dia ${r.day}</b>${icon}<span>${r.label}</span></div>`;
     }).join('')}</div>
     ${st.available ? `<button class="btn big primary" data-action="daily" data-autofocus>Resgatar: ${st.reward.label}</button>` : '<p class="muted">Já resgatada hoje. Volte amanhã para manter a sequência.</p><button class="btn big" data-action="closeModal">Fechar</button>'}`);
 }

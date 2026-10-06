@@ -11,11 +11,12 @@ const pick = (arr, i) => arr[((i % arr.length) + arr.length) % arr.length];
 const RAID_WARNING_MS = 20000;
 
 export class MapRenderer {
-  constructor(canvas, { onTileClick, onHover, getConfig } = {}) {
+  constructor(canvas, { onTileClick, onHover, onResize, getConfig } = {}) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.onTileClick = onTileClick;
     this.onHover = onHover;
+    this.onResize = onResize; // telas estáticas (fundo do menu) redesenham só quando o tamanho muda
     this.getConfig = getConfig ?? (() => ({ particles: true, reduceMotion: false }));
     this.hover = null;
     this.selected = null;
@@ -30,6 +31,7 @@ export class MapRenderer {
     this.lastTouch = null;
     this.terrainCache = document.createElement('canvas');
     this.terrainSig = '';
+    this.walkCache = { sig: null, walkable: [], target: 0 }; // tiles livres para aldeões (recalcula só se o mapa mudar)
     this.resize();
     if (window.ResizeObserver) new ResizeObserver(() => this.resize()).observe(canvas.parentElement);
     else window.addEventListener('resize', () => this.resize());
@@ -57,6 +59,7 @@ export class MapRenderer {
     this.dpr = dpr;
     this.tile = size / GRID_W;
     this.terrainSig = ''; // força redesenho do cache
+    this.onResize?.();
   }
 
   tileFromEvent(e) {
@@ -96,6 +99,7 @@ export class MapRenderer {
   addBurst(x, y, color = '#f2b632') {
     if (!this.fxOn()) return;
     const now = performance.now();
+    this.fx.push({ kind: 'ring', x, y, color, born: now, life: 520 });
     for (let i = 0; i < 12; i++) {
       const a = (Math.PI * 2 * i) / 12;
       this.fx.push({ kind: 'spark', x, y, vx: Math.cos(a) * (0.5 + Math.random() * 0.6), vy: Math.sin(a) * (0.5 + Math.random() * 0.6), color, born: now, life: 650 });
@@ -215,10 +219,11 @@ export class MapRenderer {
     // Seleção e adjacência do prédio selecionado
     if (this.selected && !this.view) {
       const { x, y } = this.selected;
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = `rgba(255,255,255,${motion ? 0.65 + 0.35 * Math.sin(now / 200) : 1})`;
+      const pulse = motion ? 0.5 + 0.5 * Math.sin(now / 260) : 1;
+      ctx.fillStyle = `rgba(255, 224, 138, ${0.12 + 0.08 * pulse})`;
       this.roundRect(x * T + 2, y * T + 2, T - 4, T - 4, T * 0.14);
-      ctx.stroke();
+      ctx.fill();
+      this.corners(x * T, y * T, T, motion ? pulse * T * 0.035 : 0);
       const info = econ?.tiles[idx(x, y)];
       if (info) for (const p of info.adjParts) this.label(p.x * T + T / 2, p.y * T + T * 0.24, fmtPct(p.value), p.value > 0 ? '#9be7a8' : '#ffb3a6', T);
     }
@@ -233,12 +238,21 @@ export class MapRenderer {
       if (!this.hover || this.hover.x !== this.cursor.x || this.hover.y !== this.cursor.y) this.drawPreview(game, this.cursor, T);
     }
 
-    // Efeitos
-    this.fx = this.fx.filter((f) => now - f.born < f.life);
+    // Efeitos (compactação no próprio array: nada de alocar um array novo por frame)
+    let alive = 0;
     for (const f of this.fx) {
+      if (now - f.born >= f.life) continue;
+      this.fx[alive++] = f;
       const p = (now - f.born) / f.life;
       ctx.globalAlpha = 1 - p;
-      if (f.kind === 'float') {
+      if (f.kind === 'ring') {
+        const e = 1 - (1 - p) ** 3;
+        ctx.lineWidth = 3 * (1 - p) + 1;
+        ctx.strokeStyle = f.color;
+        ctx.beginPath();
+        ctx.arc(f.x * T + T / 2, f.y * T + T / 2, T * (0.25 + e * 0.6), 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (f.kind === 'float') {
         const fy = f.y * T + T * 0.3 - (motion ? p * T * 0.8 : 0);
         ctx.font = `800 ${Math.max(11, T * 0.24)}px Nunito, sans-serif`;
         ctx.textAlign = 'center';
@@ -260,6 +274,7 @@ export class MapRenderer {
       }
       ctx.globalAlpha = 1;
     }
+    this.fx.length = alive;
     if (this.flash && this.flash.until > now) {
       ctx.globalAlpha = ((this.flash.until - now) / this.flash.ms) * 0.35;
       ctx.fillStyle = this.flash.color;
@@ -301,10 +316,20 @@ export class MapRenderer {
 
   drawVillagers(grid, now, T, motion) {
     if (!motion || !this.fxOn()) return;
-    const walkable = [];
-    grid.tiles.forEach((t, i) => { if (t.t === 'grass' && !t.b && isUnlocked(grid, i % GRID_W, Math.floor(i / GRID_W))) walkable.push(i); });
+    // terrainSig muda quando o terreno, um prédio ou o anel mudam: só então refazer a lista.
+    if (this.walkCache.sig !== this.terrainSig) {
+      const walkable = [];
+      let houses = 0;
+      grid.tiles.forEach((t, i) => {
+        if (t.b?.id === 'casa') houses++;
+        if (t.t === 'grass' && !t.b && isUnlocked(grid, i % GRID_W, Math.floor(i / GRID_W))) walkable.push(i);
+      });
+      this.walkCache = { sig: this.terrainSig, walkable, target: Math.min(4, Math.floor(houses / 2) + 1) };
+      // Aldeão parado num tile que virou prédio: escolhe outro destino.
+      for (const v of this.villagers) v.to = null;
+    }
+    const { walkable, target } = this.walkCache;
     if (walkable.length < 4) return;
-    const target = Math.min(4, Math.floor(grid.tiles.filter((t) => t.b?.id === 'casa').length / 2) + 1);
     while (this.villagers.length < target) {
       const at = pick(walkable, Math.floor(Math.random() * walkable.length));
       this.villagers.push({ x: at % GRID_W, y: Math.floor(at / GRID_W), to: null, spr: pick(VILLAGER_SPRITES, this.villagers.length) });
@@ -336,15 +361,21 @@ export class MapRenderer {
     if (mode.type === 'build') buildId = mode.id;
     else if (mode.type === 'move') buildId = state.grid.tiles[idx(mode.from.x, mode.from.y)].b?.id;
     if (!buildId) {
-      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-      ctx.lineWidth = 2;
+      ctx.fillStyle = 'rgba(255,255,255,0.10)';
       this.roundRect(x * T + 2, y * T + 2, T - 4, T - 4, T * 0.14);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+      ctx.lineWidth = 2;
       ctx.stroke();
       return;
     }
     const valid = !tile.b && TERRAIN[tile.t].buildable && isUnlocked(state.grid, x, y);
-    ctx.fillStyle = valid ? 'rgba(155,231,168,0.32)' : 'rgba(255,120,100,0.4)';
-    ctx.fillRect(x * T, y * T, T, T);
+    ctx.fillStyle = valid ? 'rgba(155,231,168,0.30)' : 'rgba(255,110,90,0.38)';
+    this.roundRect(x * T + 1, y * T + 1, T - 2, T - 2, T * 0.12);
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = valid ? 'rgba(190,255,200,0.85)' : 'rgba(255,150,130,0.9)';
+    ctx.stroke();
     if (!valid) return;
     let restore = null;
     if (mode.type === 'move') {
@@ -369,10 +400,36 @@ export class MapRenderer {
     this.label(x * T + T / 2, y * T - T * 0.14 < T * 0.2 ? y * T + T * 1.12 : y * T - T * 0.14, total, color, T, true);
   }
 
+  // Cantoneiras da seleção: mais legíveis que um contorno inteiro e não escondem o sprite.
+  corners(x, y, T, grow = 0) {
+    const ctx = this.ctx;
+    const g = 3 - grow;
+    const len = T * 0.26;
+    ctx.lineWidth = Math.max(2.5, T * 0.05);
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(30, 24, 10, 0.45)';
+    for (const pass of [1, 0]) {
+      const o = pass; // sombra deslocada 1 px, depois o traço dourado
+      ctx.beginPath();
+      for (const [cx, cy, sx, sy] of [[x + g, y + g, 1, 1], [x + T - g, y + g, -1, 1], [x + g, y + T - g, 1, -1], [x + T - g, y + T - g, -1, -1]]) {
+        ctx.moveTo(cx + o, cy + sy * len + o);
+        ctx.lineTo(cx + o, cy + o);
+        ctx.lineTo(cx + sx * len + o, cy + o);
+      }
+      ctx.stroke();
+      ctx.strokeStyle = '#ffd45c';
+    }
+    ctx.lineCap = 'butt';
+  }
+
   badge(cx, cy, text, T) {
     const ctx = this.ctx;
     const r = T * 0.15;
-    ctx.fillStyle = 'rgba(43,42,51,0.9)';
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.arc(cx, cy + 1.5, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#2b2a33';
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.fill();

@@ -56,6 +56,7 @@ Não existe dinheiro real no jogo: gemas só se ganham jogando.
 | [CHANGELOG.md](CHANGELOG.md) | O que mudou e por quê |
 | [ROADMAP.md](ROADMAP.md) | O que ficou de fora, em ordem de impacto |
 | [docs/DIAGNOSTICO.md](docs/DIAGNOSTICO.md) | Diagnóstico: bugs, checklist de jogo completo, pesquisa do gênero |
+| [docs/REVISAO-0.3.md](docs/REVISAO-0.3.md) | Revisão de código da 0.3.0: problemas encontrados, plano priorizado e o que ficou pendente |
 | [docs/BALANCEAMENTO.md](docs/BALANCEAMENTO.md) | Fórmulas, constantes e resultados do simulador |
 | [docs/ARQUITETURA.md](docs/ARQUITETURA.md) | Código, formato do save, como adicionar conteúdo, debug |
 | [docs/ESPECIFICACAO-SISTEMAS.md](docs/ESPECIFICACAO-SISTEMAS.md) | Especificação detalhada de cada sistema |

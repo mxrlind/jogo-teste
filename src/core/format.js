@@ -38,9 +38,3 @@ export function fmtTime(sec) {
   return `${s}s`;
 }
 
-export function fmtCost(cost, RESOURCES) {
-  return Object.entries(cost)
-    .filter(([, v]) => v > 0)
-    .map(([k, v]) => `${RESOURCES[k].icon}${fmt(v)}`)
-    .join(' ');
-}
