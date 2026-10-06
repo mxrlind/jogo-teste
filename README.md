@@ -37,7 +37,7 @@ Todas as teclas podem ser remapeadas em **Opções**.
 - **Heróis**: 16 em 4 raridades, com estrelas, Conselho e expedições de 1 minuto a 2 horas.
 - **Eventos e carroça do mercador**: bônus curtos e recompensas surpresa no mapa.
 - **Temporadas**: rotação de 4 temas a cada 28 dias, passe gratuito de 30 níveis e missões diárias.
-- **Ascensão**: recomeço com Coroas e 9 talentos permanentes; o jogo avisa quando vale a pena.
+- **Ascensão**: recomeço com Coroas e 9 talentos permanentes; o jogo avisa quando vale a pena e, ao ascender, mostra as estatísticas da rodada, os recordes batidos e o histórico das rodadas anteriores.
 - **Social**: ranking regional, visitas, saudações, trocas e um código para mostrar o seu reino a amigos.
 - **Vida da vila**: cada morador tem profissão e rotina no mapa (o lavrador colhe e leva comida ao armazém, o lenhador corta lenha, o guarda corre para o lado da horda); quem está sem emprego dorme na rua.
 - **Desbloqueio gradual**: novas abas aparecem conforme o reino cresce.

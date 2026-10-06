@@ -15,6 +15,7 @@ import { fmt, fmtRate, fmtPct, fmtTime } from '../core/format.js';
 import { BUILDING_SPRITES, TERRAIN_SPRITES } from './sprites.js';
 import { ui, $, esc, costHtml, bannerColor, emblemIcon, deltaText } from './ctx.js';
 import { ico, resIco } from './icons.js';
+import { runHistoryHtml } from './ascension.js';
 
 const spriteOf = (id) => BUILDING_SPRITES[id]?.src;
 const touchUi = () => window.matchMedia?.('(pointer: coarse)').matches ?? false;
@@ -461,7 +462,8 @@ function tabLegado() {
         ${cost == null ? `<span class="pos">${ico('check')}</span>` : `<button class="btn small ${s.res.crowns >= cost ? 'primary' : 'poor'}" data-action="talent" data-arg="${t.id}">${resIco('crowns')} ${cost}</button>`}</div>`;
       }).join('')}
       <p class="muted">Herança e Terras Ancestrais valem a partir da próxima Ascensão.</p>
-    </section>`;
+    </section>
+    ${runHistoryHtml(s.runs)}`;
 }
 
 function tabSocial() {

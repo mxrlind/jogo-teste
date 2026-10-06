@@ -29,6 +29,7 @@ export function createState({ seed = newSeed(), now = Date.now(), carry = null }
 
   const grid = generateMap(seed);
   grid.ring = Math.min(MAX_RING, START_RING + ringTalent.startRing);
+  const stats = carry ? { ...freshStats(), ...carry.stats, runGold: 0 } : freshStats();
 
   return {
     version: SAVE_VERSION,
@@ -64,7 +65,11 @@ export function createState({ seed = newSeed(), now = Date.now(), carry = null }
     tutorial: carry ? { done: true, step: 99 } : { done: false, step: 0 },
     // Abas reveladas aos poucos (desbloqueio gradual). Veteranos (Ascensão) mantêm o que já viram.
     unlocks: carry?.unlocks ?? { tabs: ['reino', 'perfil'] },
-    stats: carry ? { ...freshStats(), ...carry.stats, runGold: 0 } : freshStats(),
+    stats,
+    // Foto das estatísticas no início da rodada: o resumo da Ascensão mostra só o que foi feito nela.
+    runBase: { ...stats },
+    runs: carry?.runs ?? [], // resumos das últimas rodadas (mais recente primeiro)
+    records: carry?.records ?? {}, // melhores marcas entre rodadas
     log: [],
   };
 }
@@ -86,6 +91,8 @@ export function carryOver(state) {
     social: state.social,
     stats: state.stats,
     unlocks: state.unlocks,
+    runs: state.runs,
+    records: state.records,
   };
 }
 
@@ -124,6 +131,10 @@ export function migrateWithSettings(data) {
   merged.social = { ...base.social, ...data.social };
   merged.raid = { ...base.raid, ...data.raid };
   merged.unlocks = { ...base.unlocks, ...data.unlocks };
+  // Saves de antes do resumo de Ascensão não têm a foto do início da rodada: o resumo mostra só o que é certo.
+  merged.runBase = data.runBase ?? null;
+  merged.runs = Array.isArray(data.runs) ? data.runs : [];
+  merged.records = data.records && typeof data.records === 'object' ? data.records : {};
   merged.version = SAVE_VERSION;
   return { state: merged, legacySettings };
 }

@@ -668,3 +668,53 @@ test('vida da vila: vagas ocupadas como no motor (comida primeiro) e sobra dorme
   assert.equal(farmer.stops[0].tool, 'clear');
   assert.equal(farmer.stops[1].carry, 'food');
 });
+
+test('Ascensão: resumo só da rodada, histórico e recordes atravessam a Ascensão', () => {
+  const g = freshGame();
+  const s = g.state;
+  s.stats.built = 5; s.stats.raidsWon = 2; // vida toda antes desta rodada
+  s.runBase = { ...s.stats };
+  s.stats.built = 12; s.stats.raidsWon = 5;
+  s.stats.runGold = 4e6; s.stats.totalGold = 5e6;
+  g.now = T0 + 3600e3;
+  const r1 = g.ascend();
+  assert.equal(r1.ok, true);
+  const sum = r1.summary;
+  assert.equal(sum.built, 7);
+  assert.equal(sum.raidsWon, 3);
+  assert.equal(sum.gold, 4e6);
+  assert.equal(sum.duration, 3600);
+  assert.equal(sum.n, 1);
+  assert.deepEqual(sum.newRecords, []); // 1ª rodada: sem "recorde"
+  const s2 = g.state;
+  assert.equal(s2.runs.length, 1);
+  assert.equal(s2.records.gold, 4e6);
+  assert.equal(s2.runBase.built, s2.stats.built); // nova foto no início da rodada
+  // 2ª rodada maior: recorde de ouro
+  s2.stats.runGold = 9e6;
+  const r2 = g.ascend();
+  assert.ok(r2.summary.newRecords.includes('gold'));
+  assert.equal(g.state.runs.length, 2);
+  assert.equal(g.state.runs[0].n, 2);
+});
+
+test('Ascensão: save antigo sem foto da rodada não inventa números', () => {
+  const g = freshGame();
+  g.state.runBase = null; // como um save de antes da 0.6.0
+  g.state.stats.runGold = 4e6;
+  const { summary } = g.ascend();
+  assert.equal(summary.built, null);
+  assert.equal(summary.gold, 4e6);
+});
+
+test('save: migração mantém runs/records e marca runBase ausente como null', () => {
+  const g = freshGame();
+  const data = JSON.parse(serialize(g.state));
+  delete data.runBase; delete data.runs; delete data.records;
+  const st = deserialize(JSON.stringify(data));
+  assert.equal(st.runBase, null);
+  assert.deepEqual(st.runs, []);
+  assert.deepEqual(st.records, {});
+  const st2 = deserialize(serialize(g.state));
+  assert.ok(st2.runBase);
+});

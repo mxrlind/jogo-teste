@@ -32,6 +32,16 @@ export const TUTORIAL = [
 ];
 
 export const RAID_DIRS = ['n', 's', 'e', 'w'];
+
+// Histórico e recordes da tela de Ascensão.
+export const RUN_HISTORY = 10;
+export const RECORD_KEYS = ['gold', 'goldRate', 'combo', 'raidsWon', 'power'];
+const recordValue = (summary, k) => (k === 'combo' ? summary.combo?.bonus ?? 0 : summary[k] ?? 0);
+function updatedRecords(rec, summary) {
+  const out = { ...rec };
+  for (const k of RECORD_KEYS) out[k] = Math.max(out[k] ?? 0, recordValue(summary, k));
+  return out;
+}
 export const DIR_NAMES = { n: 'Norte', s: 'Sul', e: 'Leste', w: 'Oeste' };
 
 // Regras de desbloqueio gradual das abas (as abas 'reino' e 'perfil' existem desde o início).
@@ -611,14 +621,48 @@ export class Game {
     if (crowns < 1) return { ok: false, reason: 'Ainda não há Coroas a ganhar' };
     this.lastBuild = null;
     const s = this.state;
+    const summary = this.runSummary(crowns);
     s.res.crowns += crowns;
     s.stats.ascensions++;
+    summary.totalCrowns = s.res.crowns;
     const next = createState({ seed: newSeed(), now: this.now, carry: carryOver(s) });
+    next.runs = [summary, ...(s.runs ?? [])].slice(0, RUN_HISTORY);
+    next.records = updatedRecords(s.records ?? {}, summary);
     next.log = [{ at: this.now, text: `Ascensão nº ${next.stats.ascensions}: +${crowns} Coroas. Um novo reino começa.`, icon: 'crowns' }];
     this.state = next;
     this.econ = computeEconomy(next, this.now);
-    this.emit('ascended', { crowns });
-    return { ok: true, crowns };
+    this.emit('ascended', { crowns, summary });
+    return { ok: true, crowns, summary };
+  }
+
+  // Resumo da rodada atual (tela de Ascensão). Campos que dependem da foto do início da rodada
+  // ficam null em saves antigos, que não a têm.
+  runSummary(crowns = this.crownsOnAscend()) {
+    const s = this.state;
+    const e = this.econ;
+    const b = s.runBase;
+    const delta = (k) => (b ? Math.max(0, (s.stats[k] || 0) - (b[k] || 0)) : null);
+    let combo = null;
+    let buildings = 0;
+    let maxLvl = 0;
+    s.grid.tiles.forEach((t, i) => {
+      if (!t.b) return;
+      buildings++;
+      maxLvl = Math.max(maxLvl, t.b.lvl);
+      const info = e.tiles[i];
+      if (info && info.adjBonus > 0 && (!combo || info.adjBonus > combo.bonus)) combo = { id: info.id, bonus: info.adjBonus, lvl: info.lvl };
+    });
+    const summary = {
+      n: s.stats.ascensions + 1, at: this.now, name: s.kingdom.name, crowns,
+      duration: Math.max(0, (this.now - (s.runStartedAt || this.now)) / 1000), played: delta('playTime'),
+      gold: s.stats.runGold, goldRate: Math.max(0, e.rates.gold), power: kingdomPower(s), ring: s.grid.ring, buildings, maxLvl, combo,
+      built: delta('built'), upgrades: delta('upgrades'), raidsWon: delta('raidsWon'), raidsLost: delta('raidsLost'),
+      expeditions: delta('expeditions'), chests: delta('chests'), recruits: delta('recruits'),
+    };
+    // Recordes só contam a partir da 2ª rodada registrada (na 1ª, tudo seria "recorde").
+    const rec = s.records ?? {};
+    summary.newRecords = s.runs?.length ? RECORD_KEYS.filter((k) => recordValue(summary, k) > (rec[k] ?? 0)) : [];
+    return summary;
   }
 
   talentCost(id) {
