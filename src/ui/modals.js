@@ -75,7 +75,8 @@ export function toast(text, kind = 'info', icon = null) {
   el.innerHTML = `${icon ? ico(icon) : ''}<span></span>`;
   el.querySelector('span').textContent = text;
   box.prepend(el);
-  while (box.children.length > 5) box.lastChild.remove();
+  const items = box.querySelectorAll('.toast:not(.undo)'); // o aviso de desfazer não conta nem sai antes da hora
+  if (items.length > 5) for (let i = 5; i < items.length; i++) items[i].remove();
   setTimeout(() => el.classList.add('out'), 4200);
   setTimeout(() => el.remove(), 4700);
 }

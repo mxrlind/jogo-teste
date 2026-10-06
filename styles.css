@@ -553,3 +553,13 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
   .sheet { padding: 1rem; }
   #tabs button span { font-size: .6rem; }
 }
+
+/* ---------- desfazer a última construção ---------- */
+.toast.undo { position: relative; overflow: hidden; pointer-events: auto; --tc: var(--gold-hi); padding-right: .45rem; }
+.toast.undo > span { flex: 1; }
+.toast.undo .btn { flex: none; }
+.toast.undo kbd { font: 800 .66rem/1 Nunito; background: rgba(0, 0, 0, .08); border-radius: 4px; padding: .15rem .3rem; }
+.undo-bar { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--gold); transform-origin: left; animation: undo-time linear forwards; }
+@keyframes undo-time { to { transform: scaleX(0); } }
+body.reduce-motion .undo-bar { display: none; }
+@media (pointer: coarse) { .toast.undo kbd { display: none; } }

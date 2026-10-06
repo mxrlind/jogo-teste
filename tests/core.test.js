@@ -567,3 +567,78 @@ test('modo silencioso: ações em lote não disparam um aviso por item', () => {
   g.claimTier(3);
   assert.equal(toasts.length, 1);
 });
+
+// Monta um jogo com grama livre em (3, 3) e dinheiro de sobra.
+function undoGame() {
+  const g = freshGame();
+  put(g.state, 3, 3, 'grass');
+  Object.assign(g.state.res, { gold: 1000, wood: 1000, stone: 1000 });
+  return g;
+}
+
+test('desfazer: devolve 100% do custo e volta mapa, estatística, missão e XP', () => {
+  const g = undoGame();
+  const s = g.state;
+  s.season.missions = { day: 'x', list: [{ id: 'build', track: 'build', target: 5, xp: 50, progress: 2, claimed: false }] };
+  const before = { res: { ...s.res }, built: s.stats.built, xp: s.season.xp };
+  assert.equal(g.build('casa', 3, 3).ok, true);
+  assert.ok(s.season.xp > before.xp);
+  assert.equal(g.canUndo(), true);
+  assert.equal(g.undoBuild().ok, true);
+  assert.equal(g.tileAt(3, 3).b, null);
+  assert.deepEqual(s.res, before.res);
+  assert.equal(s.stats.built, before.built);
+  assert.equal(s.season.xp, before.xp);
+  assert.equal(s.season.missions.list[0].progress, 2);
+  assert.equal(g.undoBuild().ok, false); // só uma vez
+});
+
+test('desfazer: expira em 5 s e some se o prédio foi mexido ou um prêmio foi resgatado', () => {
+  let g = undoGame();
+  g.build('casa', 3, 3);
+  assert.equal(g.canUndo(T0 + 5001), false);
+
+  g = undoGame();
+  g.build('casa', 3, 3);
+  g.upgrade(3, 3);
+  assert.equal(g.canUndo(), false);
+
+  g = undoGame();
+  g.state.season.missions = { day: 'x', list: [{ id: 'build', track: 'build', target: 1, xp: 50, progress: 0, claimed: false }] };
+  g.build('casa', 3, 3);
+  assert.equal(g.claimMission(0).ok, true); // a obra completou a missão e o XP já foi pago
+  assert.equal(g.canUndo(), false);
+  assert.equal(g.undoBuild().ok, false);
+  assert.ok(g.tileAt(3, 3).b);
+});
+
+test('desfazer: conquista e passo do tutorial disparados pela obra voltam junto', () => {
+  const g = undoGame();
+  const s = g.state;
+  s.tutorial.step = 0; // passo 1 pede uma serraria
+  put(s, 2, 3, 'forest');
+  const gems = s.res.gems;
+  const gold = s.res.gold;
+  g.build('serraria', 3, 3);
+  g.checkTutorial();
+  g.checkAchievements();
+  assert.equal(s.tutorial.step, 1);
+  assert.ok(Object.keys(s.achievements).length >= 1);
+  assert.equal(g.canUndo(), true);
+  assert.equal(g.undoBuild().ok, true);
+  assert.equal(s.tutorial.step, 0);
+  assert.equal(Object.keys(s.achievements).length, 0);
+  assert.equal(s.res.gems, gems);
+  assert.equal(s.res.gold, gold);
+});
+
+test('desfazer: prêmio automático já gasto fecha a janela', () => {
+  const g = undoGame();
+  const s = g.state;
+  s.res.gems = 0;
+  g.build('casa', 3, 3);
+  g.checkAchievements(); // "primeira construção" dá gemas
+  assert.ok(s.res.gems > 0);
+  s.res.gems = 0; // gastou
+  assert.equal(g.canUndo(), false);
+});

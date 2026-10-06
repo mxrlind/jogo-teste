@@ -4,7 +4,7 @@ import { BUILDINGS, BUILDING_ORDER, RESOURCES } from '../data/buildings.js';
 import { HERO_BY_ID, RARITIES } from '../data/heroes.js';
 import { BANNERS, DAILY_REWARDS } from '../data/cosmetics.js';
 import { SEASON_TIERS, XP_PER_TIER } from '../data/seasons.js';
-import { Game, DIR_NAMES, TAB_NAMES } from '../core/game.js';
+import { Game, DIR_NAMES, TAB_NAMES, UNDO_WINDOW } from '../core/game.js';
 import { createState, newSeed, SAVE_VERSION } from '../core/state.js';
 import { loadSave, writeSave, exportCode, importCode, listBackups, restoreBackup, clearSave, BACKUP_SLOTS } from '../core/storage.js';
 import { CONFIG_KEY, KEY_ACTIONS, normalizeConfig, actionForKey, keyLabel } from '../core/config.js';
@@ -19,7 +19,7 @@ import { ico, resIco } from './icons.js';
 import { showModal, replaceModal, closeModal, confirmModal, runConfirm, toast, modalOpen, modalClosable } from './modals.js';
 import { renderHud, renderPalette, renderTileInfo, renderSide, renderModeHint, hudInfo, lockedTabHint, describeBonus } from './panels.js';
 
-const GAME_VERSION = '0.3.0';
+const GAME_VERSION = '0.4.0';
 const TAB_ORDER = ['reino', 'herois', 'temporada', 'legado', 'social', 'perfil'];
 const FLOAT_COLORS = { gold: '#f2b632', food: '#f0c27a', wood: '#c8834a', stone: '#d7dde0', gems: '#7cc6f0' };
 
@@ -179,6 +179,7 @@ function startLoops() {
     if (!ui.game || gameEl.hidden) return;
     ui.game.tick(Date.now(), { background: document.hidden });
     renderHud();
+    renderUndo();
     if (Date.now() - lastSave > 10000) save();
   }, 250);
   setInterval(() => {
@@ -219,6 +220,7 @@ function wireGame() {
     .on('upgraded', ({ x, y, lvl }) => { play('upgrade', 0.8); r().pop(x, y); r().addFloat(x, y, `Nível ${lvl}`, '#ffe08a'); })
     .on('sold', ({ name }) => toast(`${name} demolida (50% devolvido).`, 'info', 'demolish'))
     .on('moved', ({ tx, ty }) => { play('build', 0.6); r().pop(tx, ty); })
+    .on('undone', ({ id, x, y }) => { play('close'); r().addBurst(x, y, '#d7dde0'); toast(`Obra desfeita (${BUILDINGS[id].name}): custo devolvido por inteiro.`, 'info', 'time'); })
     .on('cleared', ({ x, y, yieldRes }) => { play('chop'); for (const [res, v] of Object.entries(yieldRes)) r().addFloat(x, y, `+${fmt(v)}`, FLOAT_COLORS[res], iconKey(res, FLOAT_COLORS[res])); })
     .on('expanded', ({ ring }) => { play('win'); toast(`Novas terras conquistadas (anel ${ring}).`, 'good', 'map'); })
     .on('raidWarning', ({ name, strength, defense, dir }) => {
@@ -274,6 +276,7 @@ function tileClick(x, y) {
     ui.hoverDelta = null;
     renderPalette();
     renderModeHint();
+    renderUndo();
     return;
   }
   if (mode.type === 'move') {
@@ -366,6 +369,7 @@ function onKey(e) {
     r.cursor = c;
     return;
   }
+  if (action === 'undo' && ui.game.canUndo(Date.now())) { e.preventDefault(); ACTIONS.undo(); return; }
   const selB = r.selected && ui.game.tileAt(r.selected.x, r.selected.y).b;
   if (action === 'upgrade' && selB) return ACTIONS.upgrade();
   if (action === 'move' && selB) return ACTIONS.move();
@@ -440,6 +444,13 @@ const ACTIONS = {
     result({ ok: true });
   },
   move: () => setMode({ type: 'move', from: { ...ui.renderer.selected } }),
+  undo: () => {
+    const u = ui.game.lastBuild;
+    const res = ui.game.undoBuild();
+    if (res.ok && u && ui.renderer.selected?.x === u.x && ui.renderer.selected?.y === u.y) ui.renderer.selected = null;
+    result(res);
+    renderUndo();
+  },
   sell: () => {
     const { x, y } = ui.renderer.selected;
     confirmModal(`<h2>${ico('demolish')} Demolir?</h2><p>Você recebe 50% do que gastou de volta.</p>`, () => { result(ui.game.sell(x, y)); ui.renderer.selected = null; renderTileInfo(true); }, { yes: 'Demolir', danger: true });
@@ -576,6 +587,26 @@ function endVisit() {
   $('#visitBar').hidden = true;
 }
 
+// Aviso "no lugar errado? Desfazer" por UNDO_WINDOW após cada construção. Fica na pilha de toasts,
+// mas é clicável. Só é recriado quando muda a obra (a barra de tempo é uma animação CSS).
+function renderUndo() {
+  const g = ui.game;
+  const u = g?.lastBuild;
+  const now = Date.now();
+  let el = $('#undoToast');
+  if (!u || ui.visiting || $('#game').hidden || !g.canUndo(now)) { el?.remove(); return; }
+  if (el?.dataset.at === String(u.at)) return;
+  el?.remove();
+  const left = Math.max(0, UNDO_WINDOW - (now - u.at));
+  el = document.createElement('div');
+  el.id = 'undoToast';
+  el.className = 'toast undo';
+  el.dataset.at = String(u.at);
+  el.innerHTML = `${ico('time')}<span><b>${BUILDINGS[u.id].name}</b> no lugar errado?</span>
+    <button class="btn small" data-action="undo">Desfazer <kbd>${esc(keyLabel(ui.config.keys.undo))}</kbd></button><i class="undo-bar" style="animation-duration:${left}ms"></i>`;
+  $('#toasts').prepend(el);
+}
+
 function refreshAfterVisit() {
   renderHud();
   renderTileInfo(true);
@@ -617,7 +648,7 @@ function showIntro() {
 function showHowTo() {
   showModal(`<h2>${ico('info')} Como jogar</h2>
     <ul class="intro">
-      <li>${ico('build')}<span>Escolha um prédio na paleta e toque no mapa. No celular, o primeiro toque mostra a prévia e o segundo constrói.</span></li>
+      <li>${ico('build')}<span>Escolha um prédio na paleta e toque no mapa. No celular, o primeiro toque mostra a prévia e o segundo constrói. Errou o lugar? Você tem 5 segundos para desfazer.</span></li>
       <li>${ico('hero-architect')}<span>Os números verdes e vermelhos mostram o bônus de cada vizinho, e a dica no topo mostra quanto o prédio vai render ali.</span></li>
       <li>${ico('people')}<span>Casas trazem moradores; prédios precisam de trabalhadores. Falta de gente reduz toda a produção.</span></li>
       <li>${ico('swords')}<span>A próxima horda sempre diz de que lado vem. Torres e muralhas perto daquela borda contam inteiras.</span></li>

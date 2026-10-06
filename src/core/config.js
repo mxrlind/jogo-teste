@@ -15,6 +15,7 @@ export const KEY_ACTIONS = [
   { id: 'move', label: 'Mover o prédio selecionado', key: 'm' },
   { id: 'sell', label: 'Demolir o prédio selecionado', key: 'delete' },
   { id: 'nextTab', label: 'Próxima aba do painel', key: 't' },
+  { id: 'undo', label: 'Desfazer a última construção', key: 'z' },
 ];
 
 export function defaultConfig() {

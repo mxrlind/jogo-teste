@@ -2,6 +2,14 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.4.0] — 2026-10-06
+### Adicionado
+- **Desfazer a última construção**: por 5 segundos depois de construir aparece "no lugar errado? Desfazer", com barra de tempo. O custo volta por inteiro, junto com a estatística, o progresso de missão e o XP da obra. Atalho Z (remapeável em Opções).
+- Prêmios automáticos que a obra disparou (passo do tutorial, conquista) voltam junto. A janela fecha antes dos 5 s se o jogador já resgatou algo que a obra liberou (missão, nível do passe), se já gastou o prêmio automático ou se o prédio foi melhorado, movido ou demolido.
+
+### Mudou
+- README voltado para quem joga: link do jogo, como jogar, controles, recursos, opções, save e créditos. O conteúdo de desenvolvimento foi para [docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md).
+
 ## [0.3.0] — 2026-10-06
 Revisão de código, polimento visual e de UX. Nenhuma mecânica mudou; saves da 0.2.0 abrem sem migração. Detalhes e plano em [docs/REVISAO-0.3.md](docs/REVISAO-0.3.md).
 

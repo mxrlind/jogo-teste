@@ -18,6 +18,8 @@ import { dayKey, randInt } from './rng.js';
 export const OFFLINE_THRESHOLD = 30; // s sem tick = sessão offline
 export const BASE_OFFLINE_HOURS = 4;
 export const BASE_OFFLINE_EFF = 0.6;
+// Janela para desfazer a última construção (o erro mais comum de iniciante é o tile errado).
+export const UNDO_WINDOW = 5000;
 
 // `focus` diz à interface o que destacar (prédio na paleta ou aba).
 export const TUTORIAL = [
@@ -46,6 +48,7 @@ export class Game {
     this.state = state;
     this.listeners = {};
     this.quiet = false;
+    this.lastBuild = null; // última construção desfazível (não vai para o save)
     this.lastAchCheck = 0;
     this.econ = computeEconomy(state, now);
     this.now = now;
@@ -300,17 +303,24 @@ export class Game {
     if (!TERRAIN[tile.t].buildable) return { ok: false, reason: TERRAIN[tile.t].clearCost ? `Limpe a ${TERRAIN[tile.t].name.toLowerCase()} primeiro` : `Não dá para construir em ${TERRAIN[tile.t].name.toLowerCase()}` };
     const cost = buildCost(s, id, this.econ.mods);
     if (!canAfford(s.res, cost)) return { ok: false, reason: 'Recursos insuficientes' };
+    const missions = s.season.missions?.list.map((m) => m.progress) ?? [];
+    const xpBefore = s.season.xp;
     pay(s.res, cost);
     tile.b = { id, lvl: 1 };
     s.stats.built++;
     this.econ = computeEconomy(s, this.now);
     this.track('build');
+    this.lastBuild = {
+      id, x, y, cost, at: this.now, xp: s.season.xp - xpBefore, missions, guard: this.undoGuard(),
+      tutorial: { ...s.tutorial }, achs: Object.keys(s.achievements), titles: [...s.cosmetics.titles], title: s.kingdom.title,
+    };
     this.emit('built', { id, x, y });
     return { ok: true };
   }
 
   upgrade(x, y) {
     const s = this.state;
+    this.lastBuild = null;
     const tile = this.tileAt(x, y);
     if (!tile.b) return { ok: false, reason: 'Nada para melhorar' };
     const cost = upgradeCost(tile.b.id, tile.b.lvl, this.econ.mods);
@@ -327,6 +337,7 @@ export class Game {
 
   sell(x, y) {
     const s = this.state;
+    this.lastBuild = null;
     const tile = this.tileAt(x, y);
     if (!tile.b) return { ok: false, reason: 'Nada para demolir' };
     const def = BUILDINGS[tile.b.id];
@@ -343,6 +354,7 @@ export class Game {
 
   move(fx, fy, tx, ty) {
     const s = this.state;
+    this.lastBuild = null;
     const from = this.tileAt(fx, fy);
     const to = this.tileAt(tx, ty);
     if (!from.b) return { ok: false, reason: 'Nada para mover' };
@@ -358,6 +370,7 @@ export class Game {
 
   clear(x, y) {
     const s = this.state;
+    this.lastBuild = null;
     const tile = this.tileAt(x, y);
     const ter = TERRAIN[tile.t];
     if (!isUnlocked(s.grid, x, y)) return { ok: false, reason: 'Terra ainda não conquistada' };
@@ -383,6 +396,7 @@ export class Game {
 
   expand() {
     const s = this.state;
+    this.lastBuild = null;
     if (s.grid.ring >= MAX_RING) return { ok: false, reason: 'O mapa inteiro já é seu' };
     const cost = this.expandCost();
     if (!canAfford(s.res, cost)) return { ok: false, reason: 'Recursos insuficientes' };
@@ -595,6 +609,7 @@ export class Game {
   ascend() {
     const crowns = this.crownsOnAscend();
     if (crowns < 1) return { ok: false, reason: 'Ainda não há Coroas a ganhar' };
+    this.lastBuild = null;
     const s = this.state;
     s.res.crowns += crowns;
     s.stats.ascensions++;
@@ -707,6 +722,56 @@ export class Game {
     s.stats.runGold += gold;
     s.social.trades[rid] = this.now;
     return { ok: true, amount, gold };
+  }
+
+  // ------------------------------------------------------------ desfazer
+  // Prêmios que o jogador resgata por ação própria (missão, nível do passe): se mudaram desde a obra,
+  // a janela fecha, senão desfazer devolveria o custo e manteria o prêmio.
+  undoGuard() {
+    const s = this.state;
+    return [s.season.number, s.season.claimed.length, s.season.missions?.day,
+      (s.season.missions?.list ?? []).filter((m) => m.claimed).length].join('|');
+  }
+
+  // Prêmios automáticos que a obra disparou (passo do tutorial, conquista): voltam junto ao desfazer.
+  // Sem isto, a primeira obra do jogo quase nunca poderia ser desfeita (a conquista sai em até 2 s).
+  undoClawback(u) {
+    const s = this.state;
+    const back = {};
+    const add = (r, v) => { back[r] = (back[r] || 0) + v; };
+    for (let i = u.tutorial.step; i < Math.min(s.tutorial.step, TUTORIAL.length); i++) for (const [r, v] of Object.entries(TUTORIAL[i].reward)) add(r, v);
+    for (const a of ACHIEVEMENTS) if (s.achievements[a.id] && !u.achs.includes(a.id)) add('gems', a.gems);
+    return back;
+  }
+
+  canUndo(now = this.now) {
+    const u = this.lastBuild;
+    if (!u || now - u.at > UNDO_WINDOW) return false;
+    const b = this.tileAt(u.x, u.y).b;
+    if (!b || b.id !== u.id || b.lvl !== 1 || this.undoGuard() !== u.guard) return false;
+    return canAfford(this.state.res, this.undoClawback(u)); // prêmio já gasto: não dá para devolver
+  }
+
+  // Devolve 100% do custo e volta estatística, missões e XP ao que eram antes da obra.
+  undoBuild() {
+    if (!this.canUndo()) { this.lastBuild = null; return { ok: false, reason: 'Não dá mais para desfazer' }; }
+    const s = this.state;
+    const u = this.lastBuild;
+    this.lastBuild = null;
+    pay(s.res, this.undoClawback(u));
+    for (const id of Object.keys(s.achievements)) if (!u.achs.includes(id)) delete s.achievements[id];
+    s.tutorial = { ...u.tutorial };
+    s.cosmetics.titles = u.titles;
+    if (!u.titles.includes(s.kingdom.title)) s.kingdom.title = u.title;
+    s.log = s.log.filter((l) => !(l.at >= u.at && l.text.startsWith('Conquista: ')));
+    this.tileAt(u.x, u.y).b = null;
+    refund(s.res, u.cost, 1);
+    s.stats.built = Math.max(0, s.stats.built - 1);
+    s.season.xp = Math.max(0, s.season.xp - u.xp);
+    (s.season.missions?.list ?? []).forEach((m, i) => { if (m.track === 'build' && !m.claimed && u.missions[i] !== undefined) m.progress = u.missions[i]; });
+    this.econ = computeEconomy(s, this.now);
+    this.emit('undone', { id: u.id, x: u.x, y: u.y });
+    return { ok: true };
   }
 
   // ------------------------------------------------------------ melhorias em lote e prévias
