@@ -5,9 +5,11 @@ import { BUILDINGS, TERRAIN, GROW_SECONDS } from '../data/buildings.js';
 import { GRID_W, GRID_H, idx, isUnlocked, neighbors, ringOf, wallMask } from '../core/map.js';
 import { adjacencyAt } from '../core/economy.js';
 import { fmtPct } from '../core/format.js';
-import { TERRAIN_SPRITES, BUILDING_SPRITES, buildingSrc, wallSrc, SPRITE_FRAME, SPRITE_K, LOCKED_OVERLAY, CART_SPRITE, RAIDER_SPRITES, saplingSprite } from './sprites.js';
+import { UNDER_SPRITES, ROOM_SPRITES, TERRAIN_SPRITES, BUILDING_SPRITES, buildingSrc, wallSrc, SPRITE_FRAME, SPRITE_K, LOCKED_OVERLAY, CART_SPRITE, RAIDER_SPRITES, saplingSprite } from './sprites.js';
 import { VillageLife } from './villagers.js';
-import { images, iconKey } from './assets.js';
+import { images, iconKey, TOOL_COLOR } from './assets.js';
+import { UNDER_TILES } from '../data/underground.js';
+import { canReach } from '../core/underground.js';
 
 const pick = (arr, i) => arr[((i % arr.length) + arr.length) % arr.length];
 const RAID_WARNING_MS = 20000;
@@ -25,6 +27,7 @@ export class MapRenderer {
     this.cursor = null; // cursor do teclado
     this.mode = { type: 'select' };
     this.view = null; // { grid } para visitar outro reino ou o fundo do menu
+    this.layer = 0; // 0 = superfície; 1..3 = nível do subsolo
     this.fx = [];
     this.pops = new Map(); // índice do tile -> início da animação de construção
     this.life = new VillageLife(); // moradores com profissão e rotina (src/ui/villagers.js)
@@ -108,6 +111,7 @@ export class MapRenderer {
   }
 
   pop(x, y) { this.pops.set(idx(x, y), performance.now()); }
+  popUnder(d, x, y) { this.pops.set(-1 - idx(x, y) - d * 1000, performance.now()); }
   doShake(ms = 500) { if (this.motionOn()) this.shake = performance.now() + ms; }
   doFlash(color, ms = 500) { if (this.motionOn()) this.flash = { color, until: performance.now() + ms, ms }; }
 
@@ -179,6 +183,7 @@ export class MapRenderer {
     const state = game?.state;
     const grid = this.view?.grid ?? state?.grid;
     if (!grid || !this.size) return;
+    if (this.layer > 0 && !this.view && state?.under) { this.drawUnder(game, now); return; }
     const econ = this.view ? null : game.econ;
     const T = this.tile;
     const motion = this.motionOn();
@@ -272,7 +277,139 @@ export class MapRenderer {
       if (!this.hover || this.hover.x !== this.cursor.x || this.hover.y !== this.cursor.y) this.drawPreview(game, this.cursor, T);
     }
 
-    // Efeitos (compactação no próprio array: nada de alocar um array novo por frame)
+    this.drawEffects(now, T, motion);
+    ctx.restore();
+  }
+
+  // ---------------------------------------------------------------- subsolo
+  // Vista de cima no estilo Dwarf Fortress: rocha é parede, o que foi cavado é chão, e o que ninguém viu é escuro.
+  drawUnder(game, now) {
+    const ctx = this.ctx;
+    const T = this.tile;
+    const motion = this.motionOn();
+    const d = this.layer;
+    const lv = game.state.under.levels[d - 1];
+    const infos = game.econ?.under?.[d - 1];
+    const open = (x, y) => x >= 0 && y >= 0 && x < GRID_W && y < GRID_H && lv.tiles[idx(x, y)].s && UNDER_TILES[lv.tiles[idx(x, y)].t]?.open;
+    ctx.save();
+    ctx.clearRect(0, 0, this.size, this.size);
+    if (this.shake > now) {
+      const k = (this.shake - now) / 500;
+      ctx.translate((Math.random() - 0.5) * 9 * k, (Math.random() - 0.5) * 9 * k);
+    }
+    ctx.fillStyle = '#121019';
+    ctx.fillRect(0, 0, this.size, this.size);
+    const glow = motion ? 0.5 + 0.5 * Math.sin(now / 700) : 0.5;
+    for (let y = 0; y < GRID_H; y++) {
+      for (let x = 0; x < GRID_W; x++) {
+        const i = idx(x, y);
+        const t = lv.tiles[i];
+        if (!t.s) continue;
+        const spr = UNDER_SPRITES[t.t];
+        if (spr) this.img(pick(spr, i * 7 + 3), x * T, y * T, T + 0.6, T + 0.6);
+        if (t.t === 'magma') {
+          ctx.fillStyle = `rgba(255, 200, 60, ${0.08 + 0.14 * glow})`;
+          ctx.fillRect(x * T, y * T, T + 0.6, T + 0.6);
+        }
+        if (!UNDER_TILES[t.t]?.open) continue;
+        // Sombra das paredes sobre o chão: dá volume às galerias.
+        const sh = T * 0.16;
+        const edge = (x0, y0, w, h, gx0, gy0, gx1, gy1) => {
+          const g = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
+          g.addColorStop(0, 'rgba(10, 8, 16, 0.55)');
+          g.addColorStop(1, 'rgba(10, 8, 16, 0)');
+          ctx.fillStyle = g;
+          ctx.fillRect(x0, y0, w, h);
+        };
+        if (!open(x, y - 1)) edge(x * T, y * T, T, sh, 0, y * T, 0, y * T + sh);
+        if (!open(x - 1, y)) edge(x * T, y * T, sh, T, x * T, 0, x * T + sh, 0);
+        if (!open(x + 1, y)) edge(x * T + T - sh, y * T, sh, T, x * T + T, 0, x * T + T - sh, 0);
+        if (!open(x, y + 1)) edge(x * T, y * T + T - sh * 0.6, T, sh * 0.6, 0, y * T + T, 0, y * T + T - sh * 0.6);
+        if (t.st) this.drawStairs(x, y, T, t.st);
+      }
+    }
+    // Borda da névoa: o escuro avança um pouco sobre o que já se vê.
+    for (let y = 0; y < GRID_H; y++) {
+      for (let x = 0; x < GRID_W; x++) {
+        if (lv.tiles[idx(x, y)].s) continue;
+        ctx.fillStyle = 'rgba(18, 16, 25, 0.85)';
+        ctx.fillRect(x * T - T * 0.12, y * T - T * 0.12, T * 1.24, T * 1.24);
+      }
+    }
+    // Salas, de trás para a frente.
+    for (let y = 0; y < GRID_H; y++) {
+      for (let x = 0; x < GRID_W; x++) {
+        const i = idx(x, y);
+        const b = lv.tiles[i].b;
+        if (!b) continue;
+        let scale = 1;
+        const popAt = this.pops.get(-1 - i - d * 1000);
+        if (popAt !== undefined) {
+          const p = (now - popAt) / 420;
+          if (p >= 1 || !motion) this.pops.delete(-1 - i - d * 1000);
+          else scale = p < 0.6 ? 0.75 + (p / 0.6) * 0.4 : 1.15 - ((p - 0.6) / 0.4) * 0.15;
+        }
+        ctx.globalAlpha = infos?.[i] && !infos[i].active ? 0.6 : 1;
+        this.framed(ROOM_SPRITES[b.id].src, x * T + T / 2, y * T + T / 2, T, scale);
+        ctx.globalAlpha = 1;
+      }
+    }
+    for (let i = 0; i < lv.tiles.length; i++) {
+      const b = lv.tiles[i].b;
+      if (!b) continue;
+      const x = i % GRID_W;
+      const y = Math.floor(i / GRID_W);
+      if (b.lvl > 1) this.badge(x * T + T * 0.84, y * T + T * 0.84, String(b.lvl), T);
+      if (infos?.[i] && !infos[i].active) this.img(iconKey('warning', '#ffb020'), x * T + T * 0.66, y * T + T * 0.04, T * 0.3, T * 0.3);
+    }
+    // Seleção, vizinhos da sala selecionada e picareta sobre o que dá para cavar.
+    if (this.selected) {
+      const { x, y } = this.selected;
+      const pulse = motion ? 0.5 + 0.5 * Math.sin(now / 260) : 1;
+      ctx.fillStyle = `rgba(255, 224, 138, ${0.12 + 0.08 * pulse})`;
+      this.roundRect(x * T + 2, y * T + 2, T - 4, T - 4, T * 0.14);
+      ctx.fill();
+      this.corners(x * T, y * T, T, motion ? pulse * T * 0.035 : 0);
+      const info = infos?.[idx(x, y)];
+      if (info) for (const p of info.adjParts) this.label(p.x * T + T / 2, p.y * T + T * 0.24, fmtPct(p.value), p.value > 0 ? '#9be7a8' : '#ffb3a6', T);
+    }
+    for (const at of [this.hover, this.cursor]) {
+      if (!at) continue;
+      const t = lv.tiles[idx(at.x, at.y)];
+      ctx.fillStyle = 'rgba(255,255,255,0.10)';
+      this.roundRect(at.x * T + 2, at.y * T + 2, T - 4, T - 4, T * 0.14);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      if (t.s && UNDER_TILES[t.t].dig && canReach(lv, at.x, at.y)) this.img(iconKey('tool-pickaxe', TOOL_COLOR), at.x * T + T * 0.3, at.y * T + T * 0.3, T * 0.4, T * 0.4);
+    }
+    this.drawEffects(now, T, motion);
+    ctx.restore();
+  }
+
+  // Escada desenhada de cima: degraus que clareiam (sobe) ou escurecem (desce) em direção ao fundo.
+  drawStairs(x, y, T, dir) {
+    const ctx = this.ctx;
+    const m = T * 0.16;
+    const w = T - m * 2;
+    const n = 5;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    this.roundRect(x * T + m - 2, y * T + m - 2, w + 4, w + 4, T * 0.08);
+    ctx.fill();
+    for (let k = 0; k < n; k++) {
+      const f = dir === 'down' ? k / (n - 1) : 1 - k / (n - 1);
+      const c = Math.round(200 - 170 * f);
+      ctx.fillStyle = `rgb(${c}, ${c - 8}, ${c - 18})`;
+      ctx.fillRect(x * T + m, y * T + m + (w / n) * k, w, w / n - 1.5);
+    }
+    this.label(x * T + T / 2, y * T + T * 0.86, dir === 'down' ? 'desce' : 'sobe', '#ffe08a', T);
+  }
+
+  // Efeitos por cima de tudo (números flutuantes, faíscas, clarão). Compactação no próprio array:
+  // nada de alocar um array novo por frame.
+  drawEffects(now, T, motion) {
+    const ctx = this.ctx;
     let alive = 0;
     for (const f of this.fx) {
       if (now - f.born >= f.life) continue;
@@ -315,7 +452,6 @@ export class MapRenderer {
       ctx.fillRect(-20, -20, this.size + 40, this.size + 40);
       ctx.globalAlpha = 1;
     }
-    ctx.restore();
   }
 
   drawCart(state, now, T, motion) {

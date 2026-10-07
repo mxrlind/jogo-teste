@@ -4,6 +4,7 @@ import { BUILDINGS, BUILDING_ORDER, RESOURCES } from '../data/buildings.js';
 import { HERO_BY_ID, RARITIES } from '../data/heroes.js';
 import { BANNERS, DAILY_REWARDS } from '../data/cosmetics.js';
 import { SEASON_TIERS, XP_PER_TIER } from '../data/seasons.js';
+import { LEVEL_NAMES } from '../data/underground.js';
 import { Game, DIR_NAMES, TAB_NAMES, UNDO_WINDOW } from '../core/game.js';
 import { createState, newSeed, SAVE_VERSION } from '../core/state.js';
 import { loadSave, writeSave, exportCode, importCode, listBackups, restoreBackup, clearSave, BACKUP_SLOTS } from '../core/storage.js';
@@ -20,7 +21,7 @@ import { ico, resIco } from './icons.js';
 import { showModal, replaceModal, closeModal, confirmModal, runConfirm, toast, modalOpen, modalClosable } from './modals.js';
 import { renderHud, renderPalette, renderTileInfo, renderSide, renderModeHint, hudInfo, lockedTabHint, describeBonus } from './panels.js';
 
-const GAME_VERSION = '0.10.0';
+const GAME_VERSION = '0.11.0';
 const TAB_ORDER = ['reino', 'herois', 'temporada', 'legado', 'social', 'perfil'];
 const FLOAT_COLORS = RES_COLORS;
 
@@ -160,6 +161,12 @@ function placeCompass() {
   c.classList.toggle('outside', outside);
   c.style.left = `${outside ? right + 10 : right - c.offsetWidth - 8}px`;
   c.style.top = `${map.offsetTop + (outside ? 0 : 8)}px`;
+  // Botões de nível: à esquerda do mapa quando sobra espaço, senão por cima do canto.
+  const l = $('#layers');
+  const lw = l.offsetWidth || 46;
+  const lOut = map.offsetLeft >= lw + 14;
+  l.style.left = `${lOut ? map.offsetLeft - lw - 10 : map.offsetLeft + 8}px`;
+  l.style.top = `${map.offsetTop + (lOut ? 0 : 8)}px`;
 }
 
 function startGame(state, { isNew = false } = {}) {
@@ -179,6 +186,9 @@ function startGame(state, { isNew = false } = {}) {
   setMode({ type: 'select' });
   ui.game.tick(Date.now());
   save();
+  ui.renderer.layer = 0;
+  document.body.dataset.layer = 0;
+  renderLayers();
   renderAll();
   if (!loopsStarted) startLoops();
   if (isNew) showIntro();
@@ -199,6 +209,7 @@ function startLoops() {
     if (!ui.game || gameEl.hidden || ui.pointerHeld) return;
     renderSide();
     renderPalette();
+    renderLayers();
     renderTileInfo();
     ambientFx();
   }, 1000);
@@ -237,6 +248,25 @@ function wireGame() {
     .on('cleared', ({ x, y, yieldRes }) => { play('chop'); for (const [res, v] of Object.entries(yieldRes)) r().addFloat(x, y, `+${fmt(v)}`, FLOAT_COLORS[res], iconKey(res, FLOAT_COLORS[res])); })
     .on('planted', ({ x, y }) => { play('build', 0.6); r().addBurst(x, y, '#b2f2bb'); })
     .on('grown', ({ n }) => toast(n > 1 ? `${n} mudas viraram floresta.` : 'Uma muda virou floresta.', 'good', 'emblem-tree'))
+    .on('underOpened', () => { renderLayers(); toast('A Escadaria chegou ao subsolo! Use os botões no canto do mapa para descer.', 'good', 'tool-pickaxe'); })
+    .on('dug', ({ d, x, y, yieldRes, cavern }) => {
+      play('mine');
+      if (r().layer === d) {
+        r().addBurst(x, y, '#d7c4a8');
+        for (const [res, v] of Object.entries(yieldRes)) r().addFloat(x, y, `+${fmt(v)}`, FLOAT_COLORS[res] ?? '#7cc6f0', iconKey(res, FLOAT_COLORS[res] ?? '#7cc6f0'));
+      }
+      if (cavern) { r().doShake(400); toast(`Os mineiros romperam uma caverna! ${cavern} tiles revelados.`, 'good', 'tool-pickaxe'); }
+    })
+    .on('stairs', ({ d, x, y, first }) => {
+      play('win');
+      renderLayers();
+      if (first) toast(`Nível novo descoberto: ${LEVEL_NAMES[d]}.`, 'good', 'tool-pickaxe');
+      setLayer(d + 1);
+      r().selected = { x, y };
+      renderTileInfo(true);
+    })
+    .on('roomBuilt', ({ d, x, y }) => { play('build'); r().popUnder(d, x, y); r().addBurst(x, y, '#fff3bf'); })
+    .on('roomUpgraded', ({ d, x, y, lvl }) => { play('upgrade', 0.8); r().popUnder(d, x, y); r().addFloat(x, y, `Nível ${lvl}`, '#ffe08a'); })
     .on('expanded', ({ ring }) => { play('win'); toast(`Novas terras conquistadas (anel ${ring}).`, 'good', 'map'); })
     .on('raidWarning', ({ name, strength, defense, dir }) => {
       play('warn');
@@ -280,6 +310,14 @@ function wireGame() {
 // ================================================================ mapa: clique e hover
 function tileClick(x, y) {
   if (ui.visiting) return;
+  if (ui.renderer.layer > 0) {
+    // Subsolo: o clique só seleciona; cavar e construir ficam no painel do tile.
+    play('click', 0.6);
+    const sel = ui.renderer.selected;
+    ui.renderer.selected = sel && sel.x === x && sel.y === y ? null : { x, y };
+    renderTileInfo(true);
+    return;
+  }
   const g = ui.game;
   const s = g.state;
   const mode = ui.renderer.mode;
@@ -329,6 +367,7 @@ function setMode(mode) {
 
 function selectBuild(id) {
   if (ui.visiting) { endVisit(); refreshAfterVisit(); }
+  if (ui.renderer.layer > 0) setLayer(0);
   if (ui.renderer.mode.type === 'build' && ui.renderer.mode.id === id) setMode({ type: 'select' });
   else { ui.renderer.selected = null; setMode({ type: 'build', id }); renderTileInfo(true); }
   play('click', 0.6);
@@ -385,7 +424,7 @@ function onKey(e) {
     return;
   }
   if (action === 'undo' && ui.game.canUndo(Date.now())) { e.preventDefault(); ACTIONS.undo(); return; }
-  const selB = r.selected && ui.game.tileAt(r.selected.x, r.selected.y).b;
+  const selB = r.layer === 0 && r.selected && ui.game.tileAt(r.selected.x, r.selected.y).b;
   if (action === 'upgrade' && selB) return ACTIONS.upgrade();
   if (action === 'move' && selB) return ACTIONS.move();
   if (action === 'sell' && selB) return ACTIONS.sell();
@@ -471,6 +510,23 @@ const ACTIONS = {
     confirmModal(`<h2>${ico('demolish')} Demolir?</h2><p>Você recebe 50% do que gastou de volta.</p>`, () => { result(ui.game.sell(x, y)); ui.renderer.selected = null; renderTileInfo(true); }, { yes: 'Demolir', danger: true });
   },
   clear: () => { const { x, y } = ui.renderer.selected; result(ui.game.clear(x, y)); },
+  layer: (el) => { play('tab', 0.6); setLayer(Number(el.dataset.arg)); },
+  dig: () => { const { x, y } = ui.renderer.selected; result(ui.game.dig(ui.renderer.layer, x, y)); },
+  digStairs: () => { const { x, y } = ui.renderer.selected; result(ui.game.digStairs(ui.renderer.layer, x, y)); },
+  room: (el) => { const { x, y } = ui.renderer.selected; result(ui.game.buildRoom(ui.renderer.layer, x, y, el.dataset.arg)); },
+  roomUp: () => { const { x, y } = ui.renderer.selected; result(ui.game.upgradeRoom(ui.renderer.layer, x, y)); },
+  roomSell: () => {
+    const { x, y } = ui.renderer.selected;
+    const d = ui.renderer.layer;
+    confirmModal(`<h2>${ico('demolish')} Demolir a sala?</h2><p>Você recebe 50% do que gastou de volta.</p>`, () => { result(ui.game.sellRoom(d, x, y)); renderTileInfo(true); }, { yes: 'Demolir', danger: true });
+  },
+  goLayer: (el) => {
+    const r = ui.renderer;
+    const sel = r.selected;
+    setLayer(Number(el.dataset.arg));
+    if (sel) r.selected = { ...sel };
+    renderTileInfo(true);
+  },
   plant: () => { const { x, y } = ui.renderer.selected; result(ui.game.plant(x, y)); },
   expand: () => result(ui.game.expand()),
   closeTile: () => { ui.renderer.selected = null; renderTileInfo(true); },
@@ -587,8 +643,36 @@ function copyText(text, msg) {
   else fallback();
 }
 
+// ================================================================ subsolo
+// Botões de nível no canto do mapa: aparecem depois da primeira Escadaria.
+function renderLayers() {
+  const el = $('#layers');
+  const g = ui.game;
+  const reached = g?.state.under?.reached ?? 0;
+  if (!g || reached < 1) { el.hidden = true; if (ui.renderer?.layer) setLayer(0); return; }
+  el.hidden = false;
+  const cur = ui.renderer.layer;
+  const btn = (d, label, title) => `<button class="${d === cur ? 'on' : ''}" data-action="layer" data-arg="${d}" title="${title}" aria-pressed="${d === cur}">${label}</button>`;
+  const html = [btn(0, ico('house'), 'Superfície')]
+    .concat(Array.from({ length: reached }, (_, i) => btn(i + 1, `-${i + 1}`, `Subsolo ${i + 1}: ${LEVEL_NAMES[i]}`))).join('');
+  if (el.dataset.sig !== html) { el.innerHTML = html; el.dataset.sig = html; placeCompass(); }
+}
+
+function setLayer(d) {
+  const r = ui.renderer;
+  if (!r || r.layer === d) return;
+  r.layer = d;
+  r.selected = null;
+  r.cursor = null;
+  if (d > 0 && r.mode.type !== 'select') setMode({ type: 'select' });
+  document.body.dataset.layer = d;
+  renderLayers();
+  renderTileInfo(true);
+}
+
 // ================================================================ visitas
 function startVisit(k) {
+  setLayer(0);
   ui.visiting = k;
   ui.renderer.view = { grid: k.grid };
   ui.renderer.selected = null;
@@ -639,7 +723,9 @@ function ambientFx() {
   ambientTick++;
   if (ambientTick % 3 !== 0) return;
   const producers = [];
-  ui.game.econ.tiles.forEach((info, i) => { if (info && Object.values(info.out).some((v) => v > 0)) producers.push([i, info]); });
+  const layer = ui.renderer.layer;
+  const infos = layer > 0 ? ui.game.econ.under?.[layer - 1] ?? [] : ui.game.econ.tiles;
+  infos.forEach((info, i) => { if (info && Object.values(info.out).some((v) => v > 0)) producers.push([i, info]); });
   for (let k = 0; k < Math.min(3, producers.length); k++) {
     const [i, info] = producers[Math.floor(Math.random() * producers.length)];
     const [res, v] = Object.entries(info.out).sort((a, b) => b[1] - a[1])[0];
