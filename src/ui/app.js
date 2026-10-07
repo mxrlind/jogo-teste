@@ -22,7 +22,7 @@ import { ico, resIco } from './icons.js';
 import { showModal, replaceModal, closeModal, confirmModal, runConfirm, toast, modalOpen, modalClosable } from './modals.js';
 import { renderHud, renderPalette, renderTileInfo, renderSide, renderModeHint, hudInfo, lockedTabHint, describeBonus } from './panels.js';
 
-const GAME_VERSION = '0.16.2';
+const GAME_VERSION = '0.17.0';
 const TAB_ORDER = ['reino', 'herois', 'temporada', 'legado', 'social', 'perfil'];
 const FLOAT_COLORS = RES_COLORS;
 
@@ -95,6 +95,7 @@ function applyConfig() {
   document.body.classList.toggle('reduce-motion', c.reduceMotion);
   setVolumes(c.musicVolume, c.sfxVolume, c.musicOn);
   renderMusicBtn();
+  if (ui.game && (!c.musicOn || c.musicVolume <= 0) && c.sfxVolume <= 0) ui.game.secret('silence');
 }
 
 function save() {
@@ -310,7 +311,7 @@ function wireGame() {
       toast(`Expedição de ${HERO_BY_ID[hid].name}: ${parts.join(', ')}.`, 'good', 'expedition');
     })
     .on('tierUp', ({ tier }) => { play('tier'); toast(`Passe de temporada: nível ${tier}! Resgate na aba Temporada.`, 'season', 'star'); })
-    .on('achievement', (a) => { play('achievement'); toast(`Conquista: ${a.name} (+${a.gems} gemas${a.title ? `, título "${a.title}"` : ''})`, 'good', a.icon); })
+    .on('achievement', (a) => { play('achievement'); toast(`Conquista: ${a.name} (+${a.gems} gema${a.gems === 1 ? '' : 's'}${a.title ? `, título "${a.title}"` : ''})`, 'good', a.icon); })
     .on('tutorial', () => { play('confirm'); renderPalette(true); renderSide(true); })
     .on('unlock', ({ tab, name }) => { play('tier'); toast(`Nova aba aberta: ${name}.`, 'season', 'star'); if (tab === 'herois') ui.tab = 'herois'; renderSide(true); })
     .on('offline', (sum) => showOffline(sum))
@@ -354,9 +355,28 @@ function tileClick(x, y) {
     return;
   }
   play('click', 0.6);
+  if (g.tileAt(x, y).b && poke(`${x},${y}`) >= 30) g.secret('poke');
   const sel = ui.renderer.selected;
   ui.renderer.selected = sel && sel.x === x && sel.y === y ? null : { x, y };
   renderTileInfo(true);
+}
+
+// Cliques seguidos no mesmo alvo (conquistas secretas). Trocar de alvo ou parar 3 s zera.
+let pokeState = { key: null, n: 0, at: 0 };
+function poke(key) {
+  const now = Date.now();
+  if (pokeState.key !== key || now - pokeState.at > 3000) pokeState = { key, n: 0, at: now };
+  pokeState.n++;
+  pokeState.at = now;
+  return pokeState.n;
+}
+
+// Código Konami: cima, cima, baixo, baixo, esquerda, direita, esquerda, direita, B, A.
+const KONAMI = ['arrowup', 'arrowup', 'arrowdown', 'arrowdown', 'arrowleft', 'arrowright', 'arrowleft', 'arrowright', 'b', 'a'];
+let konamiPos = 0;
+function trackKonami(key) {
+  konamiPos = key === KONAMI[konamiPos] ? konamiPos + 1 : key === KONAMI[0] ? 1 : 0;
+  if (konamiPos === KONAMI.length) { konamiPos = 0; ui.game?.secret('konami'); }
 }
 
 function onHover(t) {
@@ -402,6 +422,7 @@ function onKey(e) {
     return;
   }
   if (e.target.matches?.('input, textarea, select')) return;
+  trackKonami(key);
   const action = actionForKey(ui.config, key);
   if (action === 'menu') {
     e.preventDefault();
@@ -496,7 +517,14 @@ const ACTIONS = {
   saveMenu: () => showSaveMenu(),
   closeModal: () => { play('close', 0.5); closeModal(); },
   confirmYes: () => runConfirm(),
-  info: (el) => { const t = hudInfo(el.dataset.arg); if (t) toast(t, 'info', 'info'); },
+  info: (el) => {
+    const t = hudInfo(el.dataset.arg);
+    if (t) toast(t, 'info', 'info');
+    if (el.dataset.arg === 'gems' && poke('gems') >= 10) ui.game.secret('gemPoke');
+  },
+  achLocked: () => { ui.game.secret('curious'); play('click', 0.6); },
+  buyShop: (el) => { const r = ui.game.buyShop(el.dataset.arg); if (result(r)) { play('coin'); toast(`Comprado: ${r.item.name}`, 'good', r.item.icon); } },
+  buyGemPack: (el) => { if (result(ui.game.buyGemPack(el.dataset.arg))) play('coin'); },
 
   // paleta e mapa
   build: (el) => selectBuild(el.dataset.arg),
@@ -915,6 +943,7 @@ function showDaily() {
       const icon = done ? ico('check') : r.gems ? resIco('gems') : r.boost ? ico('boost', 'c-gold') : r.scroll ? ico('scroll', 'c-crowns') : resIco('gold');
       return `<div class="dr ${done ? 'done' : ''} ${st.available && r.day === cur ? 'today' : ''}"><b>Dia ${r.day}</b>${icon}<span>${r.label}</span></div>`;
     }).join('')}</div>
+    <p class="muted">${ico('defense')} ${st.shield ? 'Você faltou ontem, mas o escudo da semana salva a sua sequência.' : st.shieldReady ? 'Escudo da semana pronto: se faltar um dia, a sequência não zera.' : 'Escudo da semana já usado; volta na segunda.'}</p>
     ${st.available ? `<button class="btn big primary" data-action="daily" data-autofocus>Resgatar: ${st.reward.label}</button>` : '<p class="muted">Já resgatada hoje. Volte amanhã para manter a sequência.</p><button class="btn big" data-action="closeModal">Fechar</button>'}`);
 }
 
@@ -923,6 +952,7 @@ function showOffline(sum) {
   showModal(`<h2>${ico('time')} Enquanto você esteve fora (${fmtTime(sum.elapsed)})</h2>
     <p>Seu reino trabalhou com ${Math.round(sum.efficiency * 100)}% de eficiência${sum.capped ? ` por até ${fmtTime(sum.simulated)} (limite offline)` : ''}.</p>
     <div class="gains">${['gold', 'food', 'wood', 'stone'].map((r) => `<div>${resIco(r)}<b class="${g[r] < 0 ? 'neg' : ''}">${g[r] >= 0 ? '+' : ''}${fmt(g[r])}</b></div>`).join('')}</div>
+    ${sum.welcome ? `<p class="pos">${ico('gems')} Pacote de volta (${sum.welcome.days} dias fora): +${sum.welcome.gems} gemas, +${sum.welcome.scroll} pergaminho e ${sum.welcome.goldMinutes} min de ouro.</p>` : ''}
     ${sum.expeditionsReady ? `<p>${ico('expedition')} ${sum.expeditionsReady} expedição(ões) pronta(s) para coletar.</p>` : ''}
     ${sum.capped ? '<p class="muted">Aumente o limite com o talento Vigília ou o herói O Relojoeiro.</p>' : ''}
     <button class="btn big primary" data-action="closeModal" data-autofocus>Continuar</button>`);

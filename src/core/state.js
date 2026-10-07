@@ -19,6 +19,7 @@ function freshStats() {
   return {
     totalGold: 0, runGold: 0, built: 0, upgrades: 0, raidsWon: 0, raidsLost: 0, recruits: 0, goldRecruits: 0,
     expeditions: 0, chests: 0, ascensions: 0, cleared: 0, planted: 0, dug: 0, visits: 0, playTime: 0, bestRaid: 0,
+    trained: 0, undos: 0, failBuild: 0, lossStreak: 0, gemsBought: 0,
   };
 }
 
@@ -61,8 +62,9 @@ export function createState({ seed = newSeed(), now = Date.now(), carry = null }
     legacy,
     season: carry?.season ?? { number: seasonInfo(now).number, xp: 0, claimed: [], missions: null },
     achievements: carry?.achievements ?? {},
+    flags: carry?.flags ?? {}, // gatilhos das conquistas secretas (código Konami, madrugada...)
     cosmetics: carry?.cosmetics ?? { banners: [], emblems: [], titles: [...BASE_TITLES] },
-    daily: carry?.daily ?? { lastDay: null, streak: 0 },
+    daily: carry?.daily ?? { lastDay: null, streak: 0, shieldWeek: null },
     social: carry?.social ?? { trades: {}, greets: {}, rivalsSeed: seed },
     tutorial: carry ? { done: true, step: 99 } : { done: false, step: 0 },
     // Abas reveladas aos poucos (desbloqueio gradual). Veteranos (Ascensão) mantêm o que já viram.
@@ -92,6 +94,7 @@ export function carryOver(state) {
     items: state.items,
     season: state.season,
     achievements: state.achievements,
+    flags: state.flags,
     cosmetics: state.cosmetics,
     daily: state.daily,
     social: state.social,
@@ -137,6 +140,7 @@ export function migrateWithSettings(data) {
   merged.social = { ...base.social, ...data.social };
   merged.raid = { ...base.raid, ...data.raid };
   merged.unlocks = { ...base.unlocks, ...data.unlocks };
+  merged.flags = data.flags && typeof data.flags === 'object' ? data.flags : {};
   for (const h of Object.values(merged.heroes?.owned ?? {})) {
     h.level ??= 1;
     h.training ??= null;

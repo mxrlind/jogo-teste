@@ -7,9 +7,10 @@ import { EVENTS, EVENT_BY_ID, EVENT_INTERVAL, CHEST_INTERVAL, CHEST_LIFETIME, RA
 import { XP_REWARDS, SEASON_TIERS } from '../data/seasons.js';
 import { ACHIEVEMENTS } from '../data/achievements.js';
 import { BANNERS, EMBLEMS, DAILY_REWARDS, SEASON_TITLES } from '../data/cosmetics.js';
-import { computeEconomy, adjacencyAt, buildCost, upgradeCost, repairCost, canAfford, pay, refund, countOf, PROD_RES, kingdomPower } from './economy.js';
+import { GEM_SHOP, GEM_PACKS, PAYMENTS_ENABLED, WELCOME_BACK, WELCOME_BACK_DAYS } from '../data/shop.js';
+import { computeEconomy, buildCost, upgradeCost, repairCost, canAfford, pay, refund, countOf, PROD_RES, kingdomPower, wallFacing, adjacencyAt } from './economy.js';
 import { createState, carryOver, newSeed } from './state.js';
-import { GRID_W, GRID_H, idx, isUnlocked, RING_COSTS, MAX_RING } from './map.js';
+import { GRID_W, GRID_H, idx, isUnlocked, RING_COSTS, MAX_RING, wallMask } from './map.js';
 import { syncSeason, syncMissions, tierOf, rewardFor } from './season.js';
 import {
   councilSlots, recruitCost, rollHero, addHero, expeditionReward, speedUpCost, expeditionSpeedUpCost, expeditionSlots, activeExpeditions, heroLevelCap, trainingSlots, trainingCount, trainCost, trainSeconds,
@@ -38,6 +39,14 @@ export const TUTORIAL = [
 ];
 
 export const RAID_DIRS = ['n', 's', 'e', 'w'];
+
+// Semana do calendário (segunda a domingo), para o escudo da sequência diária.
+function weekOf(ms) {
+  const d = new Date(ms);
+  d.setHours(12, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return dayKey(d.getTime());
+}
 
 // Histórico e recordes da tela de Ascensão.
 export const RUN_HISTORY = 10;
@@ -97,6 +106,7 @@ export class Game {
     this.now = now;
     this.growTrees(now);
     const dt = (now - s.lastTick) / 1000;
+    if (dt < -3600) this.secret('timeTravel');
     // Relógio do aparelho voltou (fuso, horário de verão, save de outro aparelho): recomeça a contar daqui.
     // Sem isto o reino ficava parado até o relógio alcançar o horário salvo.
     if (dt < 0) s.lastTick = now;
@@ -113,6 +123,7 @@ export class Game {
     this.updateLive(now);
     if (now - this.lastAchCheck > 2000) {
       this.lastAchCheck = now;
+      this.checkSecrets();
       this.checkAchievements();
       this.checkTutorial();
       this.checkUnlocks();
@@ -177,10 +188,19 @@ export class Game {
     syncSeason(s, now);
     syncMissions(s, now, this.goldScale());
     if (elapsed < 60) return null;
+    let welcome = null;
+    if (elapsed >= 7 * 86400) this.secret('comeback');
+    if (elapsed >= WELCOME_BACK_DAYS * 86400) {
+      welcome = { ...WELCOME_BACK, days: Math.floor(elapsed / 86400) };
+      s.res.gems += WELCOME_BACK.gems;
+      s.items.scrolls += WELCOME_BACK.scroll;
+      this.grant({ type: 'goldMinutes', minutes: WELCOME_BACK.goldMinutes });
+      this.log(`Pacote de volta: +${WELCOME_BACK.gems} gemas, +${WELCOME_BACK.scroll} pergaminho e ouro`, 'gems');
+    }
     const gains = {};
     for (const r of PROD_RES) gains[r] = s.res[r] - before[r];
     const ready = Object.values(s.heroes.owned).filter((h) => h.expedition && h.expedition.endsAt <= now).length;
-    return { elapsed, simulated: simSec, capped: elapsed > capSec, efficiency: eff, gains, popDelta: s.pop - before.pop, expeditionsReady: ready };
+    return { elapsed, simulated: simSec, capped: elapsed > capSec, efficiency: eff, gains, popDelta: s.pop - before.pop, expeditionsReady: ready, welcome };
   }
 
   updateLive(now) {
@@ -274,6 +294,7 @@ export class Game {
       s.stats.totalGold += loot;
       s.stats.runGold += loot;
       s.stats.raidsWon++;
+      s.stats.lossStreak = 0;
       s.stats.bestRaid = Math.max(s.stats.bestRaid, s.raid.level + 1);
       s.raid.level++;
       Object.assign(result, { win: true, loot, gems });
@@ -292,6 +313,7 @@ export class Game {
       // Fora a proteção de novato, a horda também quebra o que encontra pelo caminho.
       const ruin = newbie ? { damaged: [], collapsed: [] } : this.raidDamage(s.raid.dir, 1 - e.defense / strength);
       s.stats.raidsLost++;
+      s.stats.lossStreak = (s.stats.lossStreak || 0) + 1;
       s.raid.level = Math.max(0, s.raid.level - 1);
       Object.assign(result, { win: false, lost, ...ruin });
       this.log(`${name} saquearam o reino (força ${strength} contra defesa ${Math.floor(e.defense)}).`, 'warning');
@@ -407,7 +429,10 @@ export class Game {
     const needs = this.missingNeighbor(id, x, y);
     if (needs) return { ok: false, reason: needs };
     const cost = buildCost(s, id, this.econ.mods);
-    if (!canAfford(s.res, cost)) return { ok: false, reason: 'Recursos insuficientes' };
+    if (!canAfford(s.res, cost)) {
+      s.stats.failBuild = (s.stats.failBuild || 0) + 1;
+      return { ok: false, reason: 'Recursos insuficientes' };
+    }
     const missions = s.season.missions?.list.map((m) => m.progress) ?? [];
     const xpBefore = s.season.xp;
     pay(s.res, cost);
@@ -499,7 +524,7 @@ export class Game {
     if (!wasSapling) {
       s.stats.cleared++;
       this.track('clear');
-    }
+    } else this.secret('choppedOwn');
     this.emit('cleared', { x, y, yieldRes: ter.clearYield });
     return { ok: true };
   }
@@ -803,6 +828,7 @@ export class Game {
       if (!h.training || h.training.endsAt > now) continue;
       h.training = null;
       h.level = (h.level || 1) + 1;
+      s.stats.trained = (s.stats.trained || 0) + 1;
       done = true;
       this.log(`${HERO_BY_ID[hid].name} chegou ao nível ${h.level}`, HERO_BY_ID[hid].icon);
       this.emit('toast', { text: `${HERO_BY_ID[hid].name} terminou o treino: nível ${h.level}!`, kind: 'good', icon: HERO_BY_ID[hid].icon });
@@ -876,6 +902,15 @@ export class Game {
         const v = Math.floor(Math.max(100, this.econ.rates.gold * reward.minutes * 60));
         s.res.gold += v; s.stats.totalGold += v; s.stats.runGold += v; break;
       }
+      case 'resMinutes': {
+        const v = Math.floor(Math.max(100, (this.econ.gross?.[reward.res] || 0) * reward.minutes * 60));
+        s.res[reward.res] += v; break;
+      }
+      case 'growAll': {
+        for (const t of s.grid.tiles) if (t.t === 'sapling') t.p = 0;
+        this.growTrees(this.now);
+        break;
+      }
       case 'cosmetic': {
         const list = { title: 'titles', banner: 'banners', emblem: 'emblems' }[reward.kind];
         const value = reward.kind === 'title' ? SEASON_TITLES[reward.id] || reward.id : reward.id;
@@ -902,17 +937,23 @@ export class Game {
     const y = new Date(this.now);
     y.setDate(y.getDate() - 1); // pela data, não por 24 h: dias de troca de horário têm 23 ou 25 h
     const yesterday = dayKey(y.getTime());
+    y.setDate(y.getDate() - 1);
+    const twoDaysAgo = dayKey(y.getTime());
     const d = this.state.daily;
     const available = d.lastDay !== today;
-    const nextStreak = d.lastDay === yesterday ? d.streak + 1 : 1;
-    return { available, nextStreak, reward: DAILY_REWARDS[(nextStreak - 1) % 7] };
+    // Escudo: uma vez por semana, faltar um único dia não zera a sequência.
+    const week = weekOf(this.now);
+    const shield = d.lastDay === twoDaysAgo && d.streak > 0 && d.shieldWeek !== week;
+    const nextStreak = d.lastDay === yesterday || shield ? d.streak + 1 : 1;
+    return { available, nextStreak, shield, shieldReady: d.shieldWeek !== week, reward: DAILY_REWARDS[(nextStreak - 1) % 7] };
   }
 
   claimDaily() {
     const s = this.state;
     const st = this.dailyStatus();
     if (!st.available) return { ok: false, reason: 'Volte amanhã' };
-    s.daily = { lastDay: dayKey(this.now), streak: st.nextStreak };
+    s.daily = { lastDay: dayKey(this.now), streak: st.nextStreak, shieldWeek: st.shield ? weekOf(this.now) : s.daily.shieldWeek ?? null };
+    if (st.shield) this.emit('toast', { text: 'O escudo da semana salvou sua sequência!', kind: 'good', icon: 'defense' });
     const r = st.reward;
     if (r.gold) s.res.gold += r.gold;
     if (r.gems) s.res.gems += r.gems;
@@ -1000,7 +1041,9 @@ export class Game {
   setKingdomName(name) {
     const clean = String(name).replace(/[<>]/g, '').trim().slice(0, 24);
     if (!clean) return { ok: false, reason: 'Nome vazio' };
+    const before = this.state.kingdom.name;
     this.state.kingdom.name = clean;
+    if (clean.toLowerCase() === 'reino de bolso' && before.toLowerCase() !== 'reino de bolso') this.secret('defaultName');
     return { ok: true };
   }
 
@@ -1125,6 +1168,7 @@ export class Game {
     this.tileAt(u.x, u.y).b = null;
     refund(s.res, u.cost, 1);
     s.stats.built = Math.max(0, s.stats.built - 1);
+    s.stats.undos = (s.stats.undos || 0) + 1;
     s.season.xp = Math.max(0, s.season.xp - u.xp);
     (s.season.missions?.list ?? []).forEach((m, i) => { if (m.track === 'build' && !m.claimed && u.missions[i] !== undefined) m.progress = u.missions[i]; });
     this.econ = computeEconomy(s, this.now);
@@ -1219,6 +1263,72 @@ export class Game {
   }
 
   // ------------------------------------------------------------ conquistas e tutorial
+  // Marca o gatilho de uma conquista secreta (a UI chama para cliques, teclas e som).
+  secret(id) {
+    const s = this.state;
+    s.flags ||= {};
+    if (s.flags[id]) return;
+    s.flags[id] = this.now;
+    this.checkAchievements();
+  }
+
+  // Gatilhos que dependem do momento (hora do relógio, sorte, ouro zerado, muralha torta).
+  checkSecrets() {
+    const s = this.state;
+    const hour = new Date(this.now).getHours();
+    if (hour >= 3 && hour < 5) this.secret('nightOwl');
+    if (Math.random() < 2e-6) this.secret('lucky'); // checado a cada ~2 s: 1 em 1 milhão por segundo
+    if (s.res.gold < 1 && s.stats.totalGold >= 1000) this.secret('broke');
+    for (let i = 0; i < s.grid.tiles.length; i++) {
+      if (s.grid.tiles[i].b?.id !== 'muralha') continue;
+      const x = i % GRID_W;
+      const y = Math.floor(i / GRID_W);
+      if (wallFacing(wallMask(s.grid, x, y), s.raid.dir) < 1) { this.secret('sidewall'); break; }
+    }
+  }
+
+  // A conquista (não secreta) mais perto de sair: alvo para a barra "próxima conquista".
+  nextAchievement() {
+    const s = this.state;
+    let best = null;
+    for (const a of ACHIEVEMENTS) {
+      if (s.achievements[a.id] || a.kind || !a.progress) continue;
+      const [cur, goal] = a.progress(s, this.econ, HERO_BY_ID);
+      const ratio = Math.min(0.999, Math.max(0, cur / goal));
+      if (!best || ratio > best.ratio) best = { a, cur: Math.min(cur, goal), goal, ratio };
+    }
+    return best;
+  }
+
+  // ------------------------------------------------------------ loja de gemas
+  buyShop(id) {
+    const s = this.state;
+    const item = GEM_SHOP.find((i) => i.id === id);
+    if (!item) return { ok: false, reason: 'Item desconhecido' };
+    if (item.reward.type === 'growAll' && !s.grid.tiles.some((t) => t.t === 'sapling')) return { ok: false, reason: 'Nenhuma muda plantada' };
+    if (s.res.gems < item.gems) return { ok: false, reason: 'Gemas insuficientes' };
+    s.res.gems -= item.gems;
+    this.grant(item.reward);
+    this.econ = computeEconomy(s, this.now);
+    this.log(`Loja: ${item.name}`, item.icon);
+    return { ok: true, item };
+  }
+
+  // Compra com dinheiro real. Só credita quando o pagamento estiver ligado e confirmado pelo servidor.
+  buyGemPack(id) {
+    const pack = GEM_PACKS.find((p) => p.id === id);
+    if (!pack) return { ok: false, reason: 'Pacote desconhecido' };
+    if (!PAYMENTS_ENABLED) return { ok: false, reason: 'Compra de gemas chega em breve' };
+    return { ok: false, reason: 'Pagamento indisponível' };
+  }
+
+  // Ponto único para creditar gemas compradas (chamado depois que o pagamento for confirmado).
+  creditPurchasedGems(amount) {
+    const s = this.state;
+    s.res.gems += amount;
+    s.stats.gemsBought = (s.stats.gemsBought || 0) + amount;
+  }
+
   checkAchievements() {
     const s = this.state;
     for (const a of ACHIEVEMENTS) {

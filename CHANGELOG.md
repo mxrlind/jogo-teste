@@ -2,6 +2,17 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.17.0] — 2026-10-07
+### Adicionado
+- **29 conquistas novas (53 no total).** 13 essenciais (árvores, muralhas, Cais de Pesca, subsolo, Quartel, Taverna, 3 lendários, 30 dias seguidos, 10 h de jogo), 13 **secretas** com piada (aparecem como "???" com uma dica: código Konami, clicar 30 vezes no mesmo prédio, jogar de madrugada, voltar depois de 7 dias, arrancar a própria muda...) e 3 de **sombra**, que não contam no total (ideia do Cookie Clicker), como a "Pura Sorte", com chance de 1 em 1 milhão por segundo.
+- **Cada conquista dá +1% de produção para sempre** (sobrevive à Ascensão; as de sombra não contam). Ideia do leite do Cookie Clicker e dos bônus do Antimatter Dimensions.
+- **Próxima conquista**: a aba Perfil mostra a conquista mais perto de sair, com barra de progresso.
+- **Escudo da sequência**: uma vez por semana, faltar um único dia não zera a sequência diária.
+- **Pacote de volta**: quem volta depois de 2 dias ou mais fora ganha 3 gemas, 1 pergaminho e 30 min de ouro.
+- **Loja de Gemas** (aba Perfil): gemas compram 1 hora de ouro, madeira, pedra ou comida, impulso de 30 min, pergaminho e crescer todas as mudas. Pacotes de gemas por dinheiro real aparecem como "Em breve": o pagamento ainda não está ligado.
+### Mudado
+- Gemas agora também poderão ser compradas com dinheiro real (decisão de 2026-10-07); o modelo de negócio foi atualizado.
+
 ## [0.16.2] — 2026-10-07
 ### Mudado
 - **Moradores mais rápidos e sem travadas.** Saiu o "stop motion": eles andam a 1,2 tile/s (o dobro) com movimento liso a cada frame, em vez de pular 5 vezes por segundo. A pose (pé no ar, ferramenta batendo) continua trocando em passinhos, e o "z z z" de quem dorme sobe liso.

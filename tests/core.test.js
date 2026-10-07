@@ -1110,3 +1110,92 @@ test('subsolo: Adega aumenta o armazém de comida e saves antigos ganham subsolo
   assert.equal(st.under.levels.length, 3);
   assert.equal(st.under.reached, 0);
 });
+
+test('conquistas secretas: gatilho marca, dá gemas e +1% de produção; sombra não conta no bônus', () => {
+  const g = freshGame();
+  const s = g.state;
+  const gems = s.res.gems;
+  const before = collectModifiers(s, T0).prodAll;
+  g.secret('konami');
+  assert.ok(s.achievements['codigo-antigo']);
+  assert.equal(s.res.gems, gems + 5);
+  assert.ok(Math.abs(collectModifiers(s, T0).prodAll - before - 0.01) < 1e-9);
+  g.secret('timeTravel');
+  assert.ok(s.achievements['viajante-do-tempo']);
+  assert.ok(Math.abs(collectModifiers(s, T0).prodAll - before - 0.01) < 1e-9);
+  g.secret('konami'); // repetir não paga de novo
+  assert.equal(s.res.gems, gems + 5);
+  // Flags sobrevivem ao save e à Ascensão.
+  assert.ok(deserialize(serialize(s)).flags.konami);
+  assert.ok(createState({ seed: 2, now: T0, carry: carryOver(s) }).flags.konami);
+});
+
+test('conquistas: nome padrão, muda arrancada e 3 derrotas seguidas', () => {
+  const g = freshGame();
+  const s = g.state;
+  g.setKingdomName('Reino de Bolso'); // fundar com o nome padrão não conta
+  assert.equal(s.achievements['nome-original'], undefined);
+  g.setKingdomName('Camelot');
+  g.setKingdomName('Reino de Bolso');
+  assert.ok(s.achievements['nome-original']);
+  clearArea(s);
+  s.res.gold = 1e6; s.res.wood = 1e6; s.res.food = 1e6; s.res.stone = 1e6;
+  assert.ok(g.plant(5, 5).ok);
+  assert.ok(g.clear(5, 5).ok);
+  assert.ok(s.achievements['lenhador-arrependido']);
+  s.stats.lossStreak = 3;
+  g.checkAchievements();
+  assert.ok(s.achievements['deixa-queimar']);
+});
+
+test('próxima conquista aponta a mais perto de sair', () => {
+  const g = freshGame();
+  const n = g.nextAchievement();
+  assert.ok(n && n.goal > 0 && n.ratio < 1);
+  assert.equal(n.a.kind, undefined);
+});
+
+test('sequência diária: escudo salva um dia perdido uma vez por semana', () => {
+  const day = 86400000;
+  const g = freshGame();
+  assert.ok(g.claimDaily().ok);
+  g.now = T0 + day; g.claimDaily();
+  assert.equal(g.state.daily.streak, 2);
+  g.now = T0 + 3 * day; // faltou um dia
+  const st = g.dailyStatus();
+  assert.ok(st.shield);
+  g.claimDaily();
+  assert.equal(g.state.daily.streak, 3);
+  g.now = T0 + 5 * day; // faltou de novo, 5 out de 2026 é segunda: 8 e 10 caem na mesma semana
+  const st2 = g.dailyStatus();
+  assert.equal(st2.shield, false);
+  g.claimDaily();
+  assert.equal(g.state.daily.streak, 1);
+});
+
+test('loja de gemas: compra recursos, recusa sem gemas e pacote real fica para depois', () => {
+  const g = freshGame();
+  const s = g.state;
+  assert.equal(g.buyShop('ouro').ok, false);
+  s.res.gems = 100;
+  const gold = s.res.gold;
+  assert.ok(g.buyShop('ouro').ok);
+  assert.ok(s.res.gold > gold);
+  assert.equal(s.res.gems, 90);
+  assert.ok(g.buyShop('impulso').ok);
+  assert.ok(s.boostUntil > T0);
+  assert.equal(g.buyShop('mudas').ok, false); // sem mudas
+  const r = g.buyGemPack('punhado');
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /em breve/);
+});
+
+test('pacote de volta depois de 2+ dias fora; 7 dias libera a secreta', () => {
+  const g = freshGame();
+  const s = g.state;
+  const gems = s.res.gems;
+  const sum = g.catchUp(T0 + 8 * 86400000);
+  assert.ok(sum.welcome);
+  assert.ok(s.res.gems >= gems + 3);
+  assert.ok(s.achievements['eles-apostaram']);
+});

@@ -9,6 +9,7 @@ import { EVENT_BY_ID, REPAIR_FRACTION } from '../data/events.js';
 import { seasonInfo } from './season.js';
 import { GRID_W, GRID_H, neighbors, idx, adjKey, wallMask } from './map.js';
 import { underMods, underEconomy } from './underground.js';
+import { ACHIEVEMENTS, ACH_PROD_BONUS } from '../data/achievements.js';
 
 export const PROD_RES = ['gold', 'food', 'wood', 'stone'];
 
@@ -95,9 +96,18 @@ export function collectModifiers(state, now) {
   m.prodAll += um.prodAll;
   m.prod.food += um.food;
 
+  // Cada conquista (fora as de sombra) dá +1% de produção para sempre.
+  m.prodAll += achievementBonus(state);
+
   if (state.boostUntil > now) m.prodAll += 0.5;
   m.cost = Math.min(0.75, m.cost);
   return m;
+}
+
+export function achievementBonus(state) {
+  let n = 0;
+  for (const a of ACHIEVEMENTS) if (a.kind !== 'shadow' && state.achievements?.[a.id]) n++;
+  return n * ACH_PROD_BONUS;
 }
 
 export function levelMult(lvl) {
