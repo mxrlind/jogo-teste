@@ -5,6 +5,7 @@ import { BUILDINGS, TERRAIN, GROW_SECONDS } from '../data/buildings.js';
 import { GRID_W, GRID_H, idx, isUnlocked, neighbors, ringOf, wallMask } from '../core/map.js';
 import { adjacencyAt } from '../core/economy.js';
 import { fmtPct } from '../core/format.js';
+import { neighborName } from '../core/game.js';
 import { UNDER_SPRITES, ROOM_SPRITES, TERRAIN_SPRITES, BUILDING_SPRITES, buildingSrc, wallSrc, SPRITE_FRAME, SPRITE_K, LOCKED_OVERLAY, CART_SPRITE, BOAT_SPRITE, RAIDER_SPRITES, RUIN_SPRITE, saplingSprite } from './sprites.js';
 import { VillageLife } from './villagers.js';
 import { images, iconKey, TOOL_COLOR } from './assets.js';
@@ -592,7 +593,7 @@ export class MapRenderer {
       ctx.strokeRect(nx * T + 1, ny * T + 1, T - 2, T - 2);
     }
     for (const p of adj.parts) this.label(p.x * T + T / 2, p.y * T + T * 0.24, fmtPct(p.value), p.value > 0 ? '#9be7a8' : '#ffb3a6', T);
-    const total = adj.hasRequired ? `Total ${fmtPct(adj.total)}` : 'Precisa de montanha';
+    const total = adj.hasRequired ? `Total ${fmtPct(adj.total)}` : `Precisa de ${neighborName(BUILDINGS[buildId].requiresAdj)}`;
     const color = !adj.hasRequired ? '#ffb3a6' : adj.total > 0 ? '#ffe08a' : adj.total < 0 ? '#ffb3a6' : '#ffffff';
     this.label(x * T + T / 2, y * T - T * 0.14 < T * 0.2 ? y * T + T * 1.12 : y * T - T * 0.14, total, color, T, true);
   }
