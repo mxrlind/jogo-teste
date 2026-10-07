@@ -8,7 +8,7 @@ import { BANNERS, EMBLEMS } from '../data/cosmetics.js';
 import { EVENT_BY_ID } from '../data/events.js';
 import { TUTORIAL, TAB_UNLOCKS, TAB_NAMES, DIR_NAMES } from '../core/game.js';
 import { buildCost, upgradeCost, canAfford, kingdomPower, heroStrength, heroPowerOf, storageMult, countOf, defenseWeight, wallFacing, maxLevelOf } from '../core/economy.js';
-import { idx, isUnlocked, ringOf, wallMask } from '../core/map.js';
+import { idx, isUnlocked, ringOf, wallMask, GRID_H } from '../core/map.js';
 import { seasonInfo, tierOf, missionText, rewardFor } from '../core/season.js';
 import {
   councilSlots, recruitGoldCost, speedUpCost, tavernDiscount, heroLevelCap, trainingSlots, trainingCount, trainCost,
@@ -182,6 +182,20 @@ export function renderModeHint() {
     el.hidden = false;
     setHtml(el, `${ico('move')}<span>Escolha o novo lugar (mover é grátis).</span><button class="btn small" data-action="cancelMode">Cancelar</button>`);
   } else el.hidden = true;
+  dodgeModeHint(el);
+}
+
+// Com o mapa todo expandido a dica cobre a fileira da borda: se o tile sob o cursor
+// (ou o último toque) ficar embaixo dela, ela pula para a borda oposta.
+function dodgeModeHint(el) {
+  el.classList.remove('flip');
+  const t = ui.renderer.hover;
+  if (el.hidden || !t) return;
+  const c = ui.renderer.canvas.getBoundingClientRect();
+  const size = c.height / GRID_H;
+  const top = c.top + t.y * size, bottom = top + size;
+  const h = el.getBoundingClientRect();
+  if (bottom > h.top && top < h.bottom) el.classList.add('flip');
 }
 
 // ================================================================ paleta
@@ -478,7 +492,7 @@ function tabHerois() {
     if (lvl >= HERO_MAX_LEVEL) return '';
     if (lvl >= cap) return `<p class="muted">${ico('lock')} Melhore o Quartel para treinar além do nível ${cap}.</p>`;
     const cost = trainCost(h, lvl);
-    return `<div class="row"><button class="btn small ${!busy && canAfford(s.res, cost) ? '' : 'poor'}" data-action="train" data-arg="${h.id}" ${busy ? 'title="Quartel ocupado"' : ''}>${ico('swords')} Treinar para o nível ${lvl + 1} ${costHtml(cost, s.res)}</button></div>`;
+    return `<div class="row"><button class="btn small wrap ${!busy && canAfford(s.res, cost) ? '' : 'poor'}" data-action="train" data-arg="${h.id}" ${busy ? 'title="Quartel ocupado"' : ''}>${ico('swords')} Treinar: nível ${lvl + 1} ${costHtml(cost, s.res)}</button></div>`;
   };
   const card = (h) => {
     const o = s.heroes.owned[h.id];
@@ -490,7 +504,7 @@ function tabHerois() {
       exp = left <= 0
         ? `<button class="btn small primary" data-action="collect" data-arg="${h.id}">${ico('check')} Coletar: ${ex.name}</button>`
         : `<div class="row">${ico('expedition')} ${ex.name} · ${fmtTime(left)} <button class="btn small" data-action="speedup" data-arg="${h.id}">${ico('speedup')} Acelerar (${speedUpCost(left)} ${resIco('gems')})</button></div>`;
-    } else if (!inCouncil) {
+    } else if (!inCouncil && !o.training) {
       exp = `<div class="lbl"><span>Enviar em expedição</span></div><div class="row">${EXPEDITIONS.map((x) => `<button class="btn small" data-action="expedition" data-arg="${h.id}|${x.id}" title="${x.name}" aria-label="${x.name}, ${fmtTime(x.duration)}">${ico('expedition')} ${fmtTime(x.duration)}</button>`).join('')}</div>`;
     }
     return `<div class="hero" style="--rc:var(--${h.rarity})">
