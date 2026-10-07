@@ -492,7 +492,7 @@ function tabHerois() {
     if (lvl >= HERO_MAX_LEVEL) return '';
     if (lvl >= cap) return `<p class="muted">${ico('lock')} Melhore o Quartel para treinar além do nível ${cap}.</p>`;
     const cost = trainCost(h, lvl);
-    return `<div class="row"><button class="btn small ${!busy && canAfford(s.res, cost) ? '' : 'poor'}" data-action="train" data-arg="${h.id}" ${busy ? 'title="Quartel ocupado"' : ''}>${ico('swords')} Treinar para o nível ${lvl + 1} ${costHtml(cost, s.res)}</button></div>`;
+    return `<div class="row"><button class="btn small wrap ${!busy && canAfford(s.res, cost) ? '' : 'poor'}" data-action="train" data-arg="${h.id}" ${busy ? 'title="Quartel ocupado"' : ''}>${ico('swords')} Treinar: nível ${lvl + 1} ${costHtml(cost, s.res)}</button></div>`;
   };
   const card = (h) => {
     const o = s.heroes.owned[h.id];
@@ -504,7 +504,7 @@ function tabHerois() {
       exp = left <= 0
         ? `<button class="btn small primary" data-action="collect" data-arg="${h.id}">${ico('check')} Coletar: ${ex.name}</button>`
         : `<div class="row">${ico('expedition')} ${ex.name} · ${fmtTime(left)} <button class="btn small" data-action="speedup" data-arg="${h.id}">${ico('speedup')} Acelerar (${speedUpCost(left)} ${resIco('gems')})</button></div>`;
-    } else if (!inCouncil) {
+    } else if (!inCouncil && !o.training) {
       exp = `<div class="lbl"><span>Enviar em expedição</span></div><div class="row">${EXPEDITIONS.map((x) => `<button class="btn small" data-action="expedition" data-arg="${h.id}|${x.id}" title="${x.name}" aria-label="${x.name}, ${fmtTime(x.duration)}">${ico('expedition')} ${fmtTime(x.duration)}</button>`).join('')}</div>`;
     }
     return `<div class="hero" style="--rc:var(--${h.rarity})">
