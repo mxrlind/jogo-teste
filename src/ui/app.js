@@ -150,6 +150,18 @@ function drawMenuMap() {
   requestAnimationFrame(() => menuRenderer.draw({ state: { grid: menuGrid } }));
 }
 
+// Rosa dos ventos no canto superior direito do mapa: ao lado dele quando sobra espaço, senão por cima do canto.
+function placeCompass() {
+  const c = $('#compass');
+  const map = $('#map');
+  const wrap = map.parentElement;
+  const right = map.offsetLeft + map.offsetWidth;
+  const outside = wrap.clientWidth - right >= c.offsetWidth + 14;
+  c.classList.toggle('outside', outside);
+  c.style.left = `${outside ? right + 10 : right - c.offsetWidth - 8}px`;
+  c.style.top = `${map.offsetTop + (outside ? 0 : 8)}px`;
+}
+
 function startGame(state, { isNew = false } = {}) {
   if (!ui.game) {
     ui.game = new Game(state);
@@ -159,7 +171,7 @@ function startGame(state, { isNew = false } = {}) {
   }
   setScreen('game');
   if (!ui.renderer) {
-    ui.renderer = new MapRenderer($('#map'), { onTileClick: tileClick, onHover, getConfig: () => ui.config });
+    ui.renderer = new MapRenderer($('#map'), { onTileClick: tileClick, onHover, onResize: placeCompass, getConfig: () => ui.config });
   }
   ui.renderer.resize();
   ui.renderer.selected = null;
