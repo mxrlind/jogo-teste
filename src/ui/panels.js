@@ -17,7 +17,7 @@ import { ui, $, esc, costHtml, bannerColor, emblemIcon, deltaText } from './ctx.
 import { ico, resIco } from './icons.js';
 import { runHistoryHtml } from './ascension.js';
 
-const spriteOf = (id) => BUILDING_SPRITES[id]?.src;
+const spriteOf = (id) => BUILDING_SPRITES[id]?.icon;
 const touchUi = () => window.matchMedia?.('(pointer: coarse)').matches ?? false;
 
 // ================================================================ HUD
@@ -251,7 +251,7 @@ export function renderTileInfo(force = false) {
       <hr class="divider"><div class="row"><button class="btn small" data-action="move">${ico('move')} Mover</button><button class="btn small danger" data-action="sell">${ico('demolish')} Demolir</button></div>`;
   } else {
     const ter = TERRAIN[tile.t];
-    const img = TERRAIN_SPRITES[tile.t]?.base[0];
+    const img = TERRAIN_SPRITES[tile.t]?.icon;
     html = `<div class="title-row">${img ? `<img src="${img}" alt="">` : ''}<h3>${ter.name}</h3></div>`;
     if (ter.clearCost) html += `<p class="muted">Pode ser limpo para construir, mas os vizinhos que gostam de ${ter.name.toLowerCase()} perdem o bônus.</p>
       <button class="btn ${canAfford(s.res, ter.clearCost) ? '' : 'poor'}" data-action="clear">${ico('clear')} Limpar ${costHtml(ter.clearCost, s.res)}, ganha ${costHtml(ter.clearYield)}</button>`;

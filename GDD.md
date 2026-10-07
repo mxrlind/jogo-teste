@@ -18,7 +18,7 @@
 2. **Só mais uma**: progresso visível a cada retorno; nunca esperar sem ter o que decidir.
 3. **Mostre antes de cobrar**: bônus de cada vizinho, +X/s, custo e "vale ascender" aparecem antes da confirmação.
 4. **Justo**: nada se compra com dinheiro real; derrota dói, mas não destrói (proteção de novato e teto de saque).
-5. **Um estilo só**: mundo em vetor plano top-down (Kenney Medieval RTS), interface plana (Kenney UI Pack), ícones em silhueta (game-icons). Zero emoji.
+5. **Um estilo só**: mundo low poly com luz e sombra (KayKit, renderizado em 2D), interface plana (Kenney UI Pack), ícones em silhueta (game-icons). Zero emoji.
 
 ## 3. Core loop
 
@@ -53,7 +53,8 @@
 
 | Camada | Fonte | Regras |
 |---|---|---|
-| Mundo (terreno, prédios, natureza, unidades) | **Kenney Medieval RTS** (CC0), PNG 128 px | Top-down, vetor plano. Um prédio = um tile. Nenhum outro pacote de mundo |
+| Mundo (prédios, natureza, chão) | **KayKit Medieval Hexagon Pack** (CC0), modelos 3D renderizados em PNG por `tools/render-kaykit.mjs` | Vista de cima com a altura subindo na tela (projeção oblíqua, fator 0,7): o chão continua um quadrado do tile. Um prédio = um tile; o que é alto invade o tile de cima. Desenho linha a linha, de trás para a frente |
+| Mundo (moradores, invasores, carroça) | **Kenney Medieval RTS** (CC0), PNG 128 px | Top-down, vetor plano. Ficam até haver personagens no estilo do KayKit |
 | Interface (botões, caixas de seleção) | **Kenney UI Pack** (CC0), via `border-image` | Plano, cantos arredondados, com estados de hover, pressionado e desativado |
 | Interface (painéis, cartões, HUD) | CSS com tokens em `styles.css` | Moldura escura (tinta) + superfícies de pergaminho + filete dourado. Sem `backdrop-filter` sobre o mapa (custaria um desfoque por frame) |
 | Ícones (recursos, ações, heróis, conquistas) | **game-icons.net** (CC BY 3.0), SVG tingido por CSS mask | Silhueta de uma cor; dentro do mapa só como número flutuante e aviso |
@@ -62,7 +63,7 @@
 
 **Paleta**: tinta `#2b2a33` · papel `#f4f1ea` · creme `#f3e3c0` · grama `#2e8b47` · dourado `#f2b632` · vermelho `#b8412f` · azul `#1f6fb2`. Raridades: comum `#6f7782`, raro `#2f7cc0`, épico `#7a52c4`, lendário `#b9820e`.
 
-**Lacunas do pacote e soluções**: montanha = chão de pedra + rochedo grande; "Fonte" virou **Fogueira**; o baú virou a **carroça do mercador** (sprite do pacote).
+**Lacunas do pacote e soluções**: o KayKit é feito para hexágonos, então só usamos prédios, natureza e adereços; o chão é cor lisa renderizada na mesma luz (a grama e a água dos tiles hexagonais saem com a cor errada vistas de cima). Jardim, Pedreira e Estátua do Fundador são montagens de modelos do pacote; a Fogueira é o poço. Personagens só existem na versão paga do pacote, por isso os moradores seguem no Medieval RTS.
 
 **Animação**: hélice do moinho, "pop" ao construir, moradores com profissão e rotina (sprite e ferramenta por ofício; sem emprego dormem na rua) em ritmo de stop motion, 5 quadros por segundo com duas poses, invasores marchando pelo lado anunciado, carroça balançando, partículas. Tudo respeita "Reduzir movimento".
 

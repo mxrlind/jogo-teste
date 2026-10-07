@@ -1,6 +1,6 @@
 # Roadmap
 
-O que ficou de fora da versão 0.6.0, **em ordem de impacto** (o que mais muda a experiência ou o futuro do jogo vem primeiro). Cada item diz por que importa e o tamanho aproximado do trabalho.
+O que ficou de fora da versão 0.7.0, **em ordem de impacto** (o que mais muda a experiência ou o futuro do jogo vem primeiro). Cada item diz por que importa e o tamanho aproximado do trabalho.
 
 | # | Item | Por que importa | Esforço |
 |---|---|---|---|
@@ -12,8 +12,8 @@ O que ficou de fora da versão 0.6.0, **em ordem de impacto** (o que mais muda a
 | 6 | **i18n (PT-BR, depois EN e ES)** | Multiplica o público possível; os textos já estão concentrados em `src/data/` e `src/core/game.js` | 3–5 dias |
 | 7 | **Social real** | Visitas, ranking por temporada e trocas entre jogadores reais (API mínima em Cloudflare Workers + D1) | 2–3 semanas |
 | 8 | **Empacotamento para Steam** | Tauri, save em arquivo + Steam Cloud, conquistas Steam mapeadas de `ACHIEVEMENTS` | 2 semanas |
-| 9 | **Prédios por nível** | Hoje o nível aparece como número; trocar o sprite em níveis 5 e 10 deixa o crescimento visível. O pacote Medieval RTS tem variações que servem | 2 dias |
-| 10 | **Transições de terreno** | Bordas suaves entre água, grama e pedra. O Medieval RTS tem tiles de borda; falta a lógica de escolha (autotile) | 2–3 dias |
+| 9 | **Prédios por nível** | Hoje o nível aparece como número; trocar o sprite em níveis 5 e 10 deixa o crescimento visível. O KayKit tem variações que servem (castelo, quartel, torre com catapulta, casa B) e cada prédio vem em 4 cores | 2 dias |
+| 10 | **Transições de terreno** | Bordas suaves entre água e grama. O KayKit tem margens de rio e costa em hexágono, que não servem direto; seria preciso desenhar as bordas no próprio render | 2–3 dias |
 | 11 | **Ambiência por temporada** | Som de vento, chuva ou batalha conforme a temporada | 1 dia + busca de assets |
 | 12 | **Conteúdo pós-lançamento** | Novas temporadas (Inverno Eterno, Festival, Praga), biomas (deserto, ilha), prédios 2×2, heróis com habilidade ativa, modo desafio com mapa fixo | contínuo |
 | 13 | **Co-op leve (2–4 reinos vizinhos)** | Reinos de amigos dividindo fronteira e bônus de adjacência; depende do item 7 | 1 mês+ |
@@ -21,6 +21,7 @@ O que ficou de fora da versão 0.6.0, **em ordem de impacto** (o que mais muda a
 ## Já entregue
 
 - **0.1.0**: protótipo completo (mapa, 15 prédios, hordas, heróis, temporadas, Ascensão, social simulado, offline, testes, simulador).
+- **0.7.0**: arte do mapa trocada pelo KayKit Medieval Hexagon Pack (prédios e natureza com volume e sombra); moradores continuam andando.
 - **0.6.0**: tela de estatísticas ao Ascender, com recordes e histórico das rodadas.
 - **0.5.0**: vida da vila (moradores com profissão, rotina e sprite por ofício; sem emprego dormem na rua).
 - **0.4.0**: desfazer a última construção (5 s, custo devolvido por inteiro) e README voltado para quem joga.

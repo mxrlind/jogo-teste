@@ -1,14 +1,14 @@
-# Gera o ícone do app e o favicon a partir dos sprites Kenney Medieval RTS (CC0).
+# Gera o ícone do app e o favicon a partir dos sprites do KayKit (CC0) gerados por tools/render-kaykit.mjs.
 # Uso: python3 tools/make-icons.py   (requer Pillow)
 from PIL import Image
 import os
 ROOT = os.path.join(os.path.dirname(__file__), '..')
-RTS = os.path.join(ROOT, 'assets/sprites/medieval-rts')
+KK = os.path.join(ROOT, 'assets/sprites/kaykit')
 OUT = os.path.join(ROOT, 'assets/icons/app')
 os.makedirs(OUT, exist_ok=True)
-grass = Image.open(f'{RTS}/Tile/medievalTile_57.png').convert('RGBA')
-castle = Image.open(f'{RTS}/Structure/medievalStructure_06.png').convert('RGBA')
-castle = castle.crop(castle.getbbox())  # o sprite não é centralizado no quadro 128x128
+grass = Image.open(f'{KK}/grass-1.png').convert('RGBA')
+castle = Image.open(f'{KK}/logo-castelo.png').convert('RGBA')
+castle = castle.crop(castle.getbbox())
 for size, pad in [(512, 0.14), (192, 0.14), (180, 0.14), (64, 0.06), (32, 0.04)]:
     bg = grass.resize((size, size), Image.LANCZOS)
     inner = int(size * (1 - 2 * pad))

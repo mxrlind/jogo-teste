@@ -1,10 +1,11 @@
-// Renderizador do mapa em <canvas> com os sprites Kenney Medieval RTS.
-// Camadas: terreno (em cache, só redesenha quando o mapa muda) -> prédios e unidades -> realces -> efeitos.
+// Renderizador do mapa em <canvas> com os sprites do KayKit (prédios e natureza) e do Kenney Medieval RTS (moradores).
+// Camadas: chão (em cache, só redesenha quando o mapa muda) -> natureza e prédios, linha a linha de trás para a frente
+// (o que é alto invade o tile de cima) -> território bloqueado -> unidades -> realces -> efeitos.
 import { BUILDINGS, TERRAIN } from '../data/buildings.js';
 import { GRID_W, GRID_H, idx, isUnlocked, neighbors, ringOf } from '../core/map.js';
 import { adjacencyAt } from '../core/economy.js';
 import { fmtPct } from '../core/format.js';
-import { TERRAIN_SPRITES, BUILDING_SPRITES, LOCKED_OVERLAY, CART_SPRITE, RAIDER_SPRITES } from './sprites.js';
+import { TERRAIN_SPRITES, BUILDING_SPRITES, SPRITE_FRAME, SPRITE_K, LOCKED_OVERLAY, CART_SPRITE, RAIDER_SPRITES } from './sprites.js';
 import { VillageLife } from './villagers.js';
 import { images, iconKey } from './assets.js';
 
@@ -116,6 +117,12 @@ export class MapRenderer {
     if (im) this.ctx.drawImage(im, x, y, w, h);
   }
 
+  // Sprite do KayKit no quadro SPRITE_FRAME, ancorado no centro do tile (cx, cy).
+  framed(url, cx, cy, T, scale = 1) {
+    const f = SPRITE_FRAME;
+    this.img(url, cx + f.left * T * scale, cy + f.top * T * scale, (f.right - f.left) * T * scale, (f.bottom - f.top) * T * scale);
+  }
+
   terrainSignature(grid) {
     let s = `${grid.ring}|${this.size}|`;
     for (const t of grid.tiles) s += t.t[0] + (t.b ? '1' : '0');
@@ -138,13 +145,13 @@ export class MapRenderer {
         // Sob prédios, sempre grama (os sprites de prédio não cobrem o tile inteiro).
         const base = tile.b ? pick(TERRAIN_SPRITES.grass.base, i) : pick(spr.base, i * 7 + 3);
         draw(base, x * T, y * T, T + 0.6, T + 0.6);
-        if (!tile.b && spr.over) draw(pick(spr.over, i), x * T + T * 0.06, y * T + T * 0.06, T * 0.88, T * 0.88);
-        if (!isUnlocked(grid, x, y)) {
-          g.fillStyle = ringOf(x, y) === grid.ring + 1 ? 'rgba(20, 22, 32, 0.5)' : LOCKED_OVERLAY;
-          g.fillRect(x * T, y * T, T + 0.6, T + 0.6);
-        }
       }
     }
+  }
+
+  // Contorno tracejado do território.
+  drawBorder(grid, T) {
+    const g = this.ctx;
     const lo = Math.ceil((GRID_W - 1) / 2 - grid.ring - 0.5);
     const span = (GRID_W - 2 * lo) * T;
     g.setLineDash([8, 5]);
@@ -152,6 +159,18 @@ export class MapRenderer {
     g.strokeStyle = '#f2b632';
     g.strokeRect(lo * T + 1.5, lo * T + 1.5, span - 3, span - 3);
     g.setLineDash([]);
+  }
+
+  // Hélice do moinho: renderizada de frente; achatada por SPRITE_K, como a altura do resto do sprite.
+  drawBlades(blades, cx, cy, T, scale, angle) {
+    const ctx = this.ctx;
+    const w = blades.size * T * scale;
+    ctx.save();
+    ctx.translate(cx + blades.hub.x * T * scale, cy + blades.hub.y * T * scale);
+    ctx.scale(1, SPRITE_K);
+    ctx.rotate(angle);
+    this.img(blades.src, -w / 2, -w / 2, w, w);
+    ctx.restore();
   }
 
   draw(game) {
@@ -175,12 +194,16 @@ export class MapRenderer {
     }
     ctx.drawImage(this.terrainCache, 0, 0, this.size, this.size);
 
-    // Prédios
+    // Natureza e prédios, de trás para a frente
     for (let y = 0; y < GRID_H; y++) {
       for (let x = 0; x < GRID_W; x++) {
         const i = idx(x, y);
         const tile = grid.tiles[i];
-        if (!tile.b) continue;
+        if (!tile.b) {
+          const over = TERRAIN_SPRITES[tile.t]?.over;
+          if (over) this.framed(pick(over, i), x * T + T / 2, y * T + T / 2, T);
+          continue;
+        }
         const spr = BUILDING_SPRITES[tile.b.id];
         if (!spr) continue;
         const info = econ?.tiles[i];
@@ -193,21 +216,32 @@ export class MapRenderer {
         }
         const dim = info && (!info.active || (info.workers > 0 && info.staff < 0.5));
         ctx.globalAlpha = dim ? 0.6 : 1;
-        const w = (spr.full ? T : T * 0.92) * scale;
         const cx = x * T + T / 2;
         const cy = y * T + T / 2;
-        this.img(spr.src, cx - w / 2, cy - w / 2 - (spr.full ? 0 : T * 0.02), w, w);
-        if (spr.blades) {
-          ctx.save();
-          ctx.translate(cx, y * T + T * 0.42);
-          ctx.rotate(motion && info?.active !== false ? now / 900 : 0.4);
-          this.img(spr.blades, -T * 0.42 * scale, -T * 0.42 * scale, T * 0.84 * scale, T * 0.84 * scale);
-          ctx.restore();
-        }
+        this.framed(spr.src, cx, cy, T, scale);
+        if (spr.blades) this.drawBlades(spr.blades, cx, cy, T, scale, motion && info?.active !== false ? now / 900 : 0.4);
         ctx.globalAlpha = 1;
-        if (tile.b.lvl > 1) this.badge(x * T + T * 0.84, y * T + T * 0.84, String(tile.b.lvl), T);
-        if (info && !info.active) this.img(iconKey('warning', '#ffb020'), x * T + T * 0.66, y * T + T * 0.04, T * 0.3, T * 0.3);
       }
+    }
+
+    // Território bloqueado escurecido por cima da natureza (que sobe para o tile de cima).
+    for (let y = 0; y < GRID_H; y++) {
+      for (let x = 0; x < GRID_W; x++) {
+        if (isUnlocked(grid, x, y)) continue;
+        ctx.fillStyle = ringOf(x, y) === grid.ring + 1 ? 'rgba(20, 22, 32, 0.5)' : LOCKED_OVERLAY;
+        ctx.fillRect(x * T, y * T, T + 0.6, T + 0.6);
+      }
+    }
+    this.drawBorder(grid, T);
+
+    // Nível e avisos por cima de tudo que é do mapa.
+    for (let i = 0; i < grid.tiles.length; i++) {
+      const b = grid.tiles[i].b;
+      if (!b) continue;
+      const x = i % GRID_W;
+      const y = Math.floor(i / GRID_W);
+      if (b.lvl > 1) this.badge(x * T + T * 0.84, y * T + T * 0.84, String(b.lvl), T);
+      if (econ?.tiles[i] && !econ.tiles[i].active) this.img(iconKey('warning', '#ffb020'), x * T + T * 0.66, y * T + T * 0.04, T * 0.3, T * 0.3);
     }
 
     if (!this.view && state) {
@@ -350,7 +384,8 @@ export class MapRenderer {
     if (restore) state.grid.tiles[idx(mode.from.x, mode.from.y)].b = restore;
     const spr = BUILDING_SPRITES[buildId];
     ctx.globalAlpha = 0.75;
-    this.img(spr.src, x * T + T * 0.04, y * T + T * 0.04, T * 0.92, T * 0.92);
+    this.framed(spr.src, x * T + T / 2, y * T + T / 2, T);
+    if (spr.blades) this.drawBlades(spr.blades, x * T + T / 2, y * T + T / 2, T, 1, 0.4);
     ctx.globalAlpha = 1;
     for (const [nx, ny] of neighbors(x, y)) {
       ctx.strokeStyle = 'rgba(255,255,255,0.35)';

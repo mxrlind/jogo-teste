@@ -1,39 +1,49 @@
-// Mapeamento de conteúdo do jogo -> arquivos de sprite (Kenney Medieval RTS, CC0) e ícones (game-icons.net, CC BY 3.0).
-// Créditos completos: ASSETS.md. Este módulo não desenha nada; só diz qual arquivo representa o quê.
+// Mapeamento de conteúdo do jogo -> arquivos de sprite e ícones (game-icons.net, CC BY 3.0).
+// Mapa: KayKit Medieval Hexagon Pack (CC0), renderizado em PNG por tools/render-kaykit.mjs.
+// Moradores, invasores e carroça: Kenney Medieval RTS (CC0). Créditos completos: ASSETS.md.
+// Este módulo não desenha nada; só diz qual arquivo representa o quê.
 
 const RTS = 'assets/sprites/medieval-rts';
-const t = (n) => `${RTS}/Tile/medievalTile_${String(n).padStart(2, '0')}.png`;
 const s = (n) => `${RTS}/Structure/medievalStructure_${String(n).padStart(2, '0')}.png`;
-const e = (n) => `${RTS}/Environment/medievalEnvironment_${String(n).padStart(2, '0')}.png`;
 const u = (n) => `${RTS}/Unit/medievalUnit_${String(n).padStart(2, '0')}.png`;
+const KK = 'assets/sprites/kaykit';
+const k = (name) => `${KK}/${name}.png`;
 
-// Terreno: base (tile inteiro) + sobreposição opcional (objeto do Environment).
+// Quadro dos sprites do KayKit em tiles, relativo ao centro do tile (y para baixo): a altura sobe para o tile de cima.
+// Igual ao FRAME de tools/render-kaykit.mjs. SPRITE_K = quanto a altura sobe na tela (usado para girar a hélice).
+export const SPRITE_FRAME = { left: -0.6, right: 0.6, top: -1.25, bottom: 0.6 };
+export const SPRITE_K = 0.7;
+
+// Terreno: chão (tile inteiro, em cache) + natureza opcional por cima (desenhada em ordem de linha, como os prédios).
+// `icon` é a miniatura usada nos painéis.
+const GRASS = [k('grass-1'), k('grass-2')];
 export const TERRAIN_SPRITES = {
-  grass: { base: [t(57), t(58)] },
-  forest: { base: [t(46), t(47), t(42), t(43)] },
-  rock: { base: [t(57), t(58)], over: [e(8), e(7)] },
-  water: { base: [t(27), t(28)] },
-  // O pacote não tem montanha: chão de pedra + rochedo grande.
-  mountain: { base: [t(15), t(16)], over: [e(9), e(11)] },
+  grass: { base: GRASS, icon: k('grass-1') },
+  forest: { base: GRASS, over: [k('forest-1'), k('forest-2'), k('forest-3'), k('forest-4')], icon: k('icon-forest-1') },
+  rock: { base: GRASS, over: [k('rock-1'), k('rock-2')], icon: k('icon-rock-1') },
+  water: { base: [k('water-1'), k('water-2')], icon: k('water-1') },
+  mountain: { base: GRASS, over: [k('mountain-1'), k('mountain-2')], icon: k('icon-mountain-1') },
 };
 
-// Prédios. `full: true` = ocupa o tile inteiro (plantação); `blades` = hélice animada do moinho.
+// Prédios: sprite no quadro SPRITE_FRAME + miniatura quadrada para a interface.
+// `blades` = hélice do moinho, girada no jogo em volta de `hub` (em tiles, relativo ao centro do tile).
+const building = (id, extra = {}) => ({ src: k(`building-${id}`), icon: k(`icon-${id}`), ...extra });
 export const BUILDING_SPRITES = {
-  casa: { src: s(18) },
-  fazenda: { src: t(56), full: true },
-  serraria: { src: s(21) },
-  pedreira: { src: s(20) },
-  mercado: { src: s(22) },
-  moinho: { src: s(19), blades: s(13) },
-  armazem: { src: s(9) },
-  taverna: { src: s(23) },
-  muralha: { src: s(2) },
-  torre: { src: s(1) },
-  mina: { src: e(18) },
-  templo: { src: s(4) },
-  jardim: { src: e(19) },
-  fogueira: { src: e(20) }, // substitui a antiga Fonte (o pacote não tem fonte d'água)
-  estatua: { src: s(12) },
+  casa: building('casa'),
+  fazenda: building('fazenda'),
+  serraria: building('serraria'),
+  pedreira: building('pedreira'),
+  mercado: building('mercado'),
+  moinho: building('moinho', { blades: { src: k('building-moinho-blades'), hub: { x: -0.004, y: -0.261 }, size: 0.712 } }),
+  armazem: building('armazem'),
+  taverna: building('taverna'),
+  muralha: building('muralha'),
+  torre: building('torre'),
+  mina: building('mina'),
+  templo: building('templo'),
+  jardim: building('jardim'),
+  fogueira: building('fogueira'), // poço do KayKit (o nome Fogueira vem da época do Medieval RTS)
+  estatua: building('estatua'),
 };
 
 export const LOCKED_OVERLAY = 'rgba(20, 22, 32, 0.62)';
@@ -64,7 +74,7 @@ export const TOOL_ICONS = ['clear', 'hero-woodcutter', 'tool-pickaxe'];
 export function allSpriteUrls() {
   const urls = new Set();
   for (const v of Object.values(TERRAIN_SPRITES)) [...v.base, ...(v.over || [])].forEach((u) => urls.add(u));
-  for (const v of Object.values(BUILDING_SPRITES)) { urls.add(v.src); if (v.blades) urls.add(v.blades); }
+  for (const v of Object.values(BUILDING_SPRITES)) { urls.add(v.src); if (v.blades) urls.add(v.blades.src); }
   [CART_SPRITE, ...RAIDER_SPRITES, ...SLEEPER_SPRITES].forEach((x) => urls.add(x));
   for (const p of Object.values(PROFESSIONS)) urls.add(p.sprite);
   return [...urls];
