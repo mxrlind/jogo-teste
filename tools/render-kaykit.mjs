@@ -91,6 +91,32 @@ const BUILDINGS = {
   },
   fogueira: one(B('well'), { fit: 0.7 }),
   estatua: { parts: [{ model: B('tower_base') }, { model: P('flag_blue'), y: 0.6 }], fit: 0.62 },
+  // O pacote não tem cais nem barco: tábuas e casco são peças simples (primitive em tools/kaykit/render.html).
+  cais: {
+    parts: [
+      ...[-0.75, -0.45, -0.15, 0.15, 0.45, 0.75].map((x, i) => ({ box: [0.28, 0.14, 1.3], x, z: 0.3, color: i % 2 ? '#a8703f' : '#b98150' })),
+      ...[[-0.9, -0.3], [0.9, -0.3], [-0.9, 0.9], [0.9, 0.9]].map(([x, z]) => ({ box: [0.14, 0.42, 0.14], x, z, color: '#6e4527' })),
+      { model: P('tent'), x: -0.45, z: -0.6, rot: 20, scale: 1.1 },
+      { model: P('crate_open'), x: 0.45, z: -0.5, scale: 1.1 },
+      { model: P('barrel'), x: 0.75, z: 0.15, scale: 1.1 },
+      { model: P('bucket_water'), x: 0.2, z: 0.55, scale: 1.2 },
+      { model: P('sack'), x: -0.5, z: 0.5, scale: 1.1 },
+    ],
+    fit: 0.92,
+  },
+};
+// Barquinho de pesca que fica no lago ao lado do cais (desenhado no jogo por cima da água, balançando).
+const BOATS = {
+  barco: {
+    parts: [
+      { hull: { l: 1.6, w: 0.7, h: 0.28 }, color: '#a8703f' },
+      { box: [0.16, 0.05, 0.56], x: -0.3, y: 0.2, color: '#8a5a33' },
+      { box: [0.16, 0.05, 0.5], x: 0.25, y: 0.2, color: '#8a5a33' },
+      { model: P('flag_blue'), x: 0.25, y: 0.12, scale: 3 },
+      { model: P('crate_open'), x: -0.6, y: 0.1, scale: 0.9 },
+    ],
+    fit: 0.9,
+  },
   // Ruína deixada por uma horda (não é um prédio do jogo: some quando algo é construído no lugar).
   ruina: one(N('building_destroyed'), { fit: 0.85 }),
 };
@@ -214,6 +240,7 @@ if (SHEET) {
     if (r.bladesUrl) save(`building-${name}-blades`, r.bladesUrl);
     if (Object.keys(r.meta).length) meta[name] = r.meta;
   }
+  for (const [name, spec] of Object.entries(BOATS)) if (want(name)) save(name, (await render({ ...spec, frame: FRAME, K, ppt: PPT })).url);
   for (const [name, spec] of Object.entries(WALLS)) if (want(`building-${name}`)) save(`building-${name}`, (await render({ ...spec, frame: FRAME, K, ppt: PPT })).url);
   for (const [name, spec] of Object.entries(NATURE)) {
     if (!want(name)) continue;

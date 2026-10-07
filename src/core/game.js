@@ -12,7 +12,7 @@ import { createState, carryOver, newSeed } from './state.js';
 import { GRID_W, GRID_H, idx, isUnlocked, RING_COSTS, MAX_RING } from './map.js';
 import { syncSeason, syncMissions, tierOf, rewardFor } from './season.js';
 import {
-  councilSlots, recruitCost, rollHero, addHero, expeditionReward, speedUpCost, heroLevelCap, trainingSlots, trainingCount, trainCost, trainSeconds,
+  councilSlots, recruitCost, rollHero, addHero, expeditionReward, speedUpCost, expeditionSpeedUpCost, expeditionSlots, activeExpeditions, heroLevelCap, trainingSlots, trainingCount, trainCost, trainSeconds,
 } from './heroes.js';
 import { generateRivals } from './social.js';
 import { DEPTHS, UNDER_TILES, ROOMS, LEVEL_NAMES } from '../data/underground.js';
@@ -704,6 +704,7 @@ export class Game {
     if (owned.expedition) return { ok: false, reason: 'Já está em expedição' };
     if (owned.training) return { ok: false, reason: 'Herói treinando no Quartel' };
     if (s.heroes.council.includes(hid)) return { ok: false, reason: 'Tire o herói do Conselho primeiro' };
+    if (activeExpeditions(s) >= expeditionSlots(s)) return { ok: false, reason: 'Todas as vagas de expedição estão ocupadas' };
     owned.expedition = { id: exp.id, startedAt: this.now, endsAt: this.now + exp.duration * 1000 };
     this.emit('expeditionStart', { hid, exp });
     return { ok: true };
@@ -736,7 +737,7 @@ export class Game {
     if (!owned?.expedition) return { ok: false, reason: 'Sem expedição' };
     const remaining = (owned.expedition.endsAt - this.now) / 1000;
     if (remaining <= 0) return { ok: false, reason: 'Já terminou' };
-    const cost = speedUpCost(remaining);
+    const cost = expeditionSpeedUpCost(remaining);
     if (s.res.gems < cost) return { ok: false, reason: 'Gemas insuficientes' };
     s.res.gems -= cost;
     owned.expedition.endsAt = this.now;

@@ -10,8 +10,8 @@ import { computeEconomy, adjacencyAt, buildCost, upgradeCost, collectModifiers, 
 import { generateMap, ringOf, isUnlocked, idx, wallMask, GRID_W, GRID_H } from '../src/core/map.js';
 import { seasonInfo, dailyMissions, tierOf } from '../src/core/season.js';
 import { encodeKingdom, decodeKingdom, generateRivals, rivalGrid } from '../src/core/social.js';
-import { addHero, recruitGoldCost, councilSlots, heroLevelCap, trainCost, trainSeconds } from '../src/core/heroes.js';
-import { HERO_BY_ID } from '../src/data/heroes.js';
+import { addHero, recruitGoldCost, councilSlots, heroLevelCap, trainCost, trainSeconds, expeditionSlots, expeditionReward, expeditionSpeedUpCost } from '../src/core/heroes.js';
+import { HERO_BY_ID, EXPEDITIONS } from '../src/data/heroes.js';
 import { SEASON_EPOCH } from '../src/data/seasons.js';
 import { fmt, fmtTime } from '../src/core/format.js';
 
@@ -90,6 +90,32 @@ test('mina só produz encostada em montanha', () => {
   assert.equal(e.tiles[idx(3, 3)].out.gold, 0);
   assert.equal(e.tiles[idx(8, 8)].active, true);
   assert.ok(e.tiles[idx(8, 8)].out.gold > 0);
+});
+
+test('cais de pesca só produz na beira da água, +40% por água vizinha', () => {
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  s.pop = 50;
+  put(s, 3, 3, 'grass', { id: 'cais', lvl: 1 });
+  put(s, 7, 7, 'grass', { id: 'cais', lvl: 1 });
+  put(s, 7, 6, 'water');
+  put(s, 8, 7, 'water');
+  const e = computeEconomy(s, T0);
+  assert.equal(e.tiles[idx(3, 3)].active, false);
+  assert.equal(e.tiles[idx(3, 3)].out.food, 0);
+  assert.equal(e.tiles[idx(7, 7)].active, true);
+  assert.equal(adjacencyAt(s, 'cais', 7, 7).total, 0.8);
+  assert.ok(e.tiles[idx(7, 7)].out.food > 1.4);
+});
+
+test('código do reino guarda escadaria e cais', () => {
+  const g = freshGame();
+  put(g.state, 5, 5, 'grass', { id: 'cais', lvl: 3 });
+  put(g.state, 6, 5, 'grass', { id: 'escadaria', lvl: 1 });
+  const k = decodeKingdom(encodeKingdom(g.state, 1));
+  assert.deepEqual(k.grid.tiles[idx(5, 5)].b, { id: 'cais', lvl: 3 });
+  assert.deepEqual(k.grid.tiles[idx(6, 5)].b, { id: 'escadaria', lvl: 1 });
 });
 
 test('economia: falta de trabalhadores reduz produção proporcionalmente', () => {
@@ -263,7 +289,7 @@ test('heróis: conselho aplica bônus; expedição exige sair do conselho', () =
   g.now = T0 + 61000;
   const r = g.collectExpedition('lavradora');
   assert.ok(r.ok);
-  assert.ok(r.reward.gold >= 30);
+  assert.ok(r.reward.gold >= 24, 'piso de 30 de ouro × 0,8 da patrulha');
 });
 
 test('prestígio: ascensão mantém identidade e zera o reino', () => {
@@ -424,6 +450,13 @@ test('config: padrões, limites e atalhos', () => {
   assert.equal(c.keys.upgrade, 'j');
   assert.equal(actionForKey(c, 'J'), 'upgrade');
   assert.equal(actionForKey(defaultConfig(), 'Escape'), 'menu');
+});
+
+test('config: moradores ligados por padrão e independentes de "Reduzir movimento"', () => {
+  assert.equal(defaultConfig().villagers, true);
+  const old = normalizeConfig({ reduceMotion: true, particles: false }); // config salva antes da opção existir
+  assert.equal(old.villagers, true);
+  assert.equal(normalizeConfig({ villagers: false }).villagers, false);
 });
 
 test('formatação de números e tempo', () => {
@@ -806,6 +839,41 @@ test('taverna: nível barateia o recrutamento com ouro e abre vagas no Conselho 
   assert.equal(councilSlots(collectModifiers(s, T0)), 4);
   s.grid.tiles[idx(5, 5)].b.lvl = 10;
   assert.equal(councilSlots(collectModifiers(s, T0)), 5);
+});
+
+test('expedições: só 2 de cada vez, +1 com a taverna nos níveis 5 e 10', () => {
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  for (const id of ['lavradora', 'lenhador', 'pedreiro', 'guarda', 'exploradora']) addHero(s, HERO_BY_ID[id]);
+  assert.equal(expeditionSlots(s), 2);
+  assert.ok(g.startExpedition('lavradora', 'curta').ok);
+  assert.ok(g.startExpedition('lenhador', 'curta').ok);
+  assert.equal(g.startExpedition('pedreiro', 'curta').ok, false, 'sem vaga');
+  put(s, 5, 5, 'grass', { id: 'taverna', lvl: 5 });
+  assert.equal(expeditionSlots(s), 3);
+  assert.ok(g.startExpedition('pedreiro', 'curta').ok);
+  assert.equal(g.startExpedition('guarda', 'curta').ok, false);
+  s.grid.tiles[idx(5, 5)].b.lvl = 10;
+  assert.ok(g.startExpedition('guarda', 'curta').ok);
+  assert.equal(g.startExpedition('exploradora', 'curta').ok, false);
+  g.now = T0 + 61000;
+  assert.ok(g.collectExpedition('lavradora').ok);
+  assert.ok(g.startExpedition('exploradora', 'curta').ok, 'coletar libera a vaga');
+});
+
+test('expedições: patrulha não dá gemas, grande expedição dá 2 a 4, acelerar custa 1 gema a cada 5 min', () => {
+  const g = freshGame();
+  const s = g.state;
+  addHero(s, HERO_BY_ID.guarda);
+  const [curta, , , epica] = EXPEDITIONS;
+  for (const r of [0, 0.5, 0.999]) {
+    assert.equal(expeditionReward(s, HERO_BY_ID.guarda, curta, g.econ, () => r).gems, 0);
+    const gems = expeditionReward(s, HERO_BY_ID.guarda, epica, g.econ, () => r).gems;
+    assert.ok(gems >= 2 && gems <= 4);
+  }
+  assert.equal(expeditionSpeedUpCost(300), 1);
+  assert.equal(expeditionSpeedUpCost(7200), 24);
 });
 
 test('conselho: perde os últimos heróis quando as vagas caem', () => {

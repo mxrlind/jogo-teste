@@ -50,7 +50,11 @@ export const BUILDING_SPRITES = {
   fogueira: building('fogueira'), // poço do KayKit (o nome Fogueira vem da época do Medieval RTS)
   estatua: building('estatua'),
   escadaria: building('escadaria'), // KayKit Dungeon Remastered (CC0)
+  cais: building('cais'),
 };
+
+// Barquinho de pesca que balança na água ao lado de cada cais (casco feito em tools/kaykit/render.html).
+export const BOAT_SPRITE = k('barco');
 
 // Subsolo: chão visto de cima (um por tipo de tile) e salas no quadro SPRITE_FRAME.
 export const UNDER_SPRITES = {
@@ -104,6 +108,7 @@ export const RAIDER_SPRITES = [u(9), u(10), u(8)];
 // que aparece balançando enquanto trabalham. Times azul, verde e cinza; o vermelho é dos invasores.
 export const PROFESSIONS = {
   fazenda: { name: 'Lavrador', sprite: u(13), tool: 'clear' },
+  cais: { name: 'Pescador', sprite: u(21) },
   moinho: { name: 'Moleira', sprite: u(12) },
   serraria: { name: 'Lenhador', sprite: u(19), tool: 'hero-woodcutter' },
   pedreira: { name: 'Pedreiro', sprite: u(1), tool: 'tool-pickaxe' },
@@ -132,7 +137,7 @@ export function allSpriteUrls() {
   urls.add(RUIN_SPRITE);
   for (const list of Object.values(UNDER_SPRITES)) list.forEach((x) => urls.add(x));
   for (const v of Object.values(ROOM_SPRITES)) urls.add(v.src);
-  [CART_SPRITE, ...RAIDER_SPRITES, ...SLEEPER_SPRITES].forEach((x) => urls.add(x));
+  [CART_SPRITE, BOAT_SPRITE, ...RAIDER_SPRITES, ...SLEEPER_SPRITES].forEach((x) => urls.add(x));
   for (const p of Object.values(PROFESSIONS)) urls.add(p.sprite);
   return [...urls];
 }

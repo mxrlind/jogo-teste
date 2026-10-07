@@ -18,6 +18,40 @@ const load = (path) => {
   return cache.get(path).then((s) => s.clone(true));
 };
 
+// Peças simples feitas aqui mesmo, para o que o pacote não tem (casco de barco, tábuas do cais).
+// box: [largura, altura, profundidade]; hull: { l, w, h } (casco com proa em ponta, a proa aponta para +x).
+function primitive(part) {
+  const mat = new THREE.MeshStandardMaterial({ color: part.color ?? '#b07a4a', roughness: 1 });
+  if (part.box) {
+    const [w, h, d] = part.box;
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.position.y = h / 2;
+    const g = new THREE.Group();
+    g.add(m);
+    return g;
+  }
+  const { l, w, h } = part.hull;
+  const sh = new THREE.Shape();
+  sh.moveTo(-l / 2, -w * 0.38);
+  sh.lineTo(l * 0.1, -w / 2);
+  sh.quadraticCurveTo(l * 0.42, -w * 0.42, l / 2, 0);
+  sh.quadraticCurveTo(l * 0.42, w * 0.42, l * 0.1, w / 2);
+  sh.lineTo(-l / 2, w * 0.38);
+  sh.closePath();
+  // Casco oco: a borda é o contorno menos um contorno menor; o fundo fica mais baixo e mais escuro.
+  const innerPts = sh.getPoints(16).map((p) => new THREE.Vector2(p.x * 0.84, p.y * 0.7));
+  sh.holes.push(new THREE.Path(innerPts.slice().reverse()));
+  const geo = new THREE.ExtrudeGeometry(sh, { depth: h, bevelEnabled: true, bevelThickness: h * 0.1, bevelSize: w * 0.03, bevelSegments: 2, curveSegments: 10 });
+  geo.rotateX(-Math.PI / 2); // extrusão para cima
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(geo, mat));
+  const fg = new THREE.ExtrudeGeometry(new THREE.Shape(innerPts), { depth: h * 0.4, bevelEnabled: false });
+  fg.rotateX(-Math.PI / 2);
+  g.add(new THREE.Mesh(fg, new THREE.MeshStandardMaterial({ color: part.inner ?? '#6e4527', roughness: 1 })));
+  return g;
+}
+const make = (part) => (part.model ? load(part.model) : Promise.resolve(primitive(part)));
+
 // Cor por cima da textura (veios de ouro e gemas, fungos). flat: tira a textura e usa só a cor.
 function tint(o, part) {
   if (!part.tint) return;
@@ -80,7 +114,7 @@ async function buildGroup(spec) {
     const s = new THREE.Scene();
     s.add(slab);
     for (const part of spec.parts ?? []) {
-      const o = await load(part.model);
+      const o = await make(part);
       o.position.set(part.x ?? 0, part.y ?? 0, part.z ?? 0);
       o.rotation.y = ((part.rot ?? 0) * Math.PI) / 180;
       o.scale.setScalar(part.scale ?? 1);
@@ -90,7 +124,7 @@ async function buildGroup(spec) {
     return s;
   }
   for (const part of spec.parts) {
-    const o = await load(part.model);
+    const o = await make(part);
     o.position.set(part.x ?? 0, part.y ?? 0, part.z ?? 0);
     o.rotation.y = ((part.rot ?? 0) * Math.PI) / 180;
     o.scale.setScalar(part.scale ?? 1);

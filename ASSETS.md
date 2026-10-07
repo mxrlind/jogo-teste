@@ -27,7 +27,9 @@ A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.i
 
 | Arquivo | Onde é usado | Fonte | Autor | Licença | Link |
 |---|---|---|---|---|---|
+| `assets/sprites/kaykit/barco.png` | barquinho de pesca na água ao lado do cais (casco e bancos feitos no render, bandeira do pacote) | KayKit – Medieval Hexagon Pack, renderizado por `tools/render-kaykit.mjs` | Kay Lousberg (kaylousberg.com) | CC0 1.0 | [kaylousberg.itch.io/kaykit-medieval-hexagon](https://kaylousberg.itch.io/kaykit-medieval-hexagon) |
 | `assets/sprites/kaykit/building-armazem.png` | prédio no mapa: armazem | KayKit – Medieval Hexagon Pack, renderizado por `tools/render-kaykit.mjs` | Kay Lousberg (kaylousberg.com) | CC0 1.0 | [kaylousberg.itch.io/kaykit-medieval-hexagon](https://kaylousberg.itch.io/kaykit-medieval-hexagon) |
+| `assets/sprites/kaykit/building-cais.png` | prédio no mapa: cais | KayKit – Medieval Hexagon Pack, renderizado por `tools/render-kaykit.mjs` | Kay Lousberg (kaylousberg.com) | CC0 1.0 | [kaylousberg.itch.io/kaykit-medieval-hexagon](https://kaylousberg.itch.io/kaykit-medieval-hexagon) |
 | `assets/sprites/kaykit/building-casa.png` | prédio no mapa: casa | KayKit – Medieval Hexagon Pack, renderizado por `tools/render-kaykit.mjs` | Kay Lousberg (kaylousberg.com) | CC0 1.0 | [kaylousberg.itch.io/kaykit-medieval-hexagon](https://kaylousberg.itch.io/kaykit-medieval-hexagon) |
 | `assets/sprites/kaykit/building-escadaria.png` | prédio no mapa: escadaria | KayKit – Dungeon Remastered (com peças do Medieval Hexagon), renderizado por `tools/render-kaykit.mjs` | Kay Lousberg (kaylousberg.com) | CC0 1.0 | [kaylousberg.itch.io/kaykit-dungeon-remastered](https://kaylousberg.itch.io/kaykit-dungeon-remastered) |
 | `assets/sprites/kaykit/building-estatua.png` | prédio no mapa: estatua | KayKit – Medieval Hexagon Pack, renderizado por `tools/render-kaykit.mjs` | Kay Lousberg (kaylousberg.com) | CC0 1.0 | [kaylousberg.itch.io/kaykit-medieval-hexagon](https://kaylousberg.itch.io/kaykit-medieval-hexagon) |
@@ -72,6 +74,7 @@ A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.i
 | `assets/sprites/kaykit/grass-1.png` | chão no mapa: grama | KayKit – Medieval Hexagon Pack, renderizado por `tools/render-kaykit.mjs` | Kay Lousberg (kaylousberg.com) | CC0 1.0 | [kaylousberg.itch.io/kaykit-medieval-hexagon](https://kaylousberg.itch.io/kaykit-medieval-hexagon) |
 | `assets/sprites/kaykit/grass-2.png` | chão no mapa: grama | KayKit – Medieval Hexagon Pack, renderizado por `tools/render-kaykit.mjs` | Kay Lousberg (kaylousberg.com) | CC0 1.0 | [kaylousberg.itch.io/kaykit-medieval-hexagon](https://kaylousberg.itch.io/kaykit-medieval-hexagon) |
 | `assets/sprites/kaykit/icon-armazem.png` | miniatura na interface: armazem | KayKit – Medieval Hexagon Pack, renderizado por `tools/render-kaykit.mjs` | Kay Lousberg (kaylousberg.com) | CC0 1.0 | [kaylousberg.itch.io/kaykit-medieval-hexagon](https://kaylousberg.itch.io/kaykit-medieval-hexagon) |
+| `assets/sprites/kaykit/icon-cais.png` | miniatura na interface: cais | KayKit – Medieval Hexagon Pack, renderizado por `tools/render-kaykit.mjs` | Kay Lousberg (kaylousberg.com) | CC0 1.0 | [kaylousberg.itch.io/kaykit-medieval-hexagon](https://kaylousberg.itch.io/kaykit-medieval-hexagon) |
 | `assets/sprites/kaykit/icon-casa.png` | miniatura na interface: casa | KayKit – Medieval Hexagon Pack, renderizado por `tools/render-kaykit.mjs` | Kay Lousberg (kaylousberg.com) | CC0 1.0 | [kaylousberg.itch.io/kaykit-medieval-hexagon](https://kaylousberg.itch.io/kaykit-medieval-hexagon) |
 | `assets/sprites/kaykit/icon-escadaria.png` | miniatura na interface: escadaria | KayKit – Dungeon Remastered (com peças do Medieval Hexagon), renderizado por `tools/render-kaykit.mjs` | Kay Lousberg (kaylousberg.com) | CC0 1.0 | [kaylousberg.itch.io/kaykit-dungeon-remastered](https://kaylousberg.itch.io/kaykit-dungeon-remastered) |
 | `assets/sprites/kaykit/icon-estatua.png` | miniatura na interface: estatua | KayKit – Medieval Hexagon Pack, renderizado por `tools/render-kaykit.mjs` | Kay Lousberg (kaylousberg.com) | CC0 1.0 | [kaylousberg.itch.io/kaykit-medieval-hexagon](https://kaylousberg.itch.io/kaykit-medieval-hexagon) |
@@ -136,7 +139,7 @@ A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.i
 | `assets/sprites/medieval-rts/Tile/` (58 PNG, 128 px: `medievalTile_01.png` a `medievalTile_58.png`) | reservado (era o terreno até a troca para o KayKit) | Kenney – Medieval RTS | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
 | `assets/sprites/medieval-rts/Structure/` (23 PNG, 128 px: `medievalStructure_01.png` a `medievalStructure_23.png`) | carroça do mercador 7; demais reservados (eram os prédios até a troca para o KayKit) | Kenney – Medieval RTS | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
 | `assets/sprites/medieval-rts/Environment/` (21 PNG, 128 px: `medievalEnvironment_01.png` a `medievalEnvironment_21.png`) | reservado (era a natureza até a troca para o KayKit) | Kenney – Medieval RTS | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
-| `assets/sprites/medieval-rts/Unit/` (24 PNG, 128 px: `medievalUnit_01.png` a `medievalUnit_24.png`) | invasores 8/9/10 (time vermelho); moradores por profissão: lavrador 13, moleira 12, lenhador 19, pedreiro 1, mineira 18, mercadora 24, intendente 17, taverneiro 23, guarda 3, sacerdote 2; sem emprego (dormindo) 1/12/13/19; demais reservados | Kenney – Medieval RTS | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
+| `assets/sprites/medieval-rts/Unit/` (24 PNG, 128 px: `medievalUnit_01.png` a `medievalUnit_24.png`) | invasores 8/9/10 (time vermelho); moradores por profissão: lavrador 13, moleira 12, lenhador 19, pedreiro 1, mineira 18, mercadora 24, pescador 21, intendente 17, taverneiro 23, guarda 3, sacerdote 2; sem emprego (dormindo) 1/12/13/19; demais reservados | Kenney – Medieval RTS | Kenney Vleugels (Kenney.nl) | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |
 
 ## Interface (Kenney – UI Pack, CC0)
 
@@ -296,7 +299,13 @@ A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.i
 
 ## Música
 
-Nenhuma faixa instalada ainda. Recomendação e passo a passo: [EXECUTAR.md](EXECUTAR.md), seção "Música". O jogo funciona sem música.
+| Arquivo | Onde é usado | Fonte | Autor | Licença | Link |
+|---|---|---|---|---|---|
+| `assets/music/vila-danca-do-menestrel.mp3` | música da vila | Medieval: Minstrel Dance | RandomMind | CC0 | [https://opengameart.org/content/medieval-minstrel-dance](https://opengameart.org/content/medieval-minstrel-dance) |
+| `assets/music/vila-taverna-da-torre.mp3` | música da vila | Medieval: The Old Tower Inn | RandomMind | CC0 | [https://opengameart.org/content/medieval-the-old-tower-inn](https://opengameart.org/content/medieval-the-old-tower-inn) |
+| `assets/music/vila-banquete-do-rei.mp3` | música da vila | Medieval: King's Feast | RandomMind | CC0 | [https://opengameart.org/content/medieval-kings-feast](https://opengameart.org/content/medieval-kings-feast) |
+| `assets/music/batalha-metal-6.mp3` | música de batalha e do subsolo | Boss Battle #6 Metal | nene | CC0 | [https://opengameart.org/content/boss-battle-6-metal](https://opengameart.org/content/boss-battle-6-metal) |
+| `assets/music/batalha-metal-sinfonico.mp3` | música de batalha e do subsolo | Boss Battle #2 [Symphonic Metal] | nene | CC0 | [https://opengameart.org/content/boss-battle-2-symphonic-metal](https://opengameart.org/content/boss-battle-2-symphonic-metal) |
 
 ## Fontes
 

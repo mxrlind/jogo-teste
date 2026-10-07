@@ -2,13 +2,49 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
-## [0.12.0] — 2026-10-07
+## [0.16.0] — 2026-10-07
 ### Adicionado
 - **Hordas quebram construções.** Perder uma horda (fora a proteção de novato) agora também danifica de 2 a 4 construções, as mais perto da borda de onde ela veio; quanto mais faltou de defesa, mais golpes. Muralhas e torres estão na frente e gastam 2 golpes cada, então protegem o que está atrás delas (ideia do Kingdom Two Crowns).
 - **Construção danificada** pega fogo e solta fumaça, não produz nem defende e não ocupa moradores (casas continuam abrigando gente e armazéns continuam guardando). **Consertar** custa 30% do preço base por nível, pelo painel do tile ou pelo botão "Consertar tudo" no topo. Não dá para melhorar antes de consertar.
 - **Ruína**: o que continuar danificado na derrota seguinte desaba e vira ruína (sprite `building_destroyed` do KayKit, CC0). Construir em cima limpa o terreno. A Escadaria nunca é atingida.
 ### Mudado
 - O saque de recursos na derrota caiu de 15% para 10%, já que agora a derrota também quebra coisas.
+
+## [0.15.0] — 2026-10-07
+### Alterado
+- **Expedições nerfadas**: mandar todos os heróis fora do Conselho em Patrulhas de 1 minuto rendia gemas e recursos demais. Agora só **2 expedições rodam ao mesmo tempo**, e a Taverna nos níveis 5 e 10 abre mais uma vaga cada (até 4). A aba de heróis mostra as vagas ocupadas.
+- Recompensa menor: as expedições trazem 15% da produção de ouro (antes 40%) e 10% da de madeira e pedra (antes 30%) durante a viagem. As longas rendem mais por minuto: Patrulha ×0,8, Exploração ×0,9, Jornada ×1 e Grande Expedição ×1,25.
+- Gemas: a Patrulha não dá mais gemas; Exploração 10% de chance de 1; Jornada 50% de chance de 1 a 2; Grande Expedição sempre 2 a 4 (antes 3 a 8).
+- Acelerar uma expedição custa 1 gema a cada 5 minutos restantes (antes 10). O treino no Quartel continua igual.
+
+## [0.14.0] — 2026-10-07
+### Adicionado
+- **Cais de Pesca** (primeira parte da zona portuária, libera com 3 construções): só funciona encostado num lago e dá 1,4 de comida por segundo, +40% por tile de água vizinho e +15% com armazém ao lado. Inspirado no cais de pesca do Banished.
+- Um **barquinho de pesca** fica indo e voltando na água ao lado de cada cais que está funcionando, e um morador novo, o **Pescador**, trabalha no cais e leva o peixe para o armazém.
+- Sprites do cais e do barco gerados por `tools/render-kaykit.mjs` com peças do KayKit Medieval Hexagon (CC0). O pacote não tem barco nem tábuas, então o render agora aceita peças simples (`box` e `hull`) feitas na hora.
+
+### Corrigido
+- O Código do Reino quebrava com uma Escadaria no mapa (ela não tinha letra). Escadaria e cais ganharam letras no fim da lista, e códigos antigos continuam válidos.
+- O aviso de prédio sem o vizinho obrigatório agora diz "Só funciona ao lado de ...", que serve para prédio de qualquer gênero.
+## [0.13.0] — 2026-10-07
+### Adicionado
+- **Música de fundo** no clima do Wind Rose: folk de taverna na vila (Minstrel Dance, The Old Tower Inn e King's Feast, do RandomMind) e metal quando uma horda se aproxima e no subsolo, como anões nas minas (Boss Battle #6 Metal e Boss Battle #2 Symphonic Metal, do nene). Todas CC0, do OpenGameArt, com volume igualado. As faixas de cada clima tocam em sequência e a troca de clima faz uma transição suave.
+- **Botão de música** no topo da tela para ligar e desligar, e a opção "Tocar música" em Opções. Créditos e ASSETS.md listam as faixas.
+
+## [0.12.0] — 2026-10-07
+### Corrigido
+- **Moradores sumiam com "Reduzir movimento"**: a vila inteira ficava escondida quando essa opção estava ligada, e o jogo a liga sozinho se o celular ou o computador estiver com "reduzir movimento" no sistema. Agora os moradores têm uma opção própria, **Moradores andando pelo mapa** (ligada por padrão), separada de "Partículas e números flutuantes".
+
+### Adicionado
+- **Passeios pelo mapa todo**: moradores de folga (1 a cada 4, até 8) andam de um ponto de encontro a outro em qualquer parte do reino. Os pontos de encontro são mercado, taverna, templo, jardim, poço, estátua e quartel, além da grama na beira da água ou da floresta. Os trabalhadores também saem para passear de vez em quando, ao fim de uma volta de trabalho (35% das vezes). A ideia veio dos "pontos de atividade" e do vaguear de moradores ociosos de city builders.
+- **Conversa**: dois moradores parados no mesmo ponto de encontro ganham um balão com reticências.
+
+### Mudou
+- Moradores um terço maiores, para acompanhar os prédios do KayKit.
+
+## [0.11.1] — 2026-10-07
+### Corrigido
+- Com o mapa todo expandido, a dica de construção cobria a primeira fileira de tiles. Agora o mouse e o toque passam por baixo dela (só o botão Cancelar é clicável) e, quando o tile apontado fica embaixo da dica, ela pula para a borda oposta. Vale no desktop (topo/rodapé do mapa) e no celular (rodapé/topo da tela).
 
 ## [0.11.0] — 2026-10-07
 ### Adicionado

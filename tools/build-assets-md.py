@@ -92,6 +92,8 @@ def main():
             use = f'sala do subsolo: {n[5:]}'
         elif n.startswith('u-'):
             use = 'chão do subsolo: ' + {'rock': 'rocha', 'gold': 'veio de ouro', 'gem': 'veio de gemas', 'water': 'aquífero', 'magma': 'magma', 'floor': 'galeria cavada', 'cavern': 'caverna'}[n.split('-')[1]]
+        elif n == 'barco':
+            use = 'barquinho de pesca na água ao lado do cais (casco e bancos feitos no render, bandeira do pacote)'
         elif n == 'logo-castelo':
             use = 'logo (menu e carregamento) e ícone do app'
         else:
@@ -109,7 +111,7 @@ def main():
         'Tile': 'reservado (era o terreno até a troca para o KayKit)',
         'Structure': 'carroça do mercador 7; demais reservados (eram os prédios até a troca para o KayKit)',
         'Environment': 'reservado (era a natureza até a troca para o KayKit)',
-        'Unit': 'invasores 8/9/10 (time vermelho); moradores por profissão: lavrador 13, moleira 12, lenhador 19, pedreiro 1, mineira 18, mercadora 24, intendente 17, taverneiro 23, guarda 3, sacerdote 2; sem emprego (dormindo) 1/12/13/19; demais reservados',
+        'Unit': 'invasores 8/9/10 (time vermelho); moradores por profissão: lavrador 13, moleira 12, lenhador 19, pedreiro 1, mineira 18, mercadora 24, pescador 21, intendente 17, taverneiro 23, guarda 3, sacerdote 2; sem emprego (dormindo) 1/12/13/19; demais reservados',
     }
     for d in ['Tile', 'Structure', 'Environment', 'Unit']:
         files = sorted(f for f in os.listdir(os.path.join(rts, d)) if f.endswith('.png'))
@@ -161,7 +163,7 @@ def main():
         w('| Arquivo | Onde é usado | Fonte | Autor | Licença | Link |')
         w('|---|---|---|---|---|---|')
         for t in music['tracks']:
-            w(f'| `assets/music/{t["file"]}` | música ambiente em loop | {t["title"]} | {t["author"]} | {t["license"]} | [{t["url"]}]({t["url"]}) |')
+            w(f'| `assets/music/{t["file"]}` | {'música da vila' if t.get('mood', 'vila') == 'vila' else 'música de batalha e do subsolo'} | {t["title"]} | {t["author"]} | {t["license"]} | [{t["url"]}]({t["url"]}) |')
     else:
         w('Nenhuma faixa instalada ainda. Recomendação e passo a passo: [EXECUTAR.md](EXECUTAR.md), seção "Música". O jogo funciona sem música.')
     w('')

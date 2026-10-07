@@ -1,3 +1,9 @@
 {
-  "tracks": []
+  "tracks": [
+    { "file": "vila-danca-do-menestrel.mp3", "mood": "vila", "title": "Medieval: Minstrel Dance", "author": "RandomMind", "license": "CC0", "url": "https://opengameart.org/content/medieval-minstrel-dance" },
+    { "file": "vila-taverna-da-torre.mp3", "mood": "vila", "title": "Medieval: The Old Tower Inn", "author": "RandomMind", "license": "CC0", "url": "https://opengameart.org/content/medieval-the-old-tower-inn" },
+    { "file": "vila-banquete-do-rei.mp3", "mood": "vila", "title": "Medieval: King's Feast", "author": "RandomMind", "license": "CC0", "url": "https://opengameart.org/content/medieval-kings-feast" },
+    { "file": "batalha-metal-6.mp3", "mood": "batalha", "title": "Boss Battle #6 Metal", "author": "nene", "license": "CC0", "url": "https://opengameart.org/content/boss-battle-6-metal" },
+    { "file": "batalha-metal-sinfonico.mp3", "mood": "batalha", "title": "Boss Battle #2 [Symphonic Metal]", "author": "nene", "license": "CC0", "url": "https://opengameart.org/content/boss-battle-2-symphonic-metal" }
+  ]
 }

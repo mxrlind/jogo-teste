@@ -46,7 +46,7 @@ Não existe dinheiro real no jogo: gemas só se ganham jogando.
 
 ## Opções e acessibilidade
 
-Volumes separados de música e efeitos, tamanho do texto, alto contraste, reduzir movimento, partículas liga/desliga e remapeamento de todas as teclas.
+Volumes separados de música e efeitos, tamanho do texto, alto contraste, reduzir movimento, moradores e partículas liga/desliga e remapeamento de todas as teclas.
 
 ## Progresso salvo
 
