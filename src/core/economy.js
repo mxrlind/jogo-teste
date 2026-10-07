@@ -3,7 +3,7 @@
 import {
   BUILDINGS, TERRAIN, BASE_STORAGE, FOOD_PER_POP, COUNT_COST_GROWTH, LEVEL_COST_GROWTH, LEVEL_OUTPUT_STEP, MAX_LEVEL,
 } from '../data/buildings.js';
-import { HERO_BY_ID } from '../data/heroes.js';
+import { HERO_BY_ID, HERO_LEVEL_STEP, TAVERN_COUNCIL_LEVELS } from '../data/heroes.js';
 import { TALENT_BY_ID } from '../data/talents.js';
 import { EVENT_BY_ID } from '../data/events.js';
 import { seasonInfo } from './season.js';
@@ -13,6 +13,26 @@ export const PROD_RES = ['gold', 'food', 'wood', 'stone'];
 
 export function heroMultiplier(stars) {
   return 1 + 0.5 * (stars - 1);
+}
+
+export function heroLevelMult(level = 1) {
+  return 1 + HERO_LEVEL_STEP * (level - 1);
+}
+
+// Multiplicador do bônus de um herói recrutado (estrelas e nível de treino).
+export function heroStrength(owned) {
+  return heroMultiplier(owned.stars) * heroLevelMult(owned.level);
+}
+
+export function heroPowerOf(hero, owned) {
+  return Math.round(hero.power * owned.stars * heroLevelMult(owned.level));
+}
+
+// Maior nível de um tipo de prédio no mapa (0 se não houver nenhum).
+export function maxLevelOf(state, id) {
+  let lvl = 0;
+  for (const t of state.grid.tiles) if (t.b?.id === id && t.b.lvl > lvl) lvl = t.b.lvl;
+  return lvl;
 }
 
 // Soma de todos os modificadores ativos: talentos, conselho, temporada, evento e bênção.
@@ -34,11 +54,14 @@ export function collectModifiers(state, now) {
     }
   }
 
+  const tavern = maxLevelOf(state, 'taverna');
+  m.councilSlots += TAVERN_COUNCIL_LEVELS.filter((l) => tavern >= l).length;
+
   for (const hid of state.heroes.council) {
     const h = HERO_BY_ID[hid];
     const owned = state.heroes.owned[hid];
     if (!h || !owned) continue;
-    const v = h.bonus.value * heroMultiplier(owned.stars);
+    const v = h.bonus.value * heroStrength(owned);
     const [type, res] = h.bonus.type.split(':');
     if (type === 'prod') m.prod[res] += v;
     else if (type === 'offline') { m.offlineEff += v; m.offlineHours += 4 * owned.stars; }
@@ -220,7 +243,7 @@ export function computeEconomy(state, now) {
   let heroPower = 0;
   for (const hid of state.heroes.council) {
     const owned = state.heroes.owned[hid];
-    if (owned && !owned.expedition) heroPower += (HERO_BY_ID[hid]?.power || 0) * owned.stars;
+    if (owned && !owned.expedition && HERO_BY_ID[hid]) heroPower += heroPowerOf(HERO_BY_ID[hid], owned);
   }
   const defenseByDir = {};
   for (const d of Object.keys(defDir)) defenseByDir[d] = (defDir[d] + heroPower) * (1 + mods.defense);
@@ -278,5 +301,6 @@ export function refund(res, cost, fraction) {
 export function kingdomPower(state) {
   const buildings = state.grid.tiles.reduce((s, t) => s + (t.b ? t.b.lvl : 0), 0);
   const stars = Object.values(state.heroes.owned).reduce((s, h) => s + h.stars, 0);
-  return Math.floor(Math.sqrt(state.stats.totalGold) + buildings * 10 + stars * 40 + state.stats.ascensions * 500 + state.stats.raidsWon * 15);
+  const levels = Object.values(state.heroes.owned).reduce((s, h) => s + (h.level || 1) - 1, 0);
+  return Math.floor(Math.sqrt(state.stats.totalGold) + buildings * 10 + stars * 40 + levels * 15 + state.stats.ascensions * 500 + state.stats.raidsWon * 15);
 }

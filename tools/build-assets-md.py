@@ -4,6 +4,7 @@ Uso: python3 tools/build-assets-md.py   (rode sempre que adicionar ou trocar um 
 """
 import json
 import os
+import re
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 A = os.path.join(ROOT, 'assets')
@@ -62,7 +63,7 @@ def main():
     w('- **game-icons.net**: repositório oficial [github.com/game-icons/icons](https://github.com/game-icons/icons). **Modificações**: fundo preto removido e cor trocada por `currentColor` (tingida por CSS).')
     w('- **Sons Kenney**: convertidos de OGG para MP3 (96 kbps) para tocar em todos os navegadores. **Modificação**: só conversão de formato.')
     w('- **Nunito**: pacote npm [@fontsource/nunito](https://www.npmjs.com/package/@fontsource/nunito) (arquivos do Google Fonts).')
-    w('- **KayKit**: repositório oficial [github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0](https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0) (modelos GLTF e `LICENSE.txt`). **Modificações**: os modelos 3D foram renderizados em PNG por `tools/render-kaykit.mjs` (vista de cima com a altura subindo na tela, luz e sombra próprias); alguns sprites juntam vários modelos (pedreira, jardim, estátua). O chão (grama e água) é um bloco de cor lisa renderizado na mesma luz.')
+    w('- **KayKit**: repositório oficial [github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0](https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0) (modelos GLTF e `LICENSE.txt`). **Modificações**: os modelos 3D foram renderizados em PNG por `tools/render-kaykit.mjs` (vista de cima com a altura subindo na tela, luz e sombra próprias); alguns sprites juntam vários modelos (pedreira, jardim, estátua, e a taverna e o quartel nos níveis 5 e 10). O chão (grama e água) é um bloco de cor lisa renderizado na mesma luz.')
     w('- **Ícone do app**: composição gerada por `tools/make-icons.py` com a grama e o castelo renderizados do KayKit.\n')
 
     # Sprites
@@ -73,7 +74,13 @@ def main():
     for f in sorted(x for x in os.listdir(kk) if x.endswith('.png')):
         n = f[:-4]
         if n.startswith('building-'):
-            use = 'hélice do moinho (gira no jogo)' if n.endswith('-blades') else f'prédio no mapa: {n[9:]}'
+            m = re.match(r'building-(.+)-(5|10)$', n)
+            if n.endswith('-blades'):
+                use = 'hélice do moinho (gira no jogo)'
+            elif m:
+                use = f'prédio no mapa: {m.group(1)} a partir do nível {m.group(2)}'
+            else:
+                use = f'prédio no mapa: {n[9:]}'
         elif n.startswith('icon-'):
             use = f'miniatura na interface: {n[5:]}'
         elif n.startswith(('forest-', 'sapling-', 'rock-', 'mountain-')):

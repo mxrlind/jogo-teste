@@ -1,16 +1,18 @@
 // HUD, paleta, painel do tile e abas do painel lateral. Só gera HTML/atualiza DOM; ações ficam em app.js.
 import { BUILDINGS, BUILDING_ORDER, RESOURCES, TERRAIN, MAX_LEVEL, PLANT_COST, GROW_SECONDS } from '../data/buildings.js';
-import { HEROES, RARITIES, EXPEDITIONS, RECRUIT_GEM_COST, MAX_STARS } from '../data/heroes.js';
+import { HEROES, RARITIES, EXPEDITIONS, RECRUIT_GEM_COST, MAX_STARS, HERO_MAX_LEVEL } from '../data/heroes.js';
 import { TALENTS, CROWN_DIVISOR } from '../data/talents.js';
 import { SEASON_TIERS, XP_PER_TIER } from '../data/seasons.js';
 import { ACHIEVEMENTS } from '../data/achievements.js';
 import { BANNERS, EMBLEMS } from '../data/cosmetics.js';
 import { EVENT_BY_ID } from '../data/events.js';
 import { TUTORIAL, TAB_UNLOCKS, TAB_NAMES, DIR_NAMES } from '../core/game.js';
-import { buildCost, upgradeCost, canAfford, kingdomPower, heroMultiplier, storageMult, countOf, dirWeight } from '../core/economy.js';
+import { buildCost, upgradeCost, canAfford, kingdomPower, heroStrength, heroPowerOf, storageMult, countOf, dirWeight, maxLevelOf } from '../core/economy.js';
 import { idx, isUnlocked, ringOf } from '../core/map.js';
 import { seasonInfo, tierOf, missionText, rewardFor } from '../core/season.js';
-import { councilSlots, recruitGoldCost, speedUpCost } from '../core/heroes.js';
+import {
+  councilSlots, recruitGoldCost, speedUpCost, tavernDiscount, heroLevelCap, trainingSlots, trainingCount, trainCost,
+} from '../core/heroes.js';
 import { fmt, fmtRate, fmtPct, fmtTime } from '../core/format.js';
 import { BUILDING_SPRITES, TERRAIN_SPRITES } from './sprites.js';
 import { ui, $, esc, costHtml, bannerColor, emblemIcon, deltaText } from './ctx.js';
@@ -395,6 +397,21 @@ function tabHerois() {
   const now = Date.now();
   const owned = HEROES.filter((h) => s.heroes.owned[h.id]);
   const missing = HEROES.filter((h) => !s.heroes.owned[h.id]);
+  const cap = heroLevelCap(s);
+  const busy = trainingCount(s) >= trainingSlots(s);
+  const trainHtml = (h, o) => {
+    if (!trainingSlots(s)) return '';
+    const lvl = o.level || 1;
+    if (o.training) {
+      const left = (o.training.endsAt - now) / 1000;
+      return `<div class="row"><span>${ico('swords')} Treinando para o nível ${lvl + 1} · ${fmtTime(Math.max(0, left))}</span> <button class="btn small" data-action="speedupTrain" data-arg="${h.id}">${ico('speedup')} Acelerar (${speedUpCost(left)} ${resIco('gems')})</button></div>`;
+    }
+    if (o.expedition) return '';
+    if (lvl >= HERO_MAX_LEVEL) return '';
+    if (lvl >= cap) return `<p class="muted">${ico('lock')} Melhore o Quartel para treinar além do nível ${cap}.</p>`;
+    const cost = trainCost(h, lvl);
+    return `<div class="row"><button class="btn small ${!busy && canAfford(s.res, cost) ? '' : 'poor'}" data-action="train" data-arg="${h.id}" ${busy ? 'title="Quartel ocupado"' : ''}>${ico('swords')} Treinar para o nível ${lvl + 1} ${costHtml(cost, s.res)}</button></div>`;
+  };
   const card = (h) => {
     const o = s.heroes.owned[h.id];
     const inCouncil = s.heroes.council.includes(h.id);
@@ -411,16 +428,18 @@ function tabHerois() {
     return `<div class="hero" style="--rc:var(--${h.rarity})">
       <div class="portrait">${ico(h.icon)}</div>
       <div><span class="rar">${RARITIES[h.rarity].name}${inCouncil ? '<span class="badge-on">No Conselho</span>' : ''}</span><b>${h.name}</b> ${starsHtml(o.stars)}
-        <small>Poder ${h.power * o.stars} · ${describeBonus(h.bonus.type, h.bonus.value * heroMultiplier(o.stars))}</small>
+        <small>Nível ${o.level || 1} · Poder ${heroPowerOf(h, o)} · ${describeBonus(h.bonus.type, h.bonus.value * heroStrength(o))}</small>
         <em>${esc(h.lore)}</em>
         ${o.expedition ? '' : `<div class="row"><button class="btn small ${inCouncil ? 'on' : ''}" data-action="council" data-arg="${h.id}">${inCouncil ? 'Tirar do Conselho' : 'Pôr no Conselho'}</button></div>`}
         ${exp}
+        ${trainHtml(h, o)}
       </div></div>`;
   };
   return `
     <section class="card">
       <h3>${ico('scroll')} Recrutar herói</h3>
       <p class="muted">Chances: Comum 60%, Raro 28%, Épico 10%, Lendário 2%. Repetidos ganham estrelas. Tudo se ganha jogando.</p>
+      ${tavernDiscount(s) > 0 ? `<p class="muted">${ico('happiness')} Taverna nível ${maxLevelOf(s, 'taverna')}: recrutar com ouro custa ${Math.round(tavernDiscount(s) * 100)}% menos.</p>` : ''}
       <div class="row">
         <button class="btn ${s.items.scrolls > 0 ? 'primary' : 'poor'}" data-action="recruit" data-arg="scroll">${ico('scroll')} Pergaminho (${s.items.scrolls})</button>
         <button class="btn ${s.res.gold >= goldCost ? '' : 'poor'}" data-action="recruit" data-arg="gold">${resIco('gold')} ${fmt(goldCost)}</button>
@@ -429,7 +448,8 @@ function tabHerois() {
     </section>
     <section class="card">
       <h3>${ico('tab-heroes')} Conselho <span class="count">${s.heroes.council.length}/${slots} vagas</span></h3>
-      <p class="muted">Heróis no Conselho dão bônus e defendem o reino de qualquer lado. Heróis fora dele podem partir em expedições.</p>
+      <p class="muted">Heróis no Conselho dão bônus e defendem o reino de qualquer lado. Heróis fora dele podem partir em expedições. Tavernas de nível 5 e 10 abrem vagas.</p>
+      <p class="muted">${trainingSlots(s) ? `${ico('swords')} Quartel: treina ${trainingSlots(s)} herói${trainingSlots(s) > 1 ? 's' : ''} por vez, até o nível ${cap}. Cada nível dá +10% de bônus e poder.` : `${ico('swords')} Construa um Quartel para treinar heróis.`}</p>
       ${owned.length ? owned.map(card).join('') : '<p class="muted">Nenhum herói ainda. Use o pergaminho grátis.</p>'}
       ${missing.length ? `<div class="collection">${missing.map((h) => `<span class="ghost" style="--rc:var(--${h.rarity})" title="${RARITIES[h.rarity].name}, ainda não encontrado">${ico('info')}</span>`).join('')}</div><p class="muted">${missing.length} heróis por descobrir.</p>` : '<p>Coleção completa.</p>'}
     </section>`;

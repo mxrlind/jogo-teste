@@ -11,7 +11,9 @@ import { computeEconomy, buildCost, upgradeCost, canAfford, pay, refund, countOf
 import { createState, carryOver, newSeed } from './state.js';
 import { GRID_W, idx, isUnlocked, RING_COSTS, MAX_RING } from './map.js';
 import { syncSeason, syncMissions, tierOf, rewardFor } from './season.js';
-import { councilSlots, recruitCost, rollHero, addHero, expeditionReward, speedUpCost } from './heroes.js';
+import {
+  councilSlots, recruitCost, rollHero, addHero, expeditionReward, speedUpCost, heroLevelCap, trainingSlots, trainingCount, trainCost, trainSeconds,
+} from './heroes.js';
 import { generateRivals } from './social.js';
 import { dayKey, randInt } from './rng.js';
 
@@ -217,6 +219,17 @@ export class Game {
         if (e.mods.autoChest) this.openChest();
         else this.emit('chest', s.chest);
       } else s.nextChestAt = now + 60000;
+    }
+
+    // Treinos do quartel terminam sozinhos.
+    this.finishTraining(now);
+
+    // Vagas do Conselho podem cair (taverna vendida, nova rodada): os últimos a entrar saem.
+    const slots = councilSlots(e.mods);
+    if (s.heroes.council.length > slots) {
+      const out = s.heroes.council.splice(slots);
+      this.econ = computeEconomy(s, now);
+      this.emit('toast', { text: `O Conselho perdeu vagas: ${out.map((h) => HERO_BY_ID[h].name).join(', ')} ${out.length > 1 ? 'saíram' : 'saiu'}.`, kind: 'info', icon: 'tab-heroes' });
     }
 
     // Expedições prontas (aviso único)
@@ -494,6 +507,7 @@ export class Game {
     const exp = EXPEDITIONS.find((x) => x.id === expId);
     if (!owned || !exp) return { ok: false, reason: 'Inválido' };
     if (owned.expedition) return { ok: false, reason: 'Já está em expedição' };
+    if (owned.training) return { ok: false, reason: 'Herói treinando no Quartel' };
     if (s.heroes.council.includes(hid)) return { ok: false, reason: 'Tire o herói do Conselho primeiro' };
     owned.expedition = { id: exp.id, startedAt: this.now, endsAt: this.now + exp.duration * 1000 };
     this.emit('expeditionStart', { hid, exp });
@@ -532,6 +546,54 @@ export class Game {
     s.res.gems -= cost;
     owned.expedition.endsAt = this.now;
     return { ok: true };
+  }
+
+  // ------------------------------------------------------------ quartel
+  trainHero(hid) {
+    const s = this.state;
+    const owned = s.heroes.owned[hid];
+    const hero = HERO_BY_ID[hid];
+    if (!owned || !hero) return { ok: false, reason: 'Herói não recrutado' };
+    const level = owned.level || 1;
+    if (!trainingSlots(s)) return { ok: false, reason: 'Construa um Quartel' };
+    if (owned.training) return { ok: false, reason: 'Já está treinando' };
+    if (owned.expedition) return { ok: false, reason: 'Herói em expedição' };
+    if (level >= heroLevelCap(s)) return { ok: false, reason: 'Melhore o Quartel para treinar mais' };
+    if (trainingCount(s) >= trainingSlots(s)) return { ok: false, reason: 'Quartel ocupado' };
+    const cost = trainCost(hero, level);
+    if (!canAfford(s.res, cost)) return { ok: false, reason: 'Recursos insuficientes' };
+    pay(s.res, cost);
+    owned.training = { startedAt: this.now, endsAt: this.now + trainSeconds(level) * 1000 };
+    this.emit('trainStart', { hid });
+    return { ok: true };
+  }
+
+  speedUpTraining(hid) {
+    const s = this.state;
+    const owned = s.heroes.owned[hid];
+    if (!owned?.training) return { ok: false, reason: 'Sem treino' };
+    const remaining = (owned.training.endsAt - this.now) / 1000;
+    if (remaining <= 0) return { ok: false, reason: 'Já terminou' };
+    const cost = speedUpCost(remaining);
+    if (s.res.gems < cost) return { ok: false, reason: 'Gemas insuficientes' };
+    s.res.gems -= cost;
+    owned.training.endsAt = this.now;
+    this.finishTraining(this.now);
+    return { ok: true };
+  }
+
+  finishTraining(now = this.now) {
+    const s = this.state;
+    let done = false;
+    for (const [hid, h] of Object.entries(s.heroes.owned)) {
+      if (!h.training || h.training.endsAt > now) continue;
+      h.training = null;
+      h.level = (h.level || 1) + 1;
+      done = true;
+      this.log(`${HERO_BY_ID[hid].name} chegou ao nível ${h.level}`, HERO_BY_ID[hid].icon);
+      this.emit('toast', { text: `${HERO_BY_ID[hid].name} terminou o treino: nível ${h.level}!`, kind: 'good', icon: HERO_BY_ID[hid].icon });
+    }
+    if (done) this.econ = computeEconomy(s, now);
   }
 
   // ------------------------------------------------------------ baú

@@ -29,7 +29,9 @@ export const TERRAIN_SPRITES = {
 
 // Prédios: sprite no quadro SPRITE_FRAME + miniatura quadrada para a interface.
 // `blades` = hélice do moinho, girada no jogo em volta de `hub` (em tiles, relativo ao centro do tile).
+// `stages` = sprites maiores a partir de certos níveis ([nível, arquivo], do menor para o maior).
 const building = (id, extra = {}) => ({ src: k(`building-${id}`), icon: k(`icon-${id}`), ...extra });
+const staged = (id) => building(id, { stages: [[5, k(`building-${id}-5`)], [10, k(`building-${id}-10`)]] });
 export const BUILDING_SPRITES = {
   casa: building('casa'),
   fazenda: building('fazenda'),
@@ -38,7 +40,8 @@ export const BUILDING_SPRITES = {
   mercado: building('mercado'),
   moinho: building('moinho', { blades: { src: k('building-moinho-blades'), hub: { x: -0.004, y: -0.261 }, size: 0.712 } }),
   armazem: building('armazem'),
-  taverna: building('taverna'),
+  taverna: staged('taverna'),
+  quartel: staged('quartel'),
   muralha: building('muralha'),
   torre: building('torre'),
   mina: building('mina'),
@@ -47,6 +50,13 @@ export const BUILDING_SPRITES = {
   fogueira: building('fogueira'), // poço do KayKit (o nome Fogueira vem da época do Medieval RTS)
   estatua: building('estatua'),
 };
+
+// Sprite do prédio no nível `lvl` (o último estágio alcançado).
+export function buildingSrc(spr, lvl) {
+  let src = spr.src;
+  for (const [min, stage] of spr.stages ?? []) if (lvl >= min) src = stage;
+  return src;
+}
 
 // Estágio da muda: pequena na 1ª metade do crescimento, árvores jovens na 2ª.
 export function saplingSprite(tile, now, growSeconds) {
@@ -73,6 +83,7 @@ export const PROFESSIONS = {
   armazem: { name: 'Intendente', sprite: u(17) },
   taverna: { name: 'Taverneiro', sprite: u(23) },
   torre: { name: 'Guarda', sprite: u(3) },
+  quartel: { name: 'Soldado', sprite: u(4) },
   templo: { name: 'Sacerdote', sprite: u(2) },
 };
 // Sem emprego: dormem na rua, ao lado das casas.
@@ -83,7 +94,11 @@ export const TOOL_ICONS = ['clear', 'hero-woodcutter', 'tool-pickaxe'];
 export function allSpriteUrls() {
   const urls = new Set();
   for (const v of Object.values(TERRAIN_SPRITES)) [...v.base, ...(v.over || []), ...(v.stages || [])].forEach((u) => urls.add(u));
-  for (const v of Object.values(BUILDING_SPRITES)) { urls.add(v.src); if (v.blades) urls.add(v.blades.src); }
+  for (const v of Object.values(BUILDING_SPRITES)) {
+    urls.add(v.src);
+    if (v.blades) urls.add(v.blades.src);
+    for (const [, src] of v.stages ?? []) urls.add(src);
+  }
   [CART_SPRITE, ...RAIDER_SPRITES, ...SLEEPER_SPRITES].forEach((x) => urls.add(x));
   for (const p of Object.values(PROFESSIONS)) urls.add(p.sprite);
   return [...urls];

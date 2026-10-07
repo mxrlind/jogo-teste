@@ -5,7 +5,7 @@ import { BUILDINGS, TERRAIN, GROW_SECONDS } from '../data/buildings.js';
 import { GRID_W, GRID_H, idx, isUnlocked, neighbors, ringOf } from '../core/map.js';
 import { adjacencyAt } from '../core/economy.js';
 import { fmtPct } from '../core/format.js';
-import { TERRAIN_SPRITES, BUILDING_SPRITES, SPRITE_FRAME, SPRITE_K, LOCKED_OVERLAY, CART_SPRITE, RAIDER_SPRITES, saplingSprite } from './sprites.js';
+import { TERRAIN_SPRITES, BUILDING_SPRITES, buildingSrc, SPRITE_FRAME, SPRITE_K, LOCKED_OVERLAY, CART_SPRITE, RAIDER_SPRITES, saplingSprite } from './sprites.js';
 import { VillageLife } from './villagers.js';
 import { images, iconKey } from './assets.js';
 
@@ -218,7 +218,7 @@ export class MapRenderer {
         ctx.globalAlpha = dim ? 0.6 : 1;
         const cx = x * T + T / 2;
         const cy = y * T + T / 2;
-        this.framed(spr.src, cx, cy, T, scale);
+        this.framed(buildingSrc(spr, tile.b.lvl), cx, cy, T, scale);
         if (spr.blades) this.drawBlades(spr.blades, cx, cy, T, scale, motion && info?.active !== false ? now / 900 : 0.4);
         ctx.globalAlpha = 1;
       }
