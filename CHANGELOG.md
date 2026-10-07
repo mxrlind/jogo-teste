@@ -2,6 +2,13 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.15.0] — 2026-10-07
+### Alterado
+- **Expedições nerfadas**: mandar todos os heróis fora do Conselho em Patrulhas de 1 minuto rendia gemas e recursos demais. Agora só **2 expedições rodam ao mesmo tempo**, e a Taverna nos níveis 5 e 10 abre mais uma vaga cada (até 4). A aba de heróis mostra as vagas ocupadas.
+- Recompensa menor: as expedições trazem 15% da produção de ouro (antes 40%) e 10% da de madeira e pedra (antes 30%) durante a viagem. As longas rendem mais por minuto: Patrulha ×0,8, Exploração ×0,9, Jornada ×1 e Grande Expedição ×1,25.
+- Gemas: a Patrulha não dá mais gemas; Exploração 10% de chance de 1; Jornada 50% de chance de 1 a 2; Grande Expedição sempre 2 a 4 (antes 3 a 8).
+- Acelerar uma expedição custa 1 gema a cada 5 minutos restantes (antes 10). O treino no Quartel continua igual.
+
 ## [0.14.0] — 2026-10-07
 ### Adicionado
 - **Cais de Pesca** (primeira parte da zona portuária, libera com 3 construções): só funciona encostado num lago e dá 1,4 de comida por segundo, +40% por tile de água vizinho e +15% com armazém ao lado. Inspirado no cais de pesca do Banished.

@@ -58,10 +58,18 @@ export const TRAIN_COST_GROWTH = 1.8;
 export const TRAIN_RARITY_COST = { comum: 1, raro: 1.5, epico: 2.5, lendario: 4 };
 export const TRAIN_SECONDS = 120; // vezes o nível atual
 
-// Expedições: duração em segundos, multiplicador de recompensa, chance de gemas e faixa de gemas.
+// Expedições: duração em segundos, peso da recompensa (as longas rendem mais por minuto),
+// chance de gemas, faixa de gemas e chance de pergaminho.
 export const EXPEDITIONS = [
-  { id: 'curta', name: 'Patrulha', duration: 60, gemChance: 0.05, gems: [1, 1], scrollChance: 0 },
-  { id: 'media', name: 'Exploração', duration: 300, gemChance: 0.25, gems: [1, 2], scrollChance: 0.02 },
-  { id: 'longa', name: 'Jornada', duration: 1800, gemChance: 0.6, gems: [1, 4], scrollChance: 0.06 },
-  { id: 'epica', name: 'Grande Expedição', duration: 7200, gemChance: 1, gems: [3, 8], scrollChance: 0.15 },
+  { id: 'curta', name: 'Patrulha', duration: 60, yield: 0.8, gemChance: 0, gems: [0, 0], scrollChance: 0 },
+  { id: 'media', name: 'Exploração', duration: 300, yield: 0.9, gemChance: 0.1, gems: [1, 1], scrollChance: 0.02 },
+  { id: 'longa', name: 'Jornada', duration: 1800, yield: 1, gemChance: 0.5, gems: [1, 2], scrollChance: 0.06 },
+  { id: 'epica', name: 'Grande Expedição', duration: 7200, yield: 1.25, gemChance: 1, gems: [2, 4], scrollChance: 0.15 },
 ];
+// Parte da produção por segundo que a expedição traz (ouro / madeira e pedra).
+export const EXPEDITION_GOLD_SHARE = 0.15;
+export const EXPEDITION_RES_SHARE = 0.1;
+// Quantas expedições rodam ao mesmo tempo; a Taverna abre mais uma vaga em cada nível de TAVERN_COUNCIL_LEVELS.
+export const BASE_EXPEDITION_SLOTS = 2;
+// Acelerar expedição: 1 gema a cada 5 min restantes.
+export const EXPEDITION_SPEEDUP_SECONDS = 300;
