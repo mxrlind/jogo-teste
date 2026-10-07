@@ -2,6 +2,10 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.11.1] — 2026-10-07
+### Corrigido
+- Com o mapa todo expandido, a dica de construção cobria a primeira fileira de tiles. Agora o mouse e o toque passam por baixo dela (só o botão Cancelar é clicável) e, quando o tile apontado fica embaixo da dica, ela pula para a borda oposta. Vale no desktop (topo/rodapé do mapa) e no celular (rodapé/topo da tela).
+
 ## [0.11.0] — 2026-10-07
 ### Adicionado
 - **Subsolo** no estilo Dwarf Fortress. A **Escadaria** (prédio novo, libera com 5 construções) abre o primeiro nível bem embaixo dela, e botões no canto do mapa trocam entre a superfície e os níveis descobertos. Toda a geração de superfície continua igual; só a pedra ganha a parte de baixo.

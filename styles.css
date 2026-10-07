@@ -322,6 +322,10 @@ body[data-mode=build] #map, body[data-mode=move] #map { cursor: crosshair; }
 .dots i.on { background: var(--gold-text); }
 body:not(.reduce-motion) #tutorial.advance { animation: pop .45s var(--ease-back); }
 #modeHint, #visitBar { position: absolute; top: 0; left: 0; right: 0; z-index: 5; box-shadow: 0 0 0 1px rgba(60, 40, 0, .16), var(--shadow); }
+/* a dica deixa o mouse chegar ao mapa por baixo dela (só o botão é clicável) e foge do tile apontado */
+#modeHint { pointer-events: none; }
+#modeHint .btn { pointer-events: auto; }
+#modeHint.flip { top: auto; bottom: 0; }
 #modeHint img { filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .2)); }
 #modeHint .btn, #visitBar .btn { margin-left: auto; }
 body:not(.reduce-motion) #modeHint:not([hidden]), body:not(.reduce-motion) #visitBar:not([hidden]) { animation: drop .22s var(--ease); }
@@ -562,6 +566,7 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
   #hud-status .status { flex: 1 1 auto; }
   /* Dica de construção fixa no rodapé: não cobre o mapa nem muda a posição dos tiles entre os toques. */
   #modeHint { position: fixed; top: auto; bottom: 8px; left: 8px; right: 8px; z-index: 40; }
+  #modeHint.flip { top: 8px; bottom: auto; }
   #toasts { top: 8px; bottom: auto; left: 8px; right: 8px; width: auto; transform: none; flex-direction: column; }
   /* recursos: rolagem lateral com esmaecimento na borda indicando que há mais */
   #hud-res { order: 3; flex-basis: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-mask: linear-gradient(90deg, #000 88%, transparent); mask: linear-gradient(90deg, #000 88%, transparent); padding-right: 1.5rem; }
