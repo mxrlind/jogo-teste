@@ -159,6 +159,7 @@ export class VillageLife {
         add(anyOf(['casa']), 1);
         break;
       case 'torre':
+      case 'quartel':
         add(w, rand(3, 5));
         // Com a horda anunciada, o guarda corre para a borda de onde ela vem.
         add(s.raid.warned ? raidEdge(grid, s.raid.dir) : anyOf(['torre', 'muralha']) ?? w, 2);

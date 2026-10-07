@@ -53,9 +53,14 @@ export function rivalGrid(rival) {
 }
 
 // ---- Código do Reino (compartilhamento real, sem servidor) ----
-const TERRAIN_CODE = { grass: 'g', forest: 'f', rock: 'r', water: 'w', mountain: 'm' };
+const TERRAIN_CODE = { grass: 'g', forest: 'f', rock: 'r', water: 'w', mountain: 'm', sapling: 's' };
 const CODE_TERRAIN = Object.fromEntries(Object.entries(TERRAIN_CODE).map(([k, v]) => [v, k]));
-const BUILD_CODE = Object.fromEntries(BUILDING_ORDER.map((id, i) => [id, String.fromCharCode(65 + i)]));
+// Ordem fixa das letras: prédio novo entra no fim, para códigos antigos continuarem válidos.
+const CODE_ORDER = [
+  'casa', 'fazenda', 'serraria', 'pedreira', 'mercado', 'moinho', 'armazem',
+  'taverna', 'muralha', 'torre', 'mina', 'templo', 'jardim', 'fogueira', 'estatua', 'quartel',
+];
+const BUILD_CODE = Object.fromEntries(CODE_ORDER.map((id, i) => [id, String.fromCharCode(65 + i)]));
 const CODE_BUILD = Object.fromEntries(Object.entries(BUILD_CODE).map(([k, v]) => [v, k]));
 
 export function encodeKingdom(state, power) {
@@ -69,7 +74,7 @@ export function decodeKingdom(code) {
   if (!raw.startsWith('RB1.')) throw new Error('Código de reino inválido');
   const p = JSON.parse(decodeURIComponent(escape(atob(raw.slice(4)))));
   const tiles = [];
-  const re = /([gfrwm])([A-Z]\d{1,2})?/g;
+  const re = /([gfrwms])([A-Z]\d{1,2})?/g;
   let m;
   while ((m = re.exec(p.c)) !== null) {
     const b = m[2] ? { id: CODE_BUILD[m[2][0]], lvl: Math.min(10, Number(m[2].slice(1))) } : null;

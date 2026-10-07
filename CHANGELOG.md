@@ -2,10 +2,28 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
-## [Não lançado]
+## [0.10.0] — 2026-10-07
 ### Adicionado
 - **Muralhas que se ligam sozinhas**: cada muralha olha para as vizinhas (muralhas e torres) e escolhe o sprite certo: deitada, em pé, canto, T ou cruz. São 15 variantes geradas por `tools/render-kaykit.mjs` com a peça reta do KayKit (CC0).
 - **Muralha de lado**: uma muralha atravessada no caminho da horda conta inteira; virada de lado para ela, conta só metade. Cantos e cruzamentos contam inteiros, e muralha sozinha também. O painel do tile mostra "muralha de lado" quando for o caso.
+
+## [0.9.0] — 2026-10-07
+### Adicionado
+- **Quartel** (prédio novo, libera com 10 construções): treina heróis com ouro e comida. Cada treino leva 2 min × o nível atual e sobe o herói 1 nível; cada nível dá +10% de bônus e de poder, somado às estrelas. O herói chega até o nível do quartel mais alto + 1 (máximo 10), e cada quartel treina um herói por vez. Dá para acelerar com gemas. Gosta de muralhas e torres vizinhas.
+- **Taverna com níveis que importam**: cada nível acima do 1 deixa o recrutamento com ouro 4% mais barato (até 36% no nível 10), e os níveis 5 e 10 abrem uma vaga a mais no Conselho cada.
+- **Prédios crescem no mapa**: taverna e quartel ganham sprite novo nos níveis 5 e 10 (barris, caixotes, armas e estandartes do KayKit, CC0).
+- Novo morador: o Soldado, que trabalha no quartel.
+
+### Mudou
+- Treino em andamento na hora da Ascensão vira nível na hora. Se o Conselho perder vagas (taverna vendida, nova rodada), os últimos heróis a entrar saem.
+- O Código do Reino usa uma ordem fixa de letras, para códigos antigos continuarem válidos com o prédio novo.
+
+## [0.8.0] — 2026-10-07
+### Adicionado
+- **Plantar árvores**: num campo livre, o botão "Plantar árvores" (25 de ouro) cria uma muda. Ela cresce sozinha e em 3 minutos vira floresta, que dá madeira ao ser limpa e +40% para serrarias vizinhas. Na metade do caminho a muda vira um grupo de árvores jovens. O tempo conta também com o jogo fechado. Ideia tirada do Forester do Banished: ouro sobrando vira madeira.
+- Arrancar a própria muda é de graça e não conta para a missão "Limpe terrenos".
+- Sprites `sapling-1` e `sapling-2`, renderizados do KayKit Medieval Hexagon Pack (CC0) por `tools/render-kaykit.mjs`.
+- **Rosa dos ventos** no canto superior direito do mapa (desenho próprio em SVG, nas cores da interface). A ponta do lado de onde vem a próxima horda fica vermelha e pulsa quando a horda é anunciada; tocar nela explica a defesa por lado.
 
 ## [0.7.0] — 2026-10-07
 ### Mudou

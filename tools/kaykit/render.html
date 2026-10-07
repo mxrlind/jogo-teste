@@ -91,7 +91,8 @@ async function buildGroup(spec) {
   // Peças que encaixam com o tile vizinho (muralha): sem reescala nem recentralização.
   if (spec.fixed) return group;
   // Encaixa o grupo no tile: a maior medida do chão vira `fit` tiles.
-  const box = new THREE.Box3().setFromObject(group);
+  // fitFirst: mede só a primeira peça, para os enfeites de nível não encolherem o prédio.
+  const box = new THREE.Box3().setFromObject(spec.fitFirst ? group.children[0] : group);
   const size = box.getSize(new THREE.Vector3());
   const k = spec.scale ?? ((spec.fit ?? 0.9) * UNIT) / Math.max(size.x, size.z);
   const center = box.getCenter(new THREE.Vector3());

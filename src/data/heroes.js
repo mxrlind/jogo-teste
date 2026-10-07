@@ -1,5 +1,6 @@
 // Heróis colecionáveis. Bônus passivos valem só para heróis no Conselho.
 // Estrelas (duplicatas) multiplicam o bônus: 1 + 0.5 * (estrelas - 1); o poder escala linearmente.
+// Nível (treino no Quartel) multiplica bônus e poder por 1 + 0.1 * (nível - 1).
 // Tipos de bônus (bonus.type):
 //   prod:<recurso>   +X de produção do recurso
 //   prodAll          +X de toda produção
@@ -44,6 +45,18 @@ export const BASE_COUNCIL_SLOTS = 3;
 export const RECRUIT_GOLD_BASE = 300;
 export const RECRUIT_GOLD_GROWTH = 1.6;
 export const RECRUIT_GEM_COST = 15;
+
+// Taverna: desconto no recrutamento com ouro por nível acima do 1, e níveis que abrem vagas no Conselho.
+export const TAVERN_RECRUIT_DISCOUNT = 0.04;
+export const TAVERN_COUNCIL_LEVELS = [5, 10];
+
+// Quartel: o herói sobe até (nível do quartel + 1), no máximo HERO_MAX_LEVEL. Cada quartel treina um herói por vez.
+export const HERO_MAX_LEVEL = 10;
+export const HERO_LEVEL_STEP = 0.1;
+export const TRAIN_COST = { gold: 200, food: 80 }; // do nível 1 para o 2; cresce TRAIN_COST_GROWTH por nível
+export const TRAIN_COST_GROWTH = 1.8;
+export const TRAIN_RARITY_COST = { comum: 1, raro: 1.5, epico: 2.5, lendario: 4 };
+export const TRAIN_SECONDS = 120; // vezes o nível atual
 
 // Expedições: duração em segundos, multiplicador de recompensa, chance de gemas e faixa de gemas.
 export const EXPEDITIONS = [

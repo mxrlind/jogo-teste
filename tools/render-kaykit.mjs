@@ -44,6 +44,31 @@ const BUILDINGS = {
   moinho: { parts: [{ model: B('windmill') }], blades: 'fan', fit: 0.8 },
   armazem: one(B('barracks')),
   taverna: one(B('tavern')),
+  // Taverna e quartel crescem nos níveis 5 e 10 (ver `stages` em src/ui/sprites.js).
+  // fitFirst mantém o prédio do mesmo tamanho; os enfeites ficam em volta.
+  'taverna-5': {
+    parts: [{ model: B('tavern') }, { model: P('barrel'), x: 0.55, z: 0.5, scale: 1.4 }, { model: P('barrel'), x: 0.3, z: 0.62, scale: 1.4 }, { model: P('crate_A_small'), x: -0.55, z: 0.55, scale: 1.4 }],
+    fit: 0.9, fitFirst: true,
+  },
+  'taverna-10': {
+    parts: [
+      { model: B('tavern') }, { model: P('barrel'), x: 0.55, z: 0.5, scale: 1.4 }, { model: P('barrel'), x: 0.3, z: 0.62, scale: 1.4 }, { model: P('crate_A_small'), x: -0.55, z: 0.55, scale: 1.4 },
+      { model: P('flag_blue'), x: -0.68, z: 0.05, scale: 2 }, { model: P('flag_blue'), x: 0.7, z: -0.15, scale: 2 },
+    ],
+    fit: 0.9, fitFirst: true,
+  },
+  quartel: one(B('archeryrange')),
+  'quartel-5': {
+    parts: [{ model: B('archeryrange') }, { model: P('weaponrack'), x: -0.5, z: 0.55, scale: 1.4 }, { model: P('bucket_arrows'), x: 0.5, z: 0.58, scale: 1.4 }],
+    fit: 0.9, fitFirst: true,
+  },
+  'quartel-10': {
+    parts: [
+      { model: B('archeryrange') }, { model: P('weaponrack'), x: -0.5, z: 0.55, scale: 1.4 }, { model: P('bucket_arrows'), x: 0.5, z: 0.58, scale: 1.4 },
+      { model: P('flag_blue'), x: -0.68, z: 0.15, scale: 2 }, { model: P('flag_blue'), x: 0.7, z: 0.15, scale: 2 },
+    ],
+    fit: 0.9, fitFirst: true,
+  },
   muralha: { parts: [{ model: N('wall_straight') }], fit: 1.02 },
   torre: one(B('tower_A'), { fit: 0.8 }),
   mina: one(B('mine')),
@@ -82,6 +107,9 @@ const NATURE = {
   'forest-2': { parts: [{ model: NAT('trees_B_large') }], fit: 1.0 },
   'forest-3': { parts: [{ model: NAT('trees_A_large') }], fit: 1.0 },
   'forest-4': { parts: [{ model: NAT('trees_B_medium') }], fit: 1.0 },
+  // Árvore plantada pelo jogador, em dois estágios antes de virar floresta.
+  'sapling-1': { parts: [{ model: NAT('tree_single_A') }], fit: 0.26 },
+  'sapling-2': { parts: [{ model: NAT('trees_A_small') }], fit: 0.62 },
   'rock-1': { parts: [{ model: NAT('rock_single_A') }, { model: NAT('rock_single_C'), x: 0.3, z: 0.2 }], fit: 0.62 },
   'rock-2': { parts: [{ model: NAT('rock_single_B') }, { model: NAT('rock_single_D'), x: -0.3, z: 0.22 }], fit: 0.62 },
   'mountain-1': { parts: [{ model: NAT('mountain_A') }], fit: 1.0 },

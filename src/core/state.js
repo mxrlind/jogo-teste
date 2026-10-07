@@ -17,7 +17,7 @@ export function newSeed() {
 function freshStats() {
   return {
     totalGold: 0, runGold: 0, built: 0, upgrades: 0, raidsWon: 0, raidsLost: 0, recruits: 0, goldRecruits: 0,
-    expeditions: 0, chests: 0, ascensions: 0, cleared: 0, visits: 0, playTime: 0, bestRaid: 0,
+    expeditions: 0, chests: 0, ascensions: 0, cleared: 0, planted: 0, visits: 0, playTime: 0, bestRaid: 0,
   };
 }
 
@@ -76,7 +76,11 @@ export function createState({ seed = newSeed(), now = Date.now(), carry = null }
 
 // Herança para a próxima rodada (Ascensão): o que é "identidade" persiste.
 export function carryOver(state) {
-  for (const h of Object.values(state.heroes.owned)) h.expedition = null;
+  for (const h of Object.values(state.heroes.owned)) {
+    h.expedition = null;
+    // Treino pago não se perde na Ascensão: o herói sobe de nível na hora.
+    if (h.training) { h.level = (h.level || 1) + 1; h.training = null; }
+  }
   return {
     legacy: state.legacy,
     createdAt: state.createdAt,
@@ -131,6 +135,10 @@ export function migrateWithSettings(data) {
   merged.social = { ...base.social, ...data.social };
   merged.raid = { ...base.raid, ...data.raid };
   merged.unlocks = { ...base.unlocks, ...data.unlocks };
+  for (const h of Object.values(merged.heroes?.owned ?? {})) {
+    h.level ??= 1;
+    h.training ??= null;
+  }
   // Saves de antes do resumo de Ascensão não têm a foto do início da rodada: o resumo mostra só o que é certo.
   merged.runBase = data.runBase ?? null;
   merged.runs = Array.isArray(data.runs) ? data.runs : [];

@@ -1,16 +1,16 @@
 // Testes do motor (sem navegador). Rode com: npm test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createState, serialize, deserialize, SAVE_VERSION, SAVE_KEY } from '../src/core/state.js';
+import { createState, serialize, deserialize, carryOver, SAVE_VERSION, SAVE_KEY } from '../src/core/state.js';
 import { encodeSave, decodeSave, loadSave, writeSave, exportCode, importCode, checksum, CORRUPT_KEY, BACKUP_INTERVAL, listBackups } from '../src/core/storage.js';
 import { defaultConfig, normalizeConfig, actionForKey } from '../src/core/config.js';
 import { dirWeight, wallFacing } from '../src/core/economy.js';
 import { Game } from '../src/core/game.js';
-import { computeEconomy, adjacencyAt, buildCost, upgradeCost, collectModifiers } from '../src/core/economy.js';
+import { computeEconomy, adjacencyAt, buildCost, upgradeCost, collectModifiers, heroPowerOf } from '../src/core/economy.js';
 import { generateMap, ringOf, isUnlocked, idx, wallMask, GRID_W, GRID_H } from '../src/core/map.js';
 import { seasonInfo, dailyMissions, tierOf } from '../src/core/season.js';
 import { encodeKingdom, decodeKingdom, generateRivals, rivalGrid } from '../src/core/social.js';
-import { addHero } from '../src/core/heroes.js';
+import { addHero, recruitGoldCost, councilSlots, heroLevelCap, trainCost, trainSeconds } from '../src/core/heroes.js';
 import { HERO_BY_ID } from '../src/data/heroes.js';
 import { SEASON_EPOCH } from '../src/data/seasons.js';
 import { fmt, fmtTime } from '../src/core/format.js';
@@ -741,4 +741,130 @@ test('save: migração mantém runs/records e marca runBase ausente como null', 
   assert.deepEqual(st.records, {});
   const st2 = deserialize(serialize(g.state));
   assert.ok(st2.runBase);
+});
+
+test('taverna: nível barateia o recrutamento com ouro e abre vagas no Conselho nos níveis 5 e 10', () => {
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  const base = recruitGoldCost(s);
+  put(s, 5, 5, 'grass', { id: 'taverna', lvl: 1 });
+  assert.equal(recruitGoldCost(s), base);
+  assert.equal(councilSlots(collectModifiers(s, T0)), 3);
+  s.grid.tiles[idx(5, 5)].b.lvl = 5;
+  assert.equal(recruitGoldCost(s), Math.ceil(base * (1 - 0.16)));
+  assert.equal(councilSlots(collectModifiers(s, T0)), 4);
+  s.grid.tiles[idx(5, 5)].b.lvl = 10;
+  assert.equal(councilSlots(collectModifiers(s, T0)), 5);
+});
+
+test('conselho: perde os últimos heróis quando as vagas caem', () => {
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  for (const id of ['lavradora', 'lenhador', 'pedreiro', 'guarda']) addHero(s, HERO_BY_ID[id]);
+  s.heroes.council = ['lavradora', 'lenhador', 'pedreiro', 'guarda'];
+  g.econ = computeEconomy(s, T0);
+  g.updateLive(T0);
+  assert.deepEqual(s.heroes.council, ['lavradora', 'lenhador', 'pedreiro']);
+});
+
+test('quartel: treina herói até nível do quartel + 1, e o nível aumenta bônus e poder', () => {
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  addHero(s, HERO_BY_ID.guarda);
+  s.res.gold = 1e6; s.res.food = 1e6;
+  assert.equal(g.trainHero('guarda').ok, false); // sem quartel
+  put(s, 4, 4, 'grass', { id: 'quartel', lvl: 1 });
+  g.econ = computeEconomy(s, T0);
+  assert.equal(heroLevelCap(s), 2);
+  assert.ok(g.trainHero('guarda').ok);
+  assert.equal(g.startExpedition('guarda', 'curta').ok, false); // treinando
+  g.finishTraining(T0 + trainSeconds(1) * 1000);
+  assert.equal(s.heroes.owned.guarda.level, 2);
+  assert.equal(g.trainHero('guarda').reason, 'Melhore o Quartel para treinar mais');
+  s.heroes.council = ['guarda'];
+  g.econ = computeEconomy(s, T0);
+  assert.equal(g.econ.mods.defense > 0.15, true);
+  assert.equal(heroPowerOf(HERO_BY_ID.guarda, s.heroes.owned.guarda), Math.round(5 * 1.1));
+});
+
+test('quartel: um herói por quartel e custo cresce com o nível e a raridade', () => {
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  addHero(s, HERO_BY_ID.guarda);
+  addHero(s, HERO_BY_ID.lenhador);
+  s.res.gold = 1e6; s.res.food = 1e6;
+  put(s, 4, 4, 'grass', { id: 'quartel', lvl: 3 });
+  assert.ok(g.trainHero('guarda').ok);
+  assert.equal(g.trainHero('lenhador').reason, 'Quartel ocupado');
+  assert.ok(trainCost(HERO_BY_ID.guarda, 2).gold > trainCost(HERO_BY_ID.guarda, 1).gold);
+  assert.ok(trainCost(HERO_BY_ID.rainha, 1).gold > trainCost(HERO_BY_ID.guarda, 1).gold);
+});
+
+test('save: heróis antigos ganham nível 1 e treino em andamento vira nível na Ascensão', () => {
+  const g = freshGame();
+  addHero(g.state, HERO_BY_ID.guarda);
+  delete g.state.heroes.owned.guarda.level;
+  const loaded = deserialize(serialize(g.state));
+  assert.equal(loaded.heroes.owned.guarda.level, 1);
+  loaded.heroes.owned.guarda.training = { startedAt: T0, endsAt: T0 + 1e9 };
+  const c = carryOver(loaded);
+  assert.equal(c.heroes.owned.guarda.level, 2);
+  assert.equal(c.heroes.owned.guarda.training, null);
+});
+
+test('código do reino: letras antigas continuam valendo e o quartel cabe no código', () => {
+  const g = freshGame();
+  put(g.state, 3, 3, 'grass', { id: 'quartel', lvl: 2 });
+  put(g.state, 3, 4, 'grass', { id: 'estatua', lvl: 1 });
+  const k = decodeKingdom(encodeKingdom(g.state, 10));
+  assert.deepEqual(k.grid.tiles[idx(3, 3)].b, { id: 'quartel', lvl: 2 });
+  assert.equal(encodeKingdom(g.state, 10).length > 0, true);
+});
+
+test('plantar: muda custa ouro e vira floresta pelo relógio', () => {
+  const g = freshGame();
+  const t0 = g.now;
+  const free = g.state.grid.tiles.findIndex((t, i) => t.t === 'grass' && !t.b && isUnlocked(g.state.grid, i % GRID_W, Math.floor(i / GRID_W)));
+  const x = free % GRID_W;
+  const y = Math.floor(free / GRID_W);
+  g.state.res.gold = 100;
+  assert.equal(g.plant(x, y).ok, true);
+  assert.equal(g.state.res.gold, 75);
+  assert.equal(g.tileAt(x, y).t, 'sapling');
+  assert.equal(g.plant(x, y).ok, false); // já plantado
+  assert.equal(g.build('casa', x, y).ok, false); // não dá para construir em muda
+  g.growTrees(t0 + 179000);
+  assert.equal(g.tileAt(x, y).t, 'sapling');
+  g.growTrees(t0 + 180000);
+  assert.equal(g.tileAt(x, y).t, 'forest');
+  assert.equal(g.tileAt(x, y).p, undefined);
+  assert.equal(g.state.stats.planted, 1);
+});
+
+test('plantar: arrancar a muda é grátis e não conta como limpar', () => {
+  const g = freshGame();
+  const free = g.state.grid.tiles.findIndex((t, i) => t.t === 'grass' && !t.b && isUnlocked(g.state.grid, i % GRID_W, Math.floor(i / GRID_W)));
+  const x = free % GRID_W;
+  const y = Math.floor(free / GRID_W);
+  g.state.res.gold = 25;
+  assert.equal(g.plant(x, y).ok, true);
+  assert.equal(g.plant(x, y).ok, false);
+  assert.equal(g.clear(x, y).ok, true);
+  assert.equal(g.tileAt(x, y).t, 'grass');
+  assert.equal(g.state.stats.cleared, 0);
+  g.state.res.gold = 0;
+  assert.equal(g.plant(x, y).ok, false); // sem ouro
+});
+
+test('plantar: muda sobrevive ao código do reino', () => {
+  const g = freshGame();
+  const free = g.state.grid.tiles.findIndex((t, i) => t.t === 'grass' && !t.b && isUnlocked(g.state.grid, i % GRID_W, Math.floor(i / GRID_W)));
+  g.state.res.gold = 100;
+  g.plant(free % GRID_W, Math.floor(free / GRID_W));
+  const k = decodeKingdom(encodeKingdom(g.state, 1));
+  assert.equal(k.grid.tiles[free].t, 'sapling');
 });

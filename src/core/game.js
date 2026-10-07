@@ -1,6 +1,6 @@
 // Game: orquestra estado + sistemas. A UI só conversa com esta classe.
 // Toda ação retorna { ok, reason? } e emite eventos para a UI (toast, fx, som).
-import { BUILDINGS, TERRAIN, SELL_REFUND, POP_GROWTH, POP_STARVE } from '../data/buildings.js';
+import { BUILDINGS, TERRAIN, SELL_REFUND, POP_GROWTH, POP_STARVE, PLANT_COST, GROW_SECONDS } from '../data/buildings.js';
 import { HERO_BY_ID, EXPEDITIONS, RECRUIT_GEM_COST } from '../data/heroes.js';
 import { TALENT_BY_ID, CROWN_DIVISOR } from '../data/talents.js';
 import { EVENTS, EVENT_BY_ID, EVENT_INTERVAL, CHEST_INTERVAL, CHEST_LIFETIME, RAID_INTERVAL, RAID_WARNING, RAID_BASE_STRENGTH, RAID_GROWTH, RAID_LOSS_FRACTION, RAID_NEWBIE_LOSS, RAID_NEWBIE_COUNT, RAID_LOSS_CAP_SECONDS, RAID_NAMES } from '../data/events.js';
@@ -11,7 +11,9 @@ import { computeEconomy, buildCost, upgradeCost, canAfford, pay, refund, countOf
 import { createState, carryOver, newSeed } from './state.js';
 import { GRID_W, idx, isUnlocked, RING_COSTS, MAX_RING } from './map.js';
 import { syncSeason, syncMissions, tierOf, rewardFor } from './season.js';
-import { councilSlots, recruitCost, rollHero, addHero, expeditionReward, speedUpCost } from './heroes.js';
+import {
+  councilSlots, recruitCost, rollHero, addHero, expeditionReward, speedUpCost, heroLevelCap, trainingSlots, trainingCount, trainCost, trainSeconds,
+} from './heroes.js';
 import { generateRivals } from './social.js';
 import { dayKey, randInt } from './rng.js';
 
@@ -86,6 +88,7 @@ export class Game {
   tick(now = Date.now(), { background = false } = {}) {
     const s = this.state;
     this.now = now;
+    this.growTrees(now);
     const dt = (now - s.lastTick) / 1000;
     if (dt <= 0) return;
     if (dt > OFFLINE_THRESHOLD) {
@@ -216,6 +219,17 @@ export class Game {
         if (e.mods.autoChest) this.openChest();
         else this.emit('chest', s.chest);
       } else s.nextChestAt = now + 60000;
+    }
+
+    // Treinos do quartel terminam sozinhos.
+    this.finishTraining(now);
+
+    // Vagas do Conselho podem cair (taverna vendida, nova rodada): os últimos a entrar saem.
+    const slots = councilSlots(e.mods);
+    if (s.heroes.council.length > slots) {
+      const out = s.heroes.council.splice(slots);
+      this.econ = computeEconomy(s, now);
+      this.emit('toast', { text: `O Conselho perdeu vagas: ${out.map((h) => HERO_BY_ID[h].name).join(', ')} ${out.length > 1 ? 'saíram' : 'saiu'}.`, kind: 'info', icon: 'tab-heroes' });
     }
 
     // Expedições prontas (aviso único)
@@ -388,12 +402,49 @@ export class Game {
     if (!canAfford(s.res, ter.clearCost)) return { ok: false, reason: 'Recursos insuficientes' };
     pay(s.res, ter.clearCost);
     for (const [r, v] of Object.entries(ter.clearYield)) s.res[r] += v;
+    const wasSapling = tile.t === 'sapling';
     tile.t = 'grass';
-    s.stats.cleared++;
+    delete tile.p;
     this.econ = computeEconomy(s, this.now);
-    this.track('clear');
+    // Arrancar a própria muda não conta como limpar terreno (senão vira atalho barato para missões).
+    if (!wasSapling) {
+      s.stats.cleared++;
+      this.track('clear');
+    }
     this.emit('cleared', { x, y, yieldRes: ter.clearYield });
     return { ok: true };
+  }
+
+  plant(x, y) {
+    const s = this.state;
+    this.lastBuild = null;
+    if (!isUnlocked(s.grid, x, y)) return { ok: false, reason: 'Terra ainda não conquistada' };
+    const tile = this.tileAt(x, y);
+    if (tile.b || tile.t !== 'grass') return { ok: false, reason: 'Só dá para plantar em campo livre' };
+    if (!canAfford(s.res, PLANT_COST)) return { ok: false, reason: 'Recursos insuficientes' };
+    pay(s.res, PLANT_COST);
+    tile.t = 'sapling';
+    tile.p = this.now;
+    s.stats.planted = (s.stats.planted || 0) + 1;
+    this.econ = computeEconomy(s, this.now);
+    this.emit('planted', { x, y });
+    return { ok: true };
+  }
+
+  // Mudas viram floresta pelo relógio (vale também para o tempo offline).
+  growTrees(now) {
+    const s = this.state;
+    let grown = 0;
+    for (const t of s.grid.tiles) {
+      if (t.t !== 'sapling' || now - (t.p ?? 0) < GROW_SECONDS * 1000) continue;
+      t.t = 'forest';
+      delete t.p;
+      grown++;
+    }
+    if (!grown) return 0;
+    this.econ = computeEconomy(s, now);
+    this.emit('grown', { n: grown });
+    return grown;
   }
 
   expandCost() {
@@ -456,6 +507,7 @@ export class Game {
     const exp = EXPEDITIONS.find((x) => x.id === expId);
     if (!owned || !exp) return { ok: false, reason: 'Inválido' };
     if (owned.expedition) return { ok: false, reason: 'Já está em expedição' };
+    if (owned.training) return { ok: false, reason: 'Herói treinando no Quartel' };
     if (s.heroes.council.includes(hid)) return { ok: false, reason: 'Tire o herói do Conselho primeiro' };
     owned.expedition = { id: exp.id, startedAt: this.now, endsAt: this.now + exp.duration * 1000 };
     this.emit('expeditionStart', { hid, exp });
@@ -494,6 +546,54 @@ export class Game {
     s.res.gems -= cost;
     owned.expedition.endsAt = this.now;
     return { ok: true };
+  }
+
+  // ------------------------------------------------------------ quartel
+  trainHero(hid) {
+    const s = this.state;
+    const owned = s.heroes.owned[hid];
+    const hero = HERO_BY_ID[hid];
+    if (!owned || !hero) return { ok: false, reason: 'Herói não recrutado' };
+    const level = owned.level || 1;
+    if (!trainingSlots(s)) return { ok: false, reason: 'Construa um Quartel' };
+    if (owned.training) return { ok: false, reason: 'Já está treinando' };
+    if (owned.expedition) return { ok: false, reason: 'Herói em expedição' };
+    if (level >= heroLevelCap(s)) return { ok: false, reason: 'Melhore o Quartel para treinar mais' };
+    if (trainingCount(s) >= trainingSlots(s)) return { ok: false, reason: 'Quartel ocupado' };
+    const cost = trainCost(hero, level);
+    if (!canAfford(s.res, cost)) return { ok: false, reason: 'Recursos insuficientes' };
+    pay(s.res, cost);
+    owned.training = { startedAt: this.now, endsAt: this.now + trainSeconds(level) * 1000 };
+    this.emit('trainStart', { hid });
+    return { ok: true };
+  }
+
+  speedUpTraining(hid) {
+    const s = this.state;
+    const owned = s.heroes.owned[hid];
+    if (!owned?.training) return { ok: false, reason: 'Sem treino' };
+    const remaining = (owned.training.endsAt - this.now) / 1000;
+    if (remaining <= 0) return { ok: false, reason: 'Já terminou' };
+    const cost = speedUpCost(remaining);
+    if (s.res.gems < cost) return { ok: false, reason: 'Gemas insuficientes' };
+    s.res.gems -= cost;
+    owned.training.endsAt = this.now;
+    this.finishTraining(this.now);
+    return { ok: true };
+  }
+
+  finishTraining(now = this.now) {
+    const s = this.state;
+    let done = false;
+    for (const [hid, h] of Object.entries(s.heroes.owned)) {
+      if (!h.training || h.training.endsAt > now) continue;
+      h.training = null;
+      h.level = (h.level || 1) + 1;
+      done = true;
+      this.log(`${HERO_BY_ID[hid].name} chegou ao nível ${h.level}`, HERO_BY_ID[hid].icon);
+      this.emit('toast', { text: `${HERO_BY_ID[hid].name} terminou o treino: nível ${h.level}!`, kind: 'good', icon: HERO_BY_ID[hid].icon });
+    }
+    if (done) this.econ = computeEconomy(s, now);
   }
 
   // ------------------------------------------------------------ baú

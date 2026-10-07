@@ -1,11 +1,11 @@
 // Renderizador do mapa em <canvas> com os sprites do KayKit (prédios e natureza) e do Kenney Medieval RTS (moradores).
 // Camadas: chão (em cache, só redesenha quando o mapa muda) -> natureza e prédios, linha a linha de trás para a frente
 // (o que é alto invade o tile de cima) -> território bloqueado -> unidades -> realces -> efeitos.
-import { BUILDINGS, TERRAIN } from '../data/buildings.js';
+import { BUILDINGS, TERRAIN, GROW_SECONDS } from '../data/buildings.js';
 import { GRID_W, GRID_H, idx, isUnlocked, neighbors, ringOf, wallMask } from '../core/map.js';
 import { adjacencyAt } from '../core/economy.js';
 import { fmtPct } from '../core/format.js';
-import { TERRAIN_SPRITES, BUILDING_SPRITES, buildingSrc, SPRITE_FRAME, SPRITE_K, LOCKED_OVERLAY, CART_SPRITE, RAIDER_SPRITES } from './sprites.js';
+import { TERRAIN_SPRITES, BUILDING_SPRITES, buildingSrc, wallSrc, SPRITE_FRAME, SPRITE_K, LOCKED_OVERLAY, CART_SPRITE, RAIDER_SPRITES, saplingSprite } from './sprites.js';
 import { VillageLife } from './villagers.js';
 import { images, iconKey } from './assets.js';
 
@@ -200,7 +200,7 @@ export class MapRenderer {
         const i = idx(x, y);
         const tile = grid.tiles[i];
         if (!tile.b) {
-          const over = TERRAIN_SPRITES[tile.t]?.over;
+          const over = tile.t === 'sapling' ? [saplingSprite(tile, Date.now(), GROW_SECONDS)] : TERRAIN_SPRITES[tile.t]?.over;
           if (over) this.framed(pick(over, i), x * T + T / 2, y * T + T / 2, T);
           continue;
         }
@@ -218,7 +218,7 @@ export class MapRenderer {
         ctx.globalAlpha = dim ? 0.6 : 1;
         const cx = x * T + T / 2;
         const cy = y * T + T / 2;
-        this.framed(buildingSrc(tile.b.id, wallMask(grid, x, y)), cx, cy, T, scale);
+        this.framed(tile.b.id === 'muralha' ? wallSrc(wallMask(grid, x, y)) : buildingSrc(spr, tile.b.lvl), cx, cy, T, scale);
         if (spr.blades) this.drawBlades(spr.blades, cx, cy, T, scale, motion && info?.active !== false ? now / 900 : 0.4);
         ctx.globalAlpha = 1;
       }
@@ -384,7 +384,7 @@ export class MapRenderer {
     if (restore) state.grid.tiles[idx(mode.from.x, mode.from.y)].b = restore;
     const spr = BUILDING_SPRITES[buildId];
     ctx.globalAlpha = 0.75;
-    this.framed(buildingSrc(buildId, wallMask(state.grid, x, y)), x * T + T / 2, y * T + T / 2, T);
+    this.framed(buildId === 'muralha' ? wallSrc(wallMask(state.grid, x, y)) : buildingSrc(spr, 1), x * T + T / 2, y * T + T / 2, T);
     if (spr.blades) this.drawBlades(spr.blades, x * T + T / 2, y * T + T / 2, T, 1, 0.4);
     ctx.globalAlpha = 1;
     for (const [nx, ny] of neighbors(x, y)) {

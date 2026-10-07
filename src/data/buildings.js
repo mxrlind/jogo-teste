@@ -70,7 +70,7 @@ export const BUILDINGS = {
   },
   taverna: {
     id: 'taverna', name: 'Taverna', category: 'civil',
-    desc: 'Felicidade para o reino inteiro e ouro de quem passa. Duas tavernas lado a lado brigam.',
+    desc: 'Felicidade para o reino inteiro e ouro de quem passa. Cada nível barateia o recrutamento com ouro; nos níveis 5 e 10 abre uma vaga no Conselho. Duas tavernas lado a lado brigam.',
     cost: { gold: 200, wood: 80, stone: 20 }, workers: 2,
     prod: { gold: 0.8 }, happiness: 6,
     adj: { casa: 0.15, taverna: -0.5 },
@@ -91,6 +91,14 @@ export const BUILDINGS = {
     defense: 10,
     adj: { muralha: 0.3, torre: 0.1 },
     unlock: { buildings: 6 },
+  },
+  quartel: {
+    id: 'quartel', name: 'Quartel', category: 'defesa',
+    desc: 'Treina heróis: cada nível do quartel deixa os heróis subirem um nível a mais. Gosta de muralhas e torres por perto.',
+    cost: { gold: 400, wood: 150, stone: 100 }, workers: 3,
+    defense: 4,
+    adj: { muralha: 0.15, torre: 0.15 },
+    unlock: { buildings: 10 },
   },
   mina: {
     id: 'mina', name: 'Mina de Ouro', category: 'economia',
@@ -134,7 +142,7 @@ export const BUILDINGS = {
 
 export const BUILDING_ORDER = [
   'casa', 'fazenda', 'serraria', 'pedreira', 'mercado', 'moinho', 'armazem',
-  'taverna', 'muralha', 'torre', 'mina', 'templo', 'jardim', 'fogueira', 'estatua',
+  'taverna', 'muralha', 'torre', 'quartel', 'mina', 'templo', 'jardim', 'fogueira', 'estatua',
 ];
 
 export const MAX_LEVEL = 10;
@@ -147,9 +155,15 @@ export const TERRAIN = {
   grass: { id: 'grass', name: 'Campo', buildable: true },
   forest: { id: 'forest', name: 'Floresta', buildable: false, clearCost: { gold: 30 }, clearYield: { wood: 40 } },
   rock: { id: 'rock', name: 'Rochas', buildable: false, clearCost: { gold: 50 }, clearYield: { stone: 30 } },
+  // Muda plantada pelo jogador: cresce sozinha até virar floresta (GROW_SECONDS). Arrancar é de graça.
+  sapling: { id: 'sapling', name: 'Muda', buildable: false, clearCost: {}, clearYield: {} },
   water: { id: 'water', name: 'Lago', buildable: false },
   mountain: { id: 'mountain', name: 'Montanha', buildable: false },
 };
+
+// Plantar árvores (inspirado no Forester do Banished): ouro sobrando vira floresta, que vira madeira.
+export const PLANT_COST = { gold: 25 };
+export const GROW_SECONDS = 180; // muda -> árvores jovens na metade -> floresta
 
 // `icon` = nome do arquivo em assets/icons/game-icons/ (sem .svg).
 export const RESOURCES = {

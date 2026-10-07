@@ -280,7 +280,22 @@ body:not(.reduce-motion) .pb.focus { animation: glow 1s infinite alternate; }
 
 /* palco: mapa */
 #stage { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-#mapWrap { flex: 1; display: grid; place-items: center; min-height: 0; }
+#mapWrap { flex: 1; display: grid; place-items: center; min-height: 0; position: relative; }
+/* rosa dos ventos: o lado da próxima horda fica vermelho e pulsa quando ela é anunciada */
+#compass { position: absolute; top: 0; left: 0; z-index: 3; width: 60px; height: 60px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .4)); transition: transform .15s var(--ease); }
+#compass:hover { transform: scale(1.06); }
+#compass:not(.outside) { opacity: .94; }
+#compass svg { display: block; width: 100%; height: 100%; overflow: visible; }
+#compass .ring { fill: var(--paper); stroke: #2a2433; stroke-width: 3; }
+#compass .ring2 { fill: none; stroke: rgba(185, 130, 14, .55); stroke-width: 1.5; }
+#compass .pt .lt { fill: #5a4a3a; } #compass .pt .dk { fill: #2a2433; }
+#compass .pt-d .lt { fill: var(--gold-hi); } #compass .pt-d .dk { fill: #c48a12; }
+#compass .hub { fill: var(--gold); stroke: #2a2433; stroke-width: 1.5; }
+#compass text { font: 900 11px Nunito, sans-serif; fill: #2a2433; text-anchor: middle; dominant-baseline: central; }
+#compass[data-raid=n] .pt-n .lt, #compass[data-raid=s] .pt-s .lt, #compass[data-raid=e] .pt-e .lt, #compass[data-raid=w] .pt-w .lt { fill: #e0523d; }
+#compass[data-raid=n] .pt-n .dk, #compass[data-raid=s] .pt-s .dk, #compass[data-raid=e] .pt-e .dk, #compass[data-raid=w] .pt-w .dk { fill: var(--red); }
+body:not(.reduce-motion) #compass.warned { animation: compassWarn 1.1s ease-in-out infinite; }
+@keyframes compassWarn { 50% { filter: drop-shadow(0 0 7px rgba(224, 82, 61, .95)); } }
 #map {
   border-radius: 14px; touch-action: manipulation; cursor: pointer;
   box-shadow: 0 0 0 3px #2a2433, 0 0 0 5px rgba(185, 130, 14, .55), 0 0 0 6px rgba(0, 0, 0, .5), var(--shadow-lg);
@@ -527,6 +542,7 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
   .pb.locked .pc { grid-column: 2; }
   #stage { order: 1; }
   #mapWrap { min-height: calc(100vw - 32px); }
+  #compass { width: 46px; height: 46px; }
   #side { order: 3; min-height: 60vh; }
   #hud { position: sticky; top: 0; z-index: 10; padding: .4rem 16px; gap: .4rem; }
   #brand { flex: 1; min-width: 0; }

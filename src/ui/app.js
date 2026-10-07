@@ -8,7 +8,7 @@ import { Game, DIR_NAMES, TAB_NAMES, UNDO_WINDOW } from '../core/game.js';
 import { createState, newSeed, SAVE_VERSION } from '../core/state.js';
 import { loadSave, writeSave, exportCode, importCode, listBackups, restoreBackup, clearSave, BACKUP_SLOTS } from '../core/storage.js';
 import { CONFIG_KEY, KEY_ACTIONS, normalizeConfig, actionForKey, keyLabel } from '../core/config.js';
-import { buildCost, canAfford, kingdomPower, heroMultiplier } from '../core/economy.js';
+import { buildCost, canAfford, kingdomPower, heroStrength, heroPowerOf } from '../core/economy.js';
 import { generateRivals, rivalGrid, encodeKingdom, decodeKingdom } from '../core/social.js';
 import { fmt, fmtTime } from '../core/format.js';
 import { MapRenderer } from './render.js';
@@ -20,7 +20,7 @@ import { ico, resIco } from './icons.js';
 import { showModal, replaceModal, closeModal, confirmModal, runConfirm, toast, modalOpen, modalClosable } from './modals.js';
 import { renderHud, renderPalette, renderTileInfo, renderSide, renderModeHint, hudInfo, lockedTabHint, describeBonus } from './panels.js';
 
-const GAME_VERSION = '0.7.0';
+const GAME_VERSION = '0.10.0';
 const TAB_ORDER = ['reino', 'herois', 'temporada', 'legado', 'social', 'perfil'];
 const FLOAT_COLORS = RES_COLORS;
 
@@ -150,6 +150,18 @@ function drawMenuMap() {
   requestAnimationFrame(() => menuRenderer.draw({ state: { grid: menuGrid } }));
 }
 
+// Rosa dos ventos no canto superior direito do mapa: ao lado dele quando sobra espaço, senão por cima do canto.
+function placeCompass() {
+  const c = $('#compass');
+  const map = $('#map');
+  const wrap = map.parentElement;
+  const right = map.offsetLeft + map.offsetWidth;
+  const outside = wrap.clientWidth - right >= c.offsetWidth + 14;
+  c.classList.toggle('outside', outside);
+  c.style.left = `${outside ? right + 10 : right - c.offsetWidth - 8}px`;
+  c.style.top = `${map.offsetTop + (outside ? 0 : 8)}px`;
+}
+
 function startGame(state, { isNew = false } = {}) {
   if (!ui.game) {
     ui.game = new Game(state);
@@ -159,7 +171,7 @@ function startGame(state, { isNew = false } = {}) {
   }
   setScreen('game');
   if (!ui.renderer) {
-    ui.renderer = new MapRenderer($('#map'), { onTileClick: tileClick, onHover, getConfig: () => ui.config });
+    ui.renderer = new MapRenderer($('#map'), { onTileClick: tileClick, onHover, onResize: placeCompass, getConfig: () => ui.config });
   }
   ui.renderer.resize();
   ui.renderer.selected = null;
@@ -223,6 +235,8 @@ function wireGame() {
     .on('moved', ({ tx, ty }) => { play('build', 0.6); r().pop(tx, ty); })
     .on('undone', ({ id, x, y }) => { play('close'); r().addBurst(x, y, '#d7dde0'); toast(`Obra desfeita (${BUILDINGS[id].name}): custo devolvido por inteiro.`, 'info', 'time'); })
     .on('cleared', ({ x, y, yieldRes }) => { play('chop'); for (const [res, v] of Object.entries(yieldRes)) r().addFloat(x, y, `+${fmt(v)}`, FLOAT_COLORS[res], iconKey(res, FLOAT_COLORS[res])); })
+    .on('planted', ({ x, y }) => { play('build', 0.6); r().addBurst(x, y, '#b2f2bb'); })
+    .on('grown', ({ n }) => toast(n > 1 ? `${n} mudas viraram floresta.` : 'Uma muda virou floresta.', 'good', 'emblem-tree'))
     .on('expanded', ({ ring }) => { play('win'); toast(`Novas terras conquistadas (anel ${ring}).`, 'good', 'map'); })
     .on('raidWarning', ({ name, strength, defense, dir }) => {
       play('warn');
@@ -457,6 +471,7 @@ const ACTIONS = {
     confirmModal(`<h2>${ico('demolish')} Demolir?</h2><p>Você recebe 50% do que gastou de volta.</p>`, () => { result(ui.game.sell(x, y)); ui.renderer.selected = null; renderTileInfo(true); }, { yes: 'Demolir', danger: true });
   },
   clear: () => { const { x, y } = ui.renderer.selected; result(ui.game.clear(x, y)); },
+  plant: () => { const { x, y } = ui.renderer.selected; result(ui.game.plant(x, y)); },
   expand: () => result(ui.game.expand()),
   closeTile: () => { ui.renderer.selected = null; renderTileInfo(true); },
 
@@ -468,6 +483,8 @@ const ACTIONS = {
   expedition: (el) => { const [hid, eid] = el.dataset.arg.split('|'); result(ui.game.startExpedition(hid, eid)); },
   collect: (el) => result(ui.game.collectExpedition(el.dataset.arg)),
   speedup: (el) => result(ui.game.speedUpExpedition(el.dataset.arg)),
+  train: (el) => { if (result(ui.game.trainHero(el.dataset.arg))) play('upgrade'); },
+  speedupTrain: (el) => result(ui.game.speedUpTraining(el.dataset.arg)),
   claimTier: (el) => { if (result(ui.game.claimTier(Number(el.dataset.arg)))) play('coin'); },
   claimAllTiers: () => {
     // Um aviso só no fim (antes eram até 30 toasts seguidos, um por nível).
@@ -778,7 +795,7 @@ function showRecruit(res) {
       <p class="rarity">${rar.name}</p>
       <h2 style="justify-content:center">${h.name}</h2>
       <p>${res.isNew ? 'Novo herói!' : res.gemsRefund ? `Já está no máximo: +${res.gemsRefund} gemas.` : `Repetido! Agora com ${res.stars} estrelas.`}</p>
-      <p class="muted">${describeBonus(h.bonus.type, h.bonus.value * heroMultiplier(res.stars))} · poder ${h.power * res.stars}</p>
+      <p class="muted">${describeBonus(h.bonus.type, h.bonus.value * heroStrength(ui.game.state.heroes.owned[h.id]))} · poder ${heroPowerOf(h, ui.game.state.heroes.owned[h.id])}</p>
       <em>${esc(h.lore)}</em>
     </div><button class="btn big primary" data-action="closeModal" data-autofocus>Bem-vindo(a)!</button>`);
 }
