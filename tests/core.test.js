@@ -875,3 +875,100 @@ test('plantar: muda sobrevive ao código do reino', () => {
   const k = decodeKingdom(encodeKingdom(g.state, 1));
   assert.equal(k.grid.tiles[free].t, 'sapling');
 });
+
+// ---- Subsolo ----
+import { levelOf, underTile, digCost, generateLevel } from '../src/core/underground.js';
+
+function withEntrance(g) {
+  g.state.res.wood = 1000; g.state.res.stone = 1000; g.state.res.gold = 1e6;
+  g.state.stats.built = 20;
+  const free = g.state.grid.tiles.findIndex((t, i) => t.t === 'grass' && !t.b && isUnlocked(g.state.grid, i % GRID_W, Math.floor(i / GRID_W)));
+  const x = free % GRID_W;
+  const y = Math.floor(free / GRID_W);
+  assert.equal(g.build('escadaria', x, y).ok, true);
+  return { x, y };
+}
+
+test('subsolo: geração é determinística e cada nível tem o que promete', () => {
+  const a = generateLevel(42, 3);
+  const b = generateLevel(42, 3);
+  assert.deepEqual(a, b);
+  const types = (lv) => new Set(lv.tiles.map((t) => t.t));
+  assert.ok(types(generateLevel(42, 1)).has('gold'));
+  assert.ok(types(generateLevel(42, 2)).has('cavern'));
+  assert.ok(types(generateLevel(42, 3)).has('magma'));
+  assert.ok(!types(generateLevel(42, 1)).has('magma'));
+});
+
+test('subsolo: Escadaria abre o nível 1 com névoa em volta', () => {
+  const g = freshGame();
+  assert.equal(g.state.under.reached, 0);
+  assert.equal(g.dig(1, 0, 0).ok, false);
+  const { x, y } = withEntrance(g);
+  assert.equal(g.state.under.reached, 1);
+  const t = underTile(g.state, 1, x, y);
+  assert.equal(t.t, 'floor');
+  assert.equal(t.st, 'up');
+  const seen = levelOf(g.state, 1).tiles.filter((tt) => tt.s).length;
+  assert.ok(seen >= 4 && seen < 144);
+});
+
+test('subsolo: cavar custa ouro, rende pedra, abre espaço e fica mais caro', () => {
+  const g = freshGame();
+  const { x, y } = withEntrance(g);
+  const lv = levelOf(g.state, 1);
+  // vizinho ortogonal cavável
+  const nb = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]].find(([a, b]) => a >= 0 && b >= 0 && a < GRID_W && b < GRID_H && ['rock', 'gold', 'gem'].includes(lv.tiles[idx(a, b)].t));
+  assert.ok(nb);
+  const c1 = digCost(g.state, 1, g.econ.mods).gold;
+  const stone = g.state.res.stone;
+  const was = lv.tiles[idx(...nb)].t;
+  assert.equal(g.dig(1, ...nb).ok, true);
+  assert.equal(lv.tiles[idx(...nb)].t, 'floor');
+  if (was === 'rock') assert.equal(g.state.res.stone, stone + 12);
+  assert.ok(digCost(g.state, 1, g.econ.mods).gold >= c1);
+  // não dá para cavar longe de uma galeria
+  const far = lv.tiles.findIndex((t, i) => t.t === 'rock' && Math.abs((i % GRID_W) - x) > 3 && Math.abs(Math.floor(i / GRID_W) - y) > 3);
+  lv.tiles[far].s = true;
+  assert.equal(g.dig(1, far % GRID_W, Math.floor(far / GRID_W)).ok, false);
+});
+
+test('subsolo: escada desce de nível e salas produzem', () => {
+  const g = freshGame();
+  const { x, y } = withEntrance(g);
+  // galeria vizinha para a sala
+  const lv = levelOf(g.state, 1);
+  const nb = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]].find(([a, b]) => a >= 0 && b >= 0 && a < GRID_W && b < GRID_H);
+  lv.tiles[idx(...nb)] = { t: 'floor', s: true, b: null };
+  const before = g.econ.rates.stone;
+  assert.equal(g.buildRoom(1, ...nb, 'pedreira_funda').ok, true);
+  assert.ok(g.econ.rates.stone > before);
+  assert.equal(g.buildRoom(1, x, y, 'adega').ok, false); // escada ocupa o tile
+  assert.equal(g.buildRoom(1, ...nb, 'adega').ok, false); // já tem sala
+  assert.equal(g.upgradeRoom(1, ...nb).ok, true);
+  assert.equal(underTile(g.state, 1, ...nb).b.lvl, 2);
+  // Garimpo exige veio de ouro ao lado; Forja só no nível 3
+  assert.equal(g.buildRoom(1, ...nb, 'forja').ok, false);
+  // escada para o nível 2
+  assert.equal(g.sellRoom(1, ...nb).ok, true);
+  assert.equal(g.digStairs(1, ...nb).ok, true);
+  assert.equal(g.state.under.reached, 2);
+  assert.equal(underTile(g.state, 2, ...nb).st, 'up');
+  assert.equal(underTile(g.state, 1, ...nb).st, 'down');
+});
+
+test('subsolo: Adega aumenta o armazém de comida e saves antigos ganham subsolo', () => {
+  const g = freshGame();
+  const { x, y } = withEntrance(g);
+  const lv = levelOf(g.state, 1);
+  const nb = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]].find(([a, b]) => a >= 0 && b >= 0 && a < GRID_W && b < GRID_H);
+  lv.tiles[idx(...nb)] = { t: 'floor', s: true, b: null };
+  const cap = g.econ.caps.food;
+  assert.equal(g.buildRoom(1, ...nb, 'adega').ok, true);
+  assert.equal(g.econ.caps.food, cap + 500);
+  const data = JSON.parse(serialize(g.state));
+  delete data.under;
+  const st = deserialize(JSON.stringify(data));
+  assert.equal(st.under.levels.length, 3);
+  assert.equal(st.under.reached, 0);
+});

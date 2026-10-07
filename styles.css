@@ -284,6 +284,14 @@ body:not(.reduce-motion) .pb.focus { animation: glow 1s infinite alternate; }
 /* rosa dos ventos: o lado da próxima horda fica vermelho e pulsa quando ela é anunciada */
 #compass { position: absolute; top: 0; left: 0; z-index: 3; width: 60px; height: 60px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .4)); transition: transform .15s var(--ease); }
 #compass:hover { transform: scale(1.06); }
+/* Níveis do subsolo: coluna de botões no canto superior esquerdo do mapa. */
+#layers { position: absolute; z-index: 3; display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 12px; background: rgba(31, 29, 39, .82); box-shadow: 0 3px 8px rgba(0, 0, 0, .35); }
+#layers[hidden] { display: none; }
+#layers button { width: 38px; height: 34px; display: grid; place-items: center; border: 0; border-radius: 9px; background: var(--ink3); color: var(--paper); font: 800 14px Nunito, sans-serif; cursor: pointer; }
+#layers button:hover { background: #4a4657; }
+#layers button.on { background: var(--gold); color: var(--ink); }
+#layers button .ico { width: 18px; height: 18px; }
+body[data-layer="1"] #map, body[data-layer="2"] #map, body[data-layer="3"] #map { box-shadow: 0 0 0 3px #5b4a3a, 0 10px 30px rgba(0, 0, 0, .5); }
 #compass:not(.outside) { opacity: .94; }
 #compass svg { display: block; width: 100%; height: 100%; overflow: visible; }
 #compass .ring { fill: var(--paper); stroke: #2a2433; stroke-width: 3; }
@@ -314,6 +322,10 @@ body[data-mode=build] #map, body[data-mode=move] #map { cursor: crosshair; }
 .dots i.on { background: var(--gold-text); }
 body:not(.reduce-motion) #tutorial.advance { animation: pop .45s var(--ease-back); }
 #modeHint, #visitBar { position: absolute; top: 0; left: 0; right: 0; z-index: 5; box-shadow: 0 0 0 1px rgba(60, 40, 0, .16), var(--shadow); }
+/* a dica deixa o mouse chegar ao mapa por baixo dela (só o botão é clicável) e foge do tile apontado */
+#modeHint { pointer-events: none; }
+#modeHint .btn { pointer-events: auto; }
+#modeHint.flip { top: auto; bottom: 0; }
 #modeHint img { filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .2)); }
 #modeHint .btn, #visitBar .btn { margin-left: auto; }
 body:not(.reduce-motion) #modeHint:not([hidden]), body:not(.reduce-motion) #visitBar:not([hidden]) { animation: drop .22s var(--ease); }
@@ -394,6 +406,8 @@ body:not(.reduce-motion) .dot::after { content: ''; position: absolute; inset: 0
 .hero small { display: block; color: var(--muted); font-size: .8rem; }
 .hero em { display: block; font-size: .78rem; color: var(--muted); margin-top: .1rem; }
 .hero .row { margin-bottom: 0; }
+.hero > div { min-width: 0; } /* sem isso, um botão largo estica a coluna e corta o card */
+.btn.wrap { white-space: normal; flex-wrap: wrap; max-width: 100%; row-gap: .1rem; }
 .rar { color: var(--rc); font: 800 .66rem Nunito; text-transform: uppercase; letter-spacing: .08em; display: block; }
 .stars { color: var(--lendario); display: inline-flex; gap: 1px; vertical-align: -2px; }
 .stars .ico { width: .9rem; height: .9rem; }
@@ -552,6 +566,7 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
   #hud-status .status { flex: 1 1 auto; }
   /* Dica de construção fixa no rodapé: não cobre o mapa nem muda a posição dos tiles entre os toques. */
   #modeHint { position: fixed; top: auto; bottom: 8px; left: 8px; right: 8px; z-index: 40; }
+  #modeHint.flip { top: 8px; bottom: auto; }
   #toasts { top: 8px; bottom: auto; left: 8px; right: 8px; width: auto; transform: none; flex-direction: column; }
   /* recursos: rolagem lateral com esmaecimento na borda indicando que há mais */
   #hud-res { order: 3; flex-basis: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-mask: linear-gradient(90deg, #000 88%, transparent); mask: linear-gradient(90deg, #000 88%, transparent); padding-right: 1.5rem; }
@@ -620,3 +635,9 @@ body:not(.reduce-motion) .as-tile, body:not(.reduce-motion) .as-combo { animatio
 .runs .rn { font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
 .runs small { display: block; color: var(--muted); font-size: .76rem; }
 @media (max-width: 640px) { .as-grid { grid-template-columns: repeat(2, 1fr); } .as-crowns { font-size: 2.1rem; } }
+
+/* Salas do subsolo no painel do tile */
+#tileInfo .rooms { display: grid; gap: 6px; margin-top: 4px; }
+#tileInfo .btn.room { display: flex; align-items: center; gap: 8px; justify-content: flex-start; text-align: left; width: 100%; }
+#tileInfo .btn.room img { width: 34px; height: 34px; object-fit: contain; flex: none; }
+#tileInfo .btn.room em { font-style: normal; font-weight: 800; }

@@ -138,11 +138,18 @@ export const BUILDINGS = {
     happiness: 8, globalGold: 0.05, adj: {}, maxLevel: 1,
     unlock: { buildings: 12 },
   },
+  escadaria: {
+    id: 'escadaria', name: 'Escadaria', category: 'economia',
+    desc: 'Desce para o subsolo: lá embaixo dá para cavar pedra, achar veios de ouro e gemas e abrir salas.',
+    cost: { wood: 80, stone: 40 }, workers: 0,
+    adj: {}, maxLevel: 1,
+    unlock: { buildings: 5 },
+  },
 };
 
 export const BUILDING_ORDER = [
   'casa', 'fazenda', 'serraria', 'pedreira', 'mercado', 'moinho', 'armazem',
-  'taverna', 'muralha', 'torre', 'quartel', 'mina', 'templo', 'jardim', 'fogueira', 'estatua',
+  'taverna', 'muralha', 'torre', 'quartel', 'mina', 'templo', 'jardim', 'fogueira', 'estatua', 'escadaria',
 ];
 
 export const MAX_LEVEL = 10;

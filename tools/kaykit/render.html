@@ -11,10 +11,24 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 const UNIT = 2;
 const loader = new GLTFLoader();
 const cache = new Map();
+// 'dg/...' = KayKit Dungeon Remastered (arquivos .glb, nome completo); o resto = Medieval Hexagon (.gltf).
 const load = (path) => {
-  if (!cache.has(path)) cache.set(path, new Promise((res, rej) => loader.load(`/kk/${path}.gltf`, (g) => res(g.scene), undefined, rej)));
+  const url = path.startsWith('dg/') ? `/${path}` : `/kk/${path}.gltf`;
+  if (!cache.has(path)) cache.set(path, new Promise((res, rej) => loader.load(url, (g) => res(g.scene), undefined, rej)));
   return cache.get(path).then((s) => s.clone(true));
 };
+
+// Cor por cima da textura (veios de ouro e gemas, fungos). flat: tira a textura e usa só a cor.
+function tint(o, part) {
+  if (!part.tint) return;
+  o.traverse((x) => {
+    if (!x.isMesh) return;
+    x.material = x.material.clone();
+    x.material.color.set(part.tint);
+    if (part.flat) x.material.map = null;
+    if (part.glow) { x.material.emissive = new THREE.Color(part.tint); x.material.emissiveIntensity = part.glow; }
+  });
+}
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
 renderer.setClearColor(0x000000, 0);
@@ -67,8 +81,10 @@ async function buildGroup(spec) {
     s.add(slab);
     for (const part of spec.parts ?? []) {
       const o = await load(part.model);
-      o.position.set(part.x ?? 0, 0, part.z ?? 0);
+      o.position.set(part.x ?? 0, part.y ?? 0, part.z ?? 0);
+      o.rotation.y = ((part.rot ?? 0) * Math.PI) / 180;
       o.scale.setScalar(part.scale ?? 1);
+      tint(o, part);
       s.add(o);
     }
     return s;
@@ -78,6 +94,7 @@ async function buildGroup(spec) {
     o.position.set(part.x ?? 0, part.y ?? 0, part.z ?? 0);
     o.rotation.y = ((part.rot ?? 0) * Math.PI) / 180;
     o.scale.setScalar(part.scale ?? 1);
+    tint(o, part);
     if (part.keep) {
       // Mantém só a parte do modelo dentro do retângulo [x0, x1, z0, z1] (unidades do KayKit, centro do tile = 0).
       const [x0, x1, z0, z1] = part.keep;

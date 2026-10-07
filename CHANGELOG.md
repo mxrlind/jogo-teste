@@ -2,7 +2,7 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
-## [0.11.0] — 2026-10-07
+## [0.12.0] — 2026-10-07
 ### Corrigido
 - **Moradores sumiam com "Reduzir movimento"**: a vila inteira ficava escondida quando essa opção estava ligada, e o jogo a liga sozinho se o celular ou o computador estiver com "reduzir movimento" no sistema. Agora os moradores têm uma opção própria, **Moradores andando pelo mapa** (ligada por padrão), separada de "Partículas e números flutuantes".
 
@@ -12,6 +12,18 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
 ### Mudou
 - Moradores um terço maiores, para acompanhar os prédios do KayKit.
+
+## [0.11.1] — 2026-10-07
+### Corrigido
+- Com o mapa todo expandido, a dica de construção cobria a primeira fileira de tiles. Agora o mouse e o toque passam por baixo dela (só o botão Cancelar é clicável) e, quando o tile apontado fica embaixo da dica, ela pula para a borda oposta. Vale no desktop (topo/rodapé do mapa) e no celular (rodapé/topo da tela).
+
+## [0.11.0] — 2026-10-07
+### Adicionado
+- **Subsolo** no estilo Dwarf Fortress. A **Escadaria** (prédio novo, libera com 5 construções) abre o primeiro nível bem embaixo dela, e botões no canto do mapa trocam entre a superfície e os níveis descobertos. Toda a geração de superfície continua igual; só a pedra ganha a parte de baixo.
+- **Três níveis**, cada um com névoa: só se vê o que está encostado numa galeria. **Galerias** (veios de ouro e aquíferos), **Cavernas** (cavernas naturais, gemas) e **Profundezas** (magma, mais ouro e gemas). Cavar custa ouro, que sobe a cada tile cavado e a cada nível, e rende pedra, ouro ou gemas conforme o tile. Encostar numa caverna revela a caverna inteira de uma vez. Uma escada cavada numa galeria desce para o nível de baixo.
+- **Salas** construídas no chão cavado, sem usar moradores: **Pedreira Funda** (pedra, +15% por parede vizinha), **Adega** (mais armazém de comida e +5% de comida por nível, como o porão do Going Medieval), **Garimpo** (ouro, precisa de um veio de ouro ao lado, +50% por veio a mais), **Horta de Fungos** (comida, só em caverna, +25% por aquífero vizinho) e **Forja de Magma** (+10% de toda a produção por nível, precisa de magma ao lado). Cada uma sobe até o nível 5 (a forja até o 3).
+- Saves antigos ganham o subsolo do próprio mapa, ainda fechado.
+- Sprites do subsolo e da Escadaria renderizados do **KayKit Dungeon Remastered** e do Medieval Hexagon (ambos CC0) por `tools/render-kaykit.mjs`, que agora aceita a pasta do Dungeon como segundo argumento e `--only=` para gerar só alguns sprites.
 
 ## [0.10.0] — 2026-10-07
 ### Adicionado

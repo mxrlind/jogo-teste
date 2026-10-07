@@ -15,6 +15,10 @@ import {
   councilSlots, recruitCost, rollHero, addHero, expeditionReward, speedUpCost, heroLevelCap, trainingSlots, trainingCount, trainCost, trainSeconds,
 } from './heroes.js';
 import { generateRivals } from './social.js';
+import { DEPTHS, UNDER_TILES, ROOMS, LEVEL_NAMES } from '../data/underground.js';
+import {
+  levelOf, openAt, revealAround, canReach, digCost, digYield, stairsCost, roomCost, roomUpgradeCost, roomAdjacency, isOpen,
+} from './underground.js';
 import { dayKey, randInt } from './rng.js';
 
 export const OFFLINE_THRESHOLD = 30; // s sem tick = sessão offline
@@ -332,12 +336,15 @@ export class Game {
     pay(s.res, cost);
     tile.b = { id, lvl: 1 };
     s.stats.built++;
+    if (id === 'escadaria') this.openEntrance(x, y);
     this.econ = computeEconomy(s, this.now);
     this.track('build');
     this.lastBuild = {
       id, x, y, cost, at: this.now, xp: s.season.xp - xpBefore, missions, guard: this.undoGuard(),
       tutorial: { ...s.tutorial }, achs: Object.keys(s.achievements), titles: [...s.cosmetics.titles], title: s.kingdom.title,
     };
+    // A Escadaria já abriu o subsolo: desfazer não fecharia o buraco, então não há desfazer.
+    if (id === 'escadaria') this.lastBuild = null;
     this.emit('built', { id, x, y });
     return { ok: true };
   }
@@ -445,6 +452,130 @@ export class Game {
     this.econ = computeEconomy(s, now);
     this.emit('grown', { n: grown });
     return grown;
+  }
+
+  // ------------------------------------------------------------ subsolo (src/data/underground.js)
+  underTile(d, x, y) {
+    return levelOf(this.state, d).tiles[idx(x, y)];
+  }
+
+  // A Escadaria abre o nível 1 bem embaixo dela.
+  openEntrance(x, y) {
+    const s = this.state;
+    const first = s.under.reached < 1;
+    openAt(levelOf(s, 1), x, y, 'up');
+    s.under.reached = Math.max(1, s.under.reached);
+    if (first) {
+      this.log('A Escadaria abriu caminho para o subsolo: as Galerias.', 'tool-pickaxe');
+      this.emit('underOpened', { d: 1 });
+    }
+  }
+
+  underCheck(d, x, y) {
+    const s = this.state;
+    if (!(d >= 1 && d <= s.under.reached)) return 'Nível ainda não descoberto';
+    if (!this.underTile(d, x, y).s) return 'Ainda não dá para ver o que tem ali';
+    return null;
+  }
+
+  dig(d, x, y) {
+    const s = this.state;
+    this.lastBuild = null;
+    const err = this.underCheck(d, x, y);
+    if (err) return { ok: false, reason: err };
+    const lv = levelOf(s, d);
+    const t = lv.tiles[idx(x, y)];
+    const def = UNDER_TILES[t.t];
+    if (!def.dig) return { ok: false, reason: `Não dá para cavar ${def.name.toLowerCase()}` };
+    if (!canReach(lv, x, y)) return { ok: false, reason: 'Cave a partir de uma galeria vizinha' };
+    const cost = digCost(s, d, this.econ.mods);
+    if (!canAfford(s.res, cost)) return { ok: false, reason: 'Recursos insuficientes' };
+    pay(s.res, cost);
+    const was = t.t;
+    const gain = digYield(was, d);
+    for (const [r, v] of Object.entries(gain)) s.res[r] = (s.res[r] || 0) + v;
+    t.t = 'floor';
+    const cavern = revealAround(lv, x, y);
+    s.stats.dug = (s.stats.dug || 0) + 1;
+    this.econ = computeEconomy(s, this.now);
+    this.track('clear');
+    if (cavern) this.log(`Os mineiros romperam uma caverna no nível ${d}!`, 'tool-pickaxe');
+    this.emit('dug', { d, x, y, was, yieldRes: gain, cavern });
+    return { ok: true };
+  }
+
+  digStairs(d, x, y) {
+    const s = this.state;
+    this.lastBuild = null;
+    const err = this.underCheck(d, x, y);
+    if (err) return { ok: false, reason: err };
+    if (d >= DEPTHS) return { ok: false, reason: 'Não há nada mais fundo que isso' };
+    const t = this.underTile(d, x, y);
+    if (!isOpen(t) || t.b || t.st) return { ok: false, reason: 'Precisa de uma galeria vazia' };
+    const cost = stairsCost(d);
+    if (!canAfford(s.res, cost)) return { ok: false, reason: 'Recursos insuficientes' };
+    pay(s.res, cost);
+    t.st = 'down';
+    const first = s.under.reached < d + 1;
+    const cavern = openAt(levelOf(s, d + 1), x, y, 'up');
+    s.under.reached = Math.max(s.under.reached, d + 1);
+    if (first) this.log(`Uma escada desceu até um nível novo: ${LEVEL_NAMES[d]}.`, 'tool-pickaxe');
+    this.econ = computeEconomy(s, this.now);
+    this.emit('stairs', { d, x, y, first, cavern });
+    return { ok: true };
+  }
+
+  buildRoom(d, x, y, id) {
+    const s = this.state;
+    this.lastBuild = null;
+    const def = ROOMS[id];
+    if (!def) return { ok: false, reason: 'Sala desconhecida' };
+    const err = this.underCheck(d, x, y);
+    if (err) return { ok: false, reason: err };
+    if (d < def.minDepth) return { ok: false, reason: `Só existe a partir do nível ${def.minDepth}` };
+    const t = this.underTile(d, x, y);
+    if (!isOpen(t) || t.b || t.st) return { ok: false, reason: 'Precisa de uma galeria vazia' };
+    if (def.onTile ? t.t !== def.onTile : t.t !== 'floor') return { ok: false, reason: def.onTile ? `Só dá em ${UNDER_TILES[def.onTile].name.toLowerCase()}` : 'Só dá em galeria cavada' };
+    if (!roomAdjacency(levelOf(s, d), id, x, y).hasRequired) return { ok: false, reason: `Precisa estar encostada em ${UNDER_TILES[def.requiresAdj].name.toLowerCase()}` };
+    const cost = roomCost(s, id, this.econ.mods);
+    if (!canAfford(s.res, cost)) return { ok: false, reason: 'Recursos insuficientes' };
+    pay(s.res, cost);
+    t.b = { id, lvl: 1 };
+    this.econ = computeEconomy(s, this.now);
+    this.track('build');
+    this.emit('roomBuilt', { d, x, y, id });
+    return { ok: true };
+  }
+
+  upgradeRoom(d, x, y) {
+    const s = this.state;
+    this.lastBuild = null;
+    const t = this.underTile(d, x, y);
+    if (!t.b) return { ok: false, reason: 'Nada para melhorar' };
+    const cost = roomUpgradeCost(t.b.id, t.b.lvl, this.econ.mods);
+    if (!cost) return { ok: false, reason: 'Nível máximo' };
+    if (!canAfford(s.res, cost)) return { ok: false, reason: 'Recursos insuficientes' };
+    pay(s.res, cost);
+    t.b.lvl++;
+    s.stats.upgrades++;
+    this.econ = computeEconomy(s, this.now);
+    this.track('upgrade');
+    this.emit('roomUpgraded', { d, x, y, lvl: t.b.lvl });
+    return { ok: true };
+  }
+
+  sellRoom(d, x, y) {
+    const s = this.state;
+    this.lastBuild = null;
+    const t = this.underTile(d, x, y);
+    if (!t.b) return { ok: false, reason: 'Nada para demolir' };
+    const { id, lvl } = t.b;
+    t.b = null;
+    refund(s.res, roomCost(s, id, this.econ.mods), SELL_REFUND);
+    for (let l = 1; l < lvl; l++) refund(s.res, roomUpgradeCost(id, l, this.econ.mods) || {}, SELL_REFUND);
+    this.econ = computeEconomy(s, this.now);
+    this.emit('sold', { id, x, y, name: ROOMS[id].name });
+    return { ok: true };
   }
 
   expandCost() {

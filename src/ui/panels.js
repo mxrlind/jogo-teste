@@ -8,16 +8,18 @@ import { BANNERS, EMBLEMS } from '../data/cosmetics.js';
 import { EVENT_BY_ID } from '../data/events.js';
 import { TUTORIAL, TAB_UNLOCKS, TAB_NAMES, DIR_NAMES } from '../core/game.js';
 import { buildCost, upgradeCost, canAfford, kingdomPower, heroStrength, heroPowerOf, storageMult, countOf, defenseWeight, wallFacing, maxLevelOf } from '../core/economy.js';
-import { idx, isUnlocked, ringOf, wallMask } from '../core/map.js';
+import { idx, isUnlocked, ringOf, wallMask, GRID_H } from '../core/map.js';
 import { seasonInfo, tierOf, missionText, rewardFor } from '../core/season.js';
 import {
   councilSlots, recruitGoldCost, speedUpCost, tavernDiscount, heroLevelCap, trainingSlots, trainingCount, trainCost,
 } from '../core/heroes.js';
 import { fmt, fmtRate, fmtPct, fmtTime } from '../core/format.js';
-import { BUILDING_SPRITES, TERRAIN_SPRITES } from './sprites.js';
+import { UNDER_SPRITES, ROOM_SPRITES, BUILDING_SPRITES, TERRAIN_SPRITES } from './sprites.js';
 import { ui, $, esc, costHtml, bannerColor, emblemIcon, deltaText } from './ctx.js';
 import { ico, resIco } from './icons.js';
 import { runHistoryHtml } from './ascension.js';
+import { UNDER_TILES, ROOMS, ROOM_ORDER, LEVEL_NAMES } from '../data/underground.js';
+import { digCost, digYield, canReach, stairsCost, roomCost, roomUpgradeCost, roomAdjacency } from '../core/underground.js';
 
 const spriteOf = (id) => BUILDING_SPRITES[id]?.icon;
 const touchUi = () => window.matchMedia?.('(pointer: coarse)').matches ?? false;
@@ -180,6 +182,20 @@ export function renderModeHint() {
     el.hidden = false;
     setHtml(el, `${ico('move')}<span>Escolha o novo lugar (mover é grátis).</span><button class="btn small" data-action="cancelMode">Cancelar</button>`);
   } else el.hidden = true;
+  dodgeModeHint(el);
+}
+
+// Com o mapa todo expandido a dica cobre a fileira da borda: se o tile sob o cursor
+// (ou o último toque) ficar embaixo dela, ela pula para a borda oposta.
+function dodgeModeHint(el) {
+  el.classList.remove('flip');
+  const t = ui.renderer.hover;
+  if (el.hidden || !t) return;
+  const c = ui.renderer.canvas.getBoundingClientRect();
+  const size = c.height / GRID_H;
+  const top = c.top + t.y * size, bottom = top + size;
+  const h = el.getBoundingClientRect();
+  if (bottom > h.top && top < h.bottom) el.classList.add('flip');
 }
 
 // ================================================================ paleta
@@ -215,6 +231,68 @@ export function renderPalette(force = false) {
 }
 
 // ================================================================ painel do tile
+// Painel de um tile do subsolo: o que é, o que dá para fazer ali e quanto custa.
+function underTileHtml(g, d, x, y) {
+  const s = g.state;
+  const lv = s.under.levels[d - 1];
+  const t = lv.tiles[idx(x, y)];
+  const where = `<small class="muted">Nível ${d} · ${LEVEL_NAMES[d - 1]}</small>`;
+  if (!t.s) return `<div class="title-row">${ico('hero-dwarf', 'lg')}<h3>${where}Escuridão</h3></div><p class="muted">Ninguém sabe o que tem aqui. Cave galerias até chegar perto para descobrir.</p>`;
+  const kind = UNDER_TILES[t.t];
+  if (t.b) {
+    const def = ROOMS[t.b.id];
+    const info = g.econ.under?.[d - 1]?.[idx(x, y)];
+    const up = roomUpgradeCost(t.b.id, t.b.lvl, g.econ.mods);
+    const adj = info?.adjParts.length
+      ? info.adjParts.map((p) => `<li class="pos">${ROOMS[p.key]?.name ?? UNDER_TILES[p.key]?.name ?? 'Parede'} ${fmtPct(p.value)}</li>`).join('')
+      : '<li class="muted">Nenhum vizinho com bônus</li>';
+    const lines = [];
+    for (const [r, v] of Object.entries(info?.out ?? {})) lines.push(`${resIco(r)} ${fmtRate(v)}`);
+    if (def.storage) for (const [r, v] of Object.entries(def.storage)) lines.push(`${resIco(r)} +${fmt(v * t.b.lvl * t.b.lvl)} de armazém`);
+    if (def.foodBonus) lines.push(`${resIco('food')} +${Math.round(def.foodBonus * t.b.lvl * 100)}% de comida no reino`);
+    if (def.prodAll && info?.active) lines.push(`${ico('upgrade')} +${Math.round(def.prodAll * t.b.lvl * 100)}% de toda a produção`);
+    const warn = info && !info.active ? `<p class="warn">${ico('warning')} Precisa estar encostada em ${UNDER_TILES[def.requiresAdj].name.toLowerCase()}.</p>` : '';
+    return `<div class="title-row"><img src="${ROOM_SPRITES[t.b.id].icon}" alt=""><h3><small class="muted">Nível ${t.b.lvl} de ${def.maxLevel} · subsolo ${d}</small>${def.name}</h3></div>
+      <p class="muted">${esc(def.desc)}</p>${warn}
+      <div class="lbl"><span>Produção</span></div>
+      <div class="stats">${lines.map((l) => `<span>${l}</span>`).join('')}</div>
+      ${Object.keys(def.adj).length ? `<div class="lbl"><span>Vizinhos</span><span class="${info?.adjBonus > 0 ? 'pos' : ''}">${fmtPct(info?.adjBonus ?? 0)}</span></div><ul class="adj">${adj}</ul>` : ''}
+      ${up ? `<div class="row"><button class="btn ${canAfford(s.res, up) ? 'primary' : 'poor'}" data-action="roomUp">${ico('upgrade')} Melhorar ${costHtml(up, s.res)}</button></div>` : '<p class="muted">Nível máximo.</p>'}
+      <hr class="divider"><div class="row"><button class="btn small danger" data-action="roomSell">${ico('demolish')} Demolir</button></div>`;
+  }
+  let html = `<div class="title-row"><img src="${UNDER_SPRITES[t.t][0]}" alt=""><h3>${where}${t.st ? (t.st === 'down' ? 'Escada para baixo' : 'Escada para cima') : kind.name}</h3></div>`;
+  if (t.st) {
+    const to = t.st === 'down' ? d + 1 : d - 1;
+    return `${html}<p class="muted">${t.st === 'down' ? `Leva às ${LEVEL_NAMES[d].toLowerCase()}.` : to === 0 ? 'Leva de volta à superfície, pela Escadaria.' : `Leva às ${LEVEL_NAMES[to - 1].toLowerCase()}.`}</p>
+      <button class="btn primary" data-action="goLayer" data-arg="${to}">${ico('move')} ${t.st === 'down' ? 'Descer' : 'Subir'}</button>`;
+  }
+  html += `<p class="muted">${esc(kind.desc)}</p>`;
+  if (kind.dig) {
+    const cost = digCost(s, d, g.econ.mods);
+    const reach = canReach(lv, x, y);
+    html += reach
+      ? `<button class="btn ${canAfford(s.res, cost) ? 'primary' : 'poor'}" data-action="dig">${ico('tool-pickaxe')} Cavar ${costHtml(cost, s.res)}, ganha ${costHtml(digYield(t.t, d))}</button>`
+      : '<p class="warn">Cave a partir de uma galeria vizinha (de lado, não na diagonal).</p>';
+    return html;
+  }
+  if (!kind.open) return html;
+  const rooms = ROOM_ORDER.filter((id) => ROOMS[id].minDepth <= d && (ROOMS[id].onTile ? t.t === ROOMS[id].onTile : t.t === 'floor'));
+  if (rooms.length) {
+    html += '<div class="lbl"><span>Construir sala</span></div><div class="rooms">';
+    for (const id of rooms) {
+      const def = ROOMS[id];
+      const cost = roomCost(s, id, g.econ.mods);
+      const adj = roomAdjacency(lv, id, x, y);
+      const why = adj.hasRequired ? '' : ` (precisa de ${UNDER_TILES[def.requiresAdj].name.toLowerCase()} ao lado)`;
+      html += `<button class="btn small room ${adj.hasRequired && canAfford(s.res, cost) ? '' : 'poor'}" data-action="room" data-arg="${id}" title="${esc(def.desc)}${why}"><img src="${ROOM_SPRITES[id].icon}" alt=""><span><b>${def.name}</b>${adj.hasRequired ? (adj.total ? ` <em class="pos">${fmtPct(adj.total)}</em>` : '') : ' <em class="neg">sem vizinho certo</em>'}<br>${costHtml(cost, s.res)}</span></button>`;
+    }
+    html += '</div>';
+  } else if (t.t === 'cavern' && d < 2) html += '<p class="muted">Nada para construir aqui.</p>';
+  const stairs = stairsCost(d);
+  if (stairs) html += `<hr class="divider"><button class="btn small ${canAfford(s.res, stairs) ? '' : 'poor'}" data-action="digStairs">${ico('tool-pickaxe')} Cavar escada para o nível ${d + 1} ${costHtml(stairs, s.res)}</button>`;
+  return html;
+}
+
 function outputLines(info, def, tileX, tileY) {
   const lines = [];
   for (const [r, v] of Object.entries(info.out || {})) lines.push(`${resIco(r)} ${fmtRate(v)}`);
@@ -244,7 +322,9 @@ export function renderTileInfo(force = false) {
   const tile = s.grid.tiles[idx(sel.x, sel.y)];
   const unlocked = isUnlocked(s.grid, sel.x, sel.y);
   let html = '';
-  if (!unlocked) {
+  if (ui.renderer.layer > 0) {
+    html = underTileHtml(g, ui.renderer.layer, sel.x, sel.y);
+  } else if (!unlocked) {
     const cost = g.expandCost();
     const nextRing = ringOf(sel.x, sel.y) === s.grid.ring + 1;
     html = `<div class="title-row">${ico('map', 'lg')}<h3>Terra desconhecida</h3></div><p>Expanda o reino para conquistar o próximo anel de terra.</p>
@@ -287,7 +367,7 @@ export function renderTileInfo(force = false) {
   if (!force && full === tileSig) return;
   tileSig = full;
   // Anima só quando abre ou troca de tile (não a cada atualização de números).
-  const key = `${sel.x},${sel.y}`;
+  const key = `${ui.renderer.layer}:${sel.x},${sel.y}`;
   const fresh = el.hidden || el.dataset.tile !== key;
   el.dataset.tile = key;
   el.hidden = false;
@@ -412,7 +492,7 @@ function tabHerois() {
     if (lvl >= HERO_MAX_LEVEL) return '';
     if (lvl >= cap) return `<p class="muted">${ico('lock')} Melhore o Quartel para treinar além do nível ${cap}.</p>`;
     const cost = trainCost(h, lvl);
-    return `<div class="row"><button class="btn small ${!busy && canAfford(s.res, cost) ? '' : 'poor'}" data-action="train" data-arg="${h.id}" ${busy ? 'title="Quartel ocupado"' : ''}>${ico('swords')} Treinar para o nível ${lvl + 1} ${costHtml(cost, s.res)}</button></div>`;
+    return `<div class="row"><button class="btn small wrap ${!busy && canAfford(s.res, cost) ? '' : 'poor'}" data-action="train" data-arg="${h.id}" ${busy ? 'title="Quartel ocupado"' : ''}>${ico('swords')} Treinar: nível ${lvl + 1} ${costHtml(cost, s.res)}</button></div>`;
   };
   const card = (h) => {
     const o = s.heroes.owned[h.id];
@@ -424,7 +504,7 @@ function tabHerois() {
       exp = left <= 0
         ? `<button class="btn small primary" data-action="collect" data-arg="${h.id}">${ico('check')} Coletar: ${ex.name}</button>`
         : `<div class="row">${ico('expedition')} ${ex.name} · ${fmtTime(left)} <button class="btn small" data-action="speedup" data-arg="${h.id}">${ico('speedup')} Acelerar (${speedUpCost(left)} ${resIco('gems')})</button></div>`;
-    } else if (!inCouncil) {
+    } else if (!inCouncil && !o.training) {
       exp = `<div class="lbl"><span>Enviar em expedição</span></div><div class="row">${EXPEDITIONS.map((x) => `<button class="btn small" data-action="expedition" data-arg="${h.id}|${x.id}" title="${x.name}" aria-label="${x.name}, ${fmtTime(x.duration)}">${ico('expedition')} ${fmtTime(x.duration)}</button>`).join('')}</div>`;
     }
     return `<div class="hero" style="--rc:var(--${h.rarity})">
