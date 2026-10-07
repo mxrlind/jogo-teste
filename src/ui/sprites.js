@@ -20,6 +20,8 @@ const GRASS = [k('grass-1'), k('grass-2')];
 export const TERRAIN_SPRITES = {
   grass: { base: GRASS, icon: k('grass-1') },
   forest: { base: GRASS, over: [k('forest-1'), k('forest-2'), k('forest-3'), k('forest-4')], icon: k('icon-forest-1') },
+  // Muda: o desenho troca de estágio com o tempo (saplingSprite); `over` é o primeiro estágio.
+  sapling: { base: GRASS, over: [k('sapling-1')], stages: [k('sapling-1'), k('sapling-2')], icon: k('icon-sapling-1') },
   rock: { base: GRASS, over: [k('rock-1'), k('rock-2')], icon: k('icon-rock-1') },
   water: { base: [k('water-1'), k('water-2')], icon: k('water-1') },
   mountain: { base: GRASS, over: [k('mountain-1'), k('mountain-2')], icon: k('icon-mountain-1') },
@@ -45,6 +47,13 @@ export const BUILDING_SPRITES = {
   fogueira: building('fogueira'), // poço do KayKit (o nome Fogueira vem da época do Medieval RTS)
   estatua: building('estatua'),
 };
+
+// Estágio da muda: pequena na 1ª metade do crescimento, árvores jovens na 2ª.
+export function saplingSprite(tile, now, growSeconds) {
+  const stages = TERRAIN_SPRITES.sapling.stages;
+  const p = (now - (tile.p ?? 0)) / 1000 / growSeconds;
+  return stages[p < 0.5 ? 0 : 1];
+}
 
 export const LOCKED_OVERLAY = 'rgba(20, 22, 32, 0.62)';
 
@@ -73,7 +82,7 @@ export const TOOL_ICONS = ['clear', 'hero-woodcutter', 'tool-pickaxe'];
 
 export function allSpriteUrls() {
   const urls = new Set();
-  for (const v of Object.values(TERRAIN_SPRITES)) [...v.base, ...(v.over || [])].forEach((u) => urls.add(u));
+  for (const v of Object.values(TERRAIN_SPRITES)) [...v.base, ...(v.over || []), ...(v.stages || [])].forEach((u) => urls.add(u));
   for (const v of Object.values(BUILDING_SPRITES)) { urls.add(v.src); if (v.blades) urls.add(v.blades.src); }
   [CART_SPRITE, ...RAIDER_SPRITES, ...SLEEPER_SPRITES].forEach((x) => urls.add(x));
   for (const p of Object.values(PROFESSIONS)) urls.add(p.sprite);

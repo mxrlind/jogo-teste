@@ -20,7 +20,7 @@ import { ico, resIco } from './icons.js';
 import { showModal, replaceModal, closeModal, confirmModal, runConfirm, toast, modalOpen, modalClosable } from './modals.js';
 import { renderHud, renderPalette, renderTileInfo, renderSide, renderModeHint, hudInfo, lockedTabHint, describeBonus } from './panels.js';
 
-const GAME_VERSION = '0.7.0';
+const GAME_VERSION = '0.8.0';
 const TAB_ORDER = ['reino', 'herois', 'temporada', 'legado', 'social', 'perfil'];
 const FLOAT_COLORS = RES_COLORS;
 
@@ -223,6 +223,8 @@ function wireGame() {
     .on('moved', ({ tx, ty }) => { play('build', 0.6); r().pop(tx, ty); })
     .on('undone', ({ id, x, y }) => { play('close'); r().addBurst(x, y, '#d7dde0'); toast(`Obra desfeita (${BUILDINGS[id].name}): custo devolvido por inteiro.`, 'info', 'time'); })
     .on('cleared', ({ x, y, yieldRes }) => { play('chop'); for (const [res, v] of Object.entries(yieldRes)) r().addFloat(x, y, `+${fmt(v)}`, FLOAT_COLORS[res], iconKey(res, FLOAT_COLORS[res])); })
+    .on('planted', ({ x, y }) => { play('build', 0.6); r().addBurst(x, y, '#b2f2bb'); })
+    .on('grown', ({ n }) => toast(n > 1 ? `${n} mudas viraram floresta.` : 'Uma muda virou floresta.', 'good', 'emblem-tree'))
     .on('expanded', ({ ring }) => { play('win'); toast(`Novas terras conquistadas (anel ${ring}).`, 'good', 'map'); })
     .on('raidWarning', ({ name, strength, defense, dir }) => {
       play('warn');
@@ -457,6 +459,7 @@ const ACTIONS = {
     confirmModal(`<h2>${ico('demolish')} Demolir?</h2><p>Você recebe 50% do que gastou de volta.</p>`, () => { result(ui.game.sell(x, y)); ui.renderer.selected = null; renderTileInfo(true); }, { yes: 'Demolir', danger: true });
   },
   clear: () => { const { x, y } = ui.renderer.selected; result(ui.game.clear(x, y)); },
+  plant: () => { const { x, y } = ui.renderer.selected; result(ui.game.plant(x, y)); },
   expand: () => result(ui.game.expand()),
   closeTile: () => { ui.renderer.selected = null; renderTileInfo(true); },
 

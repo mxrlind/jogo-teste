@@ -1,11 +1,11 @@
 // Renderizador do mapa em <canvas> com os sprites do KayKit (prédios e natureza) e do Kenney Medieval RTS (moradores).
 // Camadas: chão (em cache, só redesenha quando o mapa muda) -> natureza e prédios, linha a linha de trás para a frente
 // (o que é alto invade o tile de cima) -> território bloqueado -> unidades -> realces -> efeitos.
-import { BUILDINGS, TERRAIN } from '../data/buildings.js';
+import { BUILDINGS, TERRAIN, GROW_SECONDS } from '../data/buildings.js';
 import { GRID_W, GRID_H, idx, isUnlocked, neighbors, ringOf } from '../core/map.js';
 import { adjacencyAt } from '../core/economy.js';
 import { fmtPct } from '../core/format.js';
-import { TERRAIN_SPRITES, BUILDING_SPRITES, SPRITE_FRAME, SPRITE_K, LOCKED_OVERLAY, CART_SPRITE, RAIDER_SPRITES } from './sprites.js';
+import { TERRAIN_SPRITES, BUILDING_SPRITES, SPRITE_FRAME, SPRITE_K, LOCKED_OVERLAY, CART_SPRITE, RAIDER_SPRITES, saplingSprite } from './sprites.js';
 import { VillageLife } from './villagers.js';
 import { images, iconKey } from './assets.js';
 
@@ -200,7 +200,7 @@ export class MapRenderer {
         const i = idx(x, y);
         const tile = grid.tiles[i];
         if (!tile.b) {
-          const over = TERRAIN_SPRITES[tile.t]?.over;
+          const over = tile.t === 'sapling' ? [saplingSprite(tile, Date.now(), GROW_SECONDS)] : TERRAIN_SPRITES[tile.t]?.over;
           if (over) this.framed(pick(over, i), x * T + T / 2, y * T + T / 2, T);
           continue;
         }

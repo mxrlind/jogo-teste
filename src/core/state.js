@@ -17,7 +17,7 @@ export function newSeed() {
 function freshStats() {
   return {
     totalGold: 0, runGold: 0, built: 0, upgrades: 0, raidsWon: 0, raidsLost: 0, recruits: 0, goldRecruits: 0,
-    expeditions: 0, chests: 0, ascensions: 0, cleared: 0, visits: 0, playTime: 0, bestRaid: 0,
+    expeditions: 0, chests: 0, ascensions: 0, cleared: 0, planted: 0, visits: 0, playTime: 0, bestRaid: 0,
   };
 }
 

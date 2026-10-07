@@ -76,8 +76,8 @@ def main():
             use = 'hélice do moinho (gira no jogo)' if n.endswith('-blades') else f'prédio no mapa: {n[9:]}'
         elif n.startswith('icon-'):
             use = f'miniatura na interface: {n[5:]}'
-        elif n.startswith(('forest-', 'rock-', 'mountain-')):
-            use = 'natureza no mapa: ' + {'forest': 'floresta', 'rock': 'rochas', 'mountain': 'montanha'}[n.split('-')[0]]
+        elif n.startswith(('forest-', 'sapling-', 'rock-', 'mountain-')):
+            use = 'natureza no mapa: ' + {'forest': 'floresta', 'sapling': 'muda plantada (estágio de crescimento)', 'rock': 'rochas', 'mountain': 'montanha'}[n.split('-')[0]]
         elif n.startswith(('grass-', 'water-')):
             use = 'chão no mapa: ' + ('grama' if n.startswith('grass') else 'água')
         elif n == 'logo-castelo':
