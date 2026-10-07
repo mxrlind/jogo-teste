@@ -1,6 +1,6 @@
 {
   "name": "reino-de-bolso",
-  "version": "0.16.1",
+  "version": "0.16.2",
   "description": "Idle Tycoon 2D social onde a sua base é o jogo. Navegador, sem build.",
   "type": "module",
   "private": true,
