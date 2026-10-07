@@ -402,6 +402,8 @@ body:not(.reduce-motion) .dot::after { content: ''; position: absolute; inset: 0
 .hero small { display: block; color: var(--muted); font-size: .8rem; }
 .hero em { display: block; font-size: .78rem; color: var(--muted); margin-top: .1rem; }
 .hero .row { margin-bottom: 0; }
+.hero > div { min-width: 0; } /* sem isso, um botão largo estica a coluna e corta o card */
+.btn.wrap { white-space: normal; flex-wrap: wrap; max-width: 100%; row-gap: .1rem; }
 .rar { color: var(--rc); font: 800 .66rem Nunito; text-transform: uppercase; letter-spacing: .08em; display: block; }
 .stars { color: var(--lendario); display: inline-flex; gap: 1px; vertical-align: -2px; }
 .stars .ico { width: .9rem; height: .9rem; }
