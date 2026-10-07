@@ -22,6 +22,7 @@ export function defaultConfig() {
   return {
     version: CONFIG_VERSION,
     musicVolume: 0.5,
+    musicOn: true,
     sfxVolume: 0.8,
     particles: true,
     reduceMotion: false,
@@ -46,6 +47,7 @@ export function normalizeConfig(raw, legacySettings = null) {
   return {
     version: CONFIG_VERSION,
     musicVolume: clamp(c.musicVolume, 0, 1, d.musicVolume),
+    musicOn: typeof c.musicOn === 'boolean' ? c.musicOn : d.musicOn,
     sfxVolume: clamp(c.sfxVolume, 0, 1, d.sfxVolume),
     particles: typeof c.particles === 'boolean' ? c.particles : d.particles,
     reduceMotion: typeof c.reduceMotion === 'boolean' ? c.reduceMotion : d.reduceMotion,

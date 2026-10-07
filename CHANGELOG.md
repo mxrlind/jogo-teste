@@ -2,6 +2,11 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.12.0] — 2026-10-07
+### Adicionado
+- **Música de fundo** no clima do Wind Rose: folk de taverna na vila (Minstrel Dance, The Old Tower Inn e King's Feast, do RandomMind) e metal quando uma horda se aproxima e no subsolo, como anões nas minas (Boss Battle #6 Metal e Boss Battle #2 Symphonic Metal, do nene). Todas CC0, do OpenGameArt, com volume igualado. As faixas de cada clima tocam em sequência e a troca de clima faz uma transição suave.
+- **Botão de música** no topo da tela para ligar e desligar, e a opção "Tocar música" em Opções. Créditos e ASSETS.md listam as faixas.
+
 ## [0.11.0] — 2026-10-07
 ### Adicionado
 - **Subsolo** no estilo Dwarf Fortress. A **Escadaria** (prédio novo, libera com 5 construções) abre o primeiro nível bem embaixo dela, e botões no canto do mapa trocam entre a superfície e os níveis descobertos. Toda a geração de superfície continua igual; só a pedra ganha a parte de baixo.
