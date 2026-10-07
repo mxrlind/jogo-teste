@@ -2,6 +2,10 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [Não lançado]
+### Adicionado
+- **Rosa dos ventos** no canto superior direito do mapa (desenho próprio em SVG, nas cores da interface). A ponta do lado de onde vem a próxima horda fica vermelha e pulsa quando a horda é anunciada; tocar nela explica a defesa por lado.
+
 ## [0.7.0] — 2026-10-07
 ### Mudou
 - **Arte nova no mapa**: prédios, árvores, rochas, montanhas e água agora vêm do **KayKit Medieval Hexagon Pack** (Kay Lousberg, CC0 1.0). Os modelos 3D foram renderizados como imagens 2D: o jogo continua um canvas 2D, sem 3D rodando. Os prédios ganharam fachada, volume e sombra e sobem para o tile de cima; natureza e prédios são desenhados linha a linha, de trás para a frente.
