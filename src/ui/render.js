@@ -21,7 +21,7 @@ export class MapRenderer {
     this.onTileClick = onTileClick;
     this.onHover = onHover;
     this.onResize = onResize; // telas estáticas (fundo do menu) redesenham só quando o tamanho muda
-    this.getConfig = getConfig ?? (() => ({ particles: true, reduceMotion: false }));
+    this.getConfig = getConfig ?? (() => ({ particles: true, villagers: true, reduceMotion: false }));
     this.hover = null;
     this.selected = null;
     this.cursor = null; // cursor do teclado
@@ -276,7 +276,8 @@ export class MapRenderer {
     }
 
     if (!this.view && state) {
-      if (motion && this.fxOn()) { this.life.update(game, now); this.life.draw(this, now, T); }
+      // Moradores têm opção própria: "Reduzir movimento" (que o sistema do aparelho pode ligar sozinho) não os esconde.
+      if (this.getConfig().villagers !== false) { this.life.update(game, now); this.life.draw(this, now, T); }
       this.drawCart(state, now, T, motion);
       this.drawRaiders(state, now, T, motion);
     }

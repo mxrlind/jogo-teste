@@ -15,13 +15,13 @@ import { fmt, fmtTime } from '../core/format.js';
 import { MapRenderer } from './render.js';
 import { showRunSummary } from './ascension.js';
 import { preloadAll, iconKey, RES_COLORS } from './assets.js';
-import { initAudio, loadSfx, play, setVolumes, hasMusic, musicInfo } from './audio.js';
+import { initAudio, loadSfx, play, setVolumes, setMood, hasMusic, musicTracks, nowPlaying } from './audio.js';
 import { ui, $, esc, bannerColor, emblemIcon } from './ctx.js';
 import { ico, resIco } from './icons.js';
 import { showModal, replaceModal, closeModal, confirmModal, runConfirm, toast, modalOpen, modalClosable } from './modals.js';
 import { renderHud, renderPalette, renderTileInfo, renderSide, renderModeHint, hudInfo, lockedTabHint, describeBonus } from './panels.js';
 
-const GAME_VERSION = '0.12.0';
+const GAME_VERSION = '0.14.0';
 const TAB_ORDER = ['reino', 'herois', 'temporada', 'legado', 'social', 'perfil'];
 const FLOAT_COLORS = RES_COLORS;
 
@@ -77,6 +77,7 @@ export async function boot() {
     preloadAll(uiImages, (d, t) => { imgDone = d; imgTotal = t; progress(); }),
     loadSfx((d, t) => { sfxDone = d; sfxTotal = t; progress(); }),
   ]);
+  renderMusicBtn();
   if (new URLSearchParams(location.search).has('debug')) window.reino = { ui, save, store };
   showMainMenu();
   registerServiceWorker();
@@ -91,7 +92,8 @@ function applyConfig() {
   document.documentElement.style.setProperty('--fs', String(c.fontScale));
   document.body.classList.toggle('high-contrast', c.highContrast);
   document.body.classList.toggle('reduce-motion', c.reduceMotion);
-  setVolumes(c.musicVolume, c.sfxVolume);
+  setVolumes(c.musicVolume, c.sfxVolume, c.musicOn);
+  renderMusicBtn();
 }
 
 function save() {
@@ -190,6 +192,7 @@ function startGame(state, { isNew = false } = {}) {
   document.body.dataset.layer = 0;
   renderLayers();
   renderAll();
+  updateMood();
   if (!loopsStarted) startLoops();
   if (isNew) showIntro();
   else if (ui.game.dailyStatus().available) showDaily();
@@ -270,9 +273,11 @@ function wireGame() {
     .on('expanded', ({ ring }) => { play('win'); toast(`Novas terras conquistadas (anel ${ring}).`, 'good', 'map'); })
     .on('raidWarning', ({ name, strength, defense, dir }) => {
       play('warn');
+      updateMood();
       toast(`${name} se aproximam pelo ${DIR_NAMES[dir]}! Força ${strength} contra sua defesa ${Math.floor(defense)} desse lado.`, defense >= strength ? 'info' : 'bad', 'swords');
     })
     .on('raid', (res) => {
+      updateMood();
       const next = DIR_NAMES[ui.game.state.raid.dir];
       if (res.win) { play('win'); r().doFlash('#f2b632'); toast(`Vitória sobre ${res.name}! +${fmt(res.loot)} de ouro e +${res.gems} gema(s). A próxima horda vem do ${next}.`, 'good', 'swords'); return; }
       play('lose'); r().doShake(650); r().doFlash('#b8412f');
@@ -469,6 +474,14 @@ const ACTIONS = {
   },
   howTo: () => showHowTo(),
   gameMenu: () => showGameMenu(),
+  toggleMusic: () => {
+    const c = ui.config;
+    if (c.musicOn && c.musicVolume > 0) c.musicOn = false;
+    else { c.musicOn = true; if (c.musicVolume <= 0) c.musicVolume = 0.5; }
+    saveConfig();
+    applyConfig();
+    play('click');
+  },
   toMainMenu: () => { save(); closeModal(); showMainMenu(); },
   options: () => showOptions(),
   credits: () => showCredits(),
@@ -668,12 +681,32 @@ function setLayer(d) {
   document.body.dataset.layer = d;
   renderLayers();
   renderTileInfo(true);
+  updateMood();
+}
+
+// ================================================================ trilha sonora
+// Folk de taverna na vila; metal quando uma horda se aproxima e nas minas do subsolo.
+function updateMood() {
+  const g = ui.game;
+  const battle = Boolean(g && !ui.visiting && (g.state.raid.warned || ui.renderer?.layer > 0));
+  setMood(battle ? 'batalha' : 'vila');
+}
+
+function renderMusicBtn() {
+  const el = $('#musicBtn');
+  if (!el) return;
+  const on = ui.config.musicOn && ui.config.musicVolume > 0;
+  el.hidden = !hasMusic();
+  el.innerHTML = ico(on ? 'music' : 'speaker-off');
+  el.setAttribute('aria-pressed', String(on));
+  el.title = on ? 'Desligar a música' : 'Ligar a música';
 }
 
 // ================================================================ visitas
 function startVisit(k) {
   setLayer(0);
   ui.visiting = k;
+  updateMood();
   ui.renderer.view = { grid: k.grid };
   ui.renderer.selected = null;
   setMode({ type: 'select' });
@@ -687,6 +720,7 @@ function startVisit(k) {
 
 function endVisit() {
   ui.visiting = null;
+  updateMood();
   if (ui.renderer) ui.renderer.view = null;
   $('#visitBar').hidden = true;
 }
@@ -784,15 +818,17 @@ function showOptions(replace = false) {
     <input type="range" id="opt-${k}" min="${min}" max="${max}" step="5" value="${Math.round(c[k] * 100)}" data-config="${k}">`;
   const check = (k, label) => `<label class="check"><input type="checkbox" data-config="${k}" ${c[k] ? 'checked' : ''}> ${label}</label>`;
   const keys = KEY_ACTIONS.map((a) => `<span>${a.label}</span><button class="btn small ${remapping === a.id ? 'primary' : ''}" data-action="remap" data-arg="${a.id}">${remapping === a.id ? 'Pressione uma tecla...' : esc(keyLabel(c.keys[a.id]))}</button>`).join('');
-  const m = musicInfo();
+  const m = nowPlaying();
   const html = `<h2>${ico('settings')} Opções</h2>
     <h3>Som</h3>
+    ${hasMusic() ? check('musicOn', 'Tocar música') : ''}
     ${slider('musicVolume', 'Música', 0, 100, 'music')}
-    ${m ? `<p class="muted">Faixa: ${esc(m.title)} (${esc(m.author)}, ${esc(m.license)}).</p>` : '<p class="muted">Nenhuma faixa de música instalada.</p>'}
+    ${hasMusic() ? `<p class="muted">${m ? `Tocando: ${esc(m.title)} (${esc(m.author)}, ${esc(m.license)}). ` : ''}Folk de taverna na vila; metal quando uma horda se aproxima e no subsolo.</p>` : '<p class="muted">Nenhuma faixa de música instalada.</p>'}
     ${slider('sfxVolume', 'Efeitos', 0, 100, 'speaker')}
     <h3>Visual e acessibilidade</h3>
     ${slider('fontScale', 'Tamanho do texto', 85, 150, 'font')}
-    ${check('particles', 'Partículas, moradores e números flutuantes')}
+    ${check('villagers', 'Moradores andando pelo mapa')}
+    ${check('particles', 'Partículas e números flutuantes')}
     ${check('reduceMotion', 'Reduzir movimento (sem tremor, flash nem animações)')}
     ${check('highContrast', 'Alto contraste')}
     <h3>Teclado</h3>
@@ -813,7 +849,12 @@ async function showCredits() {
   for (const v of Object.values(icons)) byAuthor[v.author] = (byAuthor[v.author] || 0) + 1;
   const authorNames = { lorc: 'Lorc', delapouite: 'Delapouite', skoll: 'Skoll', sbed: 'Sbed', willdabeast: 'Willdabeast', guard13007: 'Guard13007' };
   const packs = [...new Set(Object.values(sfx).map((v) => v.pack.replace(/^Kenney\s*–\s*/, '')))];
-  const m = musicInfo();
+  const byAuthorMusic = {};
+  for (const t of musicTracks()) (byAuthorMusic[`${t.author}|${t.license}`] ||= []).push(t.title);
+  const musicItems = Object.entries(byAuthorMusic).map(([k, titles]) => {
+    const [author, license] = k.split('|');
+    return `<li>Música: ${titles.map((t) => `<b>${esc(t)}</b>`).join(', ')}, por ${esc(author)} (OpenGameArt). Licença ${esc(license)}.</li>`;
+  }).join('');
   const html = `<h2>${ico('scroll')} Créditos</h2>
     <p><b>Reino de Bolso</b>, versão ${GAME_VERSION}.</p>
     <h3>Arte</h3>
@@ -826,7 +867,7 @@ async function showCredits() {
     <h3>Som</h3>
     <ul class="credits">
       <li>${packs.map((p) => `<b>${esc(p)}</b>`).join(', ')}, por Kenney (kenney.nl). Licença CC0 1.0.</li>
-      ${m ? `<li>Música: <b>${esc(m.title)}</b>, por ${esc(m.author)}. Licença ${esc(m.license)}.</li>` : '<li>Música: nenhuma instalada.</li>'}
+      ${musicItems || '<li>Música: nenhuma instalada.</li>'}
     </ul>
     <p class="muted">Lista completa, arquivo por arquivo, no ASSETS.md do repositório.</p>
     <button class="btn big primary" data-action="closeModal">Fechar</button>`;

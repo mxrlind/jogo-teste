@@ -1,6 +1,6 @@
 // Service worker: permite jogar offline depois da primeira visita (só registrado em HTTPS).
 // Estratégia: rede primeiro para HTML/JS/CSS (atualizações aparecem logo), cache primeiro para assets.
-const CACHE = 'reino-de-bolso-v12';
+const CACHE = 'reino-de-bolso-v14';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', 'index.html', 'styles.css', 'manifest.webmanifest'])).then(() => self.skipWaiting()));

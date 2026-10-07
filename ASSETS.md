@@ -297,7 +297,13 @@ A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.i
 
 ## Música
 
-Nenhuma faixa instalada ainda. Recomendação e passo a passo: [EXECUTAR.md](EXECUTAR.md), seção "Música". O jogo funciona sem música.
+| Arquivo | Onde é usado | Fonte | Autor | Licença | Link |
+|---|---|---|---|---|---|
+| `assets/music/vila-danca-do-menestrel.mp3` | música da vila | Medieval: Minstrel Dance | RandomMind | CC0 | [https://opengameart.org/content/medieval-minstrel-dance](https://opengameart.org/content/medieval-minstrel-dance) |
+| `assets/music/vila-taverna-da-torre.mp3` | música da vila | Medieval: The Old Tower Inn | RandomMind | CC0 | [https://opengameart.org/content/medieval-the-old-tower-inn](https://opengameart.org/content/medieval-the-old-tower-inn) |
+| `assets/music/vila-banquete-do-rei.mp3` | música da vila | Medieval: King's Feast | RandomMind | CC0 | [https://opengameart.org/content/medieval-kings-feast](https://opengameart.org/content/medieval-kings-feast) |
+| `assets/music/batalha-metal-6.mp3` | música de batalha e do subsolo | Boss Battle #6 Metal | nene | CC0 | [https://opengameart.org/content/boss-battle-6-metal](https://opengameart.org/content/boss-battle-6-metal) |
+| `assets/music/batalha-metal-sinfonico.mp3` | música de batalha e do subsolo | Boss Battle #2 [Symphonic Metal] | nene | CC0 | [https://opengameart.org/content/boss-battle-2-symphonic-metal](https://opengameart.org/content/boss-battle-2-symphonic-metal) |
 
 ## Fontes
 

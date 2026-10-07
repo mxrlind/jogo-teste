@@ -22,8 +22,10 @@ export function defaultConfig() {
   return {
     version: CONFIG_VERSION,
     musicVolume: 0.5,
+    musicOn: true,
     sfxVolume: 0.8,
     particles: true,
+    villagers: true,
     reduceMotion: false,
     fontScale: 1,
     highContrast: false,
@@ -46,8 +48,10 @@ export function normalizeConfig(raw, legacySettings = null) {
   return {
     version: CONFIG_VERSION,
     musicVolume: clamp(c.musicVolume, 0, 1, d.musicVolume),
+    musicOn: typeof c.musicOn === 'boolean' ? c.musicOn : d.musicOn,
     sfxVolume: clamp(c.sfxVolume, 0, 1, d.sfxVolume),
     particles: typeof c.particles === 'boolean' ? c.particles : d.particles,
+    villagers: typeof c.villagers === 'boolean' ? c.villagers : d.villagers,
     reduceMotion: typeof c.reduceMotion === 'boolean' ? c.reduceMotion : d.reduceMotion,
     fontScale: clamp(c.fontScale, 0.85, 1.5, d.fontScale),
     highContrast: typeof c.highContrast === 'boolean' ? c.highContrast : d.highContrast,

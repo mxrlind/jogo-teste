@@ -163,7 +163,7 @@ def main():
         w('| Arquivo | Onde é usado | Fonte | Autor | Licença | Link |')
         w('|---|---|---|---|---|---|')
         for t in music['tracks']:
-            w(f'| `assets/music/{t["file"]}` | música ambiente em loop | {t["title"]} | {t["author"]} | {t["license"]} | [{t["url"]}]({t["url"]}) |')
+            w(f'| `assets/music/{t["file"]}` | {'música da vila' if t.get('mood', 'vila') == 'vila' else 'música de batalha e do subsolo'} | {t["title"]} | {t["author"]} | {t["license"]} | [{t["url"]}]({t["url"]}) |')
     else:
         w('Nenhuma faixa instalada ainda. Recomendação e passo a passo: [EXECUTAR.md](EXECUTAR.md), seção "Música". O jogo funciona sem música.')
     w('')

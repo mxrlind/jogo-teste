@@ -2,7 +2,7 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
-## [0.12.0] — 2026-10-07
+## [0.14.0] — 2026-10-07
 ### Adicionado
 - **Cais de Pesca** (primeira parte da zona portuária, libera com 3 construções): só funciona encostado num lago e dá 1,4 de comida por segundo, +40% por tile de água vizinho e +15% com armazém ao lado. Inspirado no cais de pesca do Banished.
 - Um **barquinho de pesca** fica indo e voltando na água ao lado de cada cais que está funcionando, e um morador novo, o **Pescador**, trabalha no cais e leva o peixe para o armazém.
@@ -11,6 +11,25 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 ### Corrigido
 - O Código do Reino quebrava com uma Escadaria no mapa (ela não tinha letra). Escadaria e cais ganharam letras no fim da lista, e códigos antigos continuam válidos.
 - O aviso de prédio sem o vizinho obrigatório agora diz "Só funciona ao lado de ...", que serve para prédio de qualquer gênero.
+## [0.13.0] — 2026-10-07
+### Adicionado
+- **Música de fundo** no clima do Wind Rose: folk de taverna na vila (Minstrel Dance, The Old Tower Inn e King's Feast, do RandomMind) e metal quando uma horda se aproxima e no subsolo, como anões nas minas (Boss Battle #6 Metal e Boss Battle #2 Symphonic Metal, do nene). Todas CC0, do OpenGameArt, com volume igualado. As faixas de cada clima tocam em sequência e a troca de clima faz uma transição suave.
+- **Botão de música** no topo da tela para ligar e desligar, e a opção "Tocar música" em Opções. Créditos e ASSETS.md listam as faixas.
+
+## [0.12.0] — 2026-10-07
+### Corrigido
+- **Moradores sumiam com "Reduzir movimento"**: a vila inteira ficava escondida quando essa opção estava ligada, e o jogo a liga sozinho se o celular ou o computador estiver com "reduzir movimento" no sistema. Agora os moradores têm uma opção própria, **Moradores andando pelo mapa** (ligada por padrão), separada de "Partículas e números flutuantes".
+
+### Adicionado
+- **Passeios pelo mapa todo**: moradores de folga (1 a cada 4, até 8) andam de um ponto de encontro a outro em qualquer parte do reino. Os pontos de encontro são mercado, taverna, templo, jardim, poço, estátua e quartel, além da grama na beira da água ou da floresta. Os trabalhadores também saem para passear de vez em quando, ao fim de uma volta de trabalho (35% das vezes). A ideia veio dos "pontos de atividade" e do vaguear de moradores ociosos de city builders.
+- **Conversa**: dois moradores parados no mesmo ponto de encontro ganham um balão com reticências.
+
+### Mudou
+- Moradores um terço maiores, para acompanhar os prédios do KayKit.
+
+## [0.11.1] — 2026-10-07
+### Corrigido
+- Com o mapa todo expandido, a dica de construção cobria a primeira fileira de tiles. Agora o mouse e o toque passam por baixo dela (só o botão Cancelar é clicável) e, quando o tile apontado fica embaixo da dica, ela pula para a borda oposta. Vale no desktop (topo/rodapé do mapa) e no celular (rodapé/topo da tela).
 
 ## [0.11.0] — 2026-10-07
 ### Adicionado
