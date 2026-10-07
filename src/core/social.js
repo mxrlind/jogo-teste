@@ -42,7 +42,7 @@ export function rivalGrid(rival) {
   grid.ring = Math.min(5, 2 + Math.floor(rival.tier / 2));
   const density = Math.min(0.85, 0.3 + rival.tier * 0.07);
   const maxLvl = Math.min(10, 1 + rival.tier);
-  const choices = BUILDING_ORDER.filter((id) => id !== 'mina');
+  const choices = BUILDING_ORDER.filter((id) => id !== 'mina' && id !== 'cais');
   grid.tiles.forEach((t, i) => {
     const x = i % GRID_W;
     const y = Math.floor(i / GRID_W);
@@ -58,7 +58,7 @@ const CODE_TERRAIN = Object.fromEntries(Object.entries(TERRAIN_CODE).map(([k, v]
 // Ordem fixa das letras: prédio novo entra no fim, para códigos antigos continuarem válidos.
 const CODE_ORDER = [
   'casa', 'fazenda', 'serraria', 'pedreira', 'mercado', 'moinho', 'armazem',
-  'taverna', 'muralha', 'torre', 'mina', 'templo', 'jardim', 'fogueira', 'estatua', 'quartel',
+  'taverna', 'muralha', 'torre', 'mina', 'templo', 'jardim', 'fogueira', 'estatua', 'quartel', 'escadaria', 'cais',
 ];
 const BUILD_CODE = Object.fromEntries(CODE_ORDER.map((id, i) => [id, String.fromCharCode(65 + i)]));
 const CODE_BUILD = Object.fromEntries(Object.entries(BUILD_CODE).map(([k, v]) => [v, k]));

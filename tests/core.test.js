@@ -92,6 +92,32 @@ test('mina só produz encostada em montanha', () => {
   assert.ok(e.tiles[idx(8, 8)].out.gold > 0);
 });
 
+test('cais de pesca só produz na beira da água, +40% por água vizinha', () => {
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  s.pop = 50;
+  put(s, 3, 3, 'grass', { id: 'cais', lvl: 1 });
+  put(s, 7, 7, 'grass', { id: 'cais', lvl: 1 });
+  put(s, 7, 6, 'water');
+  put(s, 8, 7, 'water');
+  const e = computeEconomy(s, T0);
+  assert.equal(e.tiles[idx(3, 3)].active, false);
+  assert.equal(e.tiles[idx(3, 3)].out.food, 0);
+  assert.equal(e.tiles[idx(7, 7)].active, true);
+  assert.equal(adjacencyAt(s, 'cais', 7, 7).total, 0.8);
+  assert.ok(e.tiles[idx(7, 7)].out.food > 1.4);
+});
+
+test('código do reino guarda escadaria e cais', () => {
+  const g = freshGame();
+  put(g.state, 5, 5, 'grass', { id: 'cais', lvl: 3 });
+  put(g.state, 6, 5, 'grass', { id: 'escadaria', lvl: 1 });
+  const k = decodeKingdom(encodeKingdom(g.state, 1));
+  assert.deepEqual(k.grid.tiles[idx(5, 5)].b, { id: 'cais', lvl: 3 });
+  assert.deepEqual(k.grid.tiles[idx(6, 5)].b, { id: 'escadaria', lvl: 1 });
+});
+
 test('economia: falta de trabalhadores reduz produção proporcionalmente', () => {
   const g = freshGame();
   const s = g.state;

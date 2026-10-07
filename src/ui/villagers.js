@@ -19,7 +19,7 @@ const SPEED = 0.6; // tiles por segundo
 const STEP = 0.2;
 const SYNC_MS = 1000;
 const REST_EVERY = 3; // voltas de trabalho antes de descansar em casa
-const PRODUCERS = { fazenda: 'food', moinho: 'food', serraria: 'wood', pedreira: 'stone', mina: 'gold' };
+const PRODUCERS = { fazenda: 'food', cais: 'food', moinho: 'food', serraria: 'wood', pedreira: 'stone', mina: 'gold' };
 const isFood = (id) => Boolean(BUILDINGS[id]?.prod?.food);
 const rand = (a, b) => a + Math.random() * (b - a);
 const pickOne = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -124,6 +124,10 @@ export class VillageLife {
       case 'fazenda':
         add(w, rand(3, 4.5), { tool: 'clear' });
         add(nearest(['armazem', 'moinho', 'mercado']) ?? p.home, 0.8, { carry: 'food' });
+        break;
+      case 'cais':
+        add(w, rand(4, 6)); // pescando na ponta do cais
+        add(store() ?? nearest(['mercado']) ?? p.home, 0.8, { carry: 'food' });
         break;
       case 'serraria':
         add(adjacent(['forest']) ?? w, rand(2.5, 3.5), { tool: 'hero-woodcutter' });
