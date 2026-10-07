@@ -13,6 +13,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 ### Mudado
 - Gemas agora também poderão ser compradas com dinheiro real (decisão de 2026-10-07); o modelo de negócio foi atualizado.
 
+## [0.16.2] — 2026-10-07
+### Mudado
+- **Moradores mais rápidos e sem travadas.** Saiu o "stop motion": eles andam a 1,2 tile/s (o dobro) com movimento liso a cada frame, em vez de pular 5 vezes por segundo. A pose (pé no ar, ferramenta batendo) continua trocando em passinhos, e o "z z z" de quem dorme sobe liso.
+
 ## [0.16.1] — 2026-10-07
 ### Corrigido
 - **Relógio atrasado congelava o reino.** Se o relógio do aparelho voltava (fuso, horário de verão, save importado de outro aparelho), nada produzia e nenhuma horda vinha até o relógio alcançar o horário salvo. Agora o jogo recomeça a contar a partir da hora atual.

@@ -22,10 +22,11 @@ const MAX_STROLLERS = 8; // moradores de folga passeando
 const STROLL_CHANCE = 0.35; // chance de um trabalhador passear ao fim de cada volta
 const CHAT_DIST = 1.1; // tiles: dois moradores parados a essa distância num ponto de encontro conversam
 const SOCIAL = ['mercado', 'taverna', 'templo', 'jardim', 'fogueira', 'estatua', 'quartel'];
-const SPEED = 0.6; // tiles por segundo
-// Estilo "stop motion": a vila só avança em quadros de STEP segundos (5 por segundo). Entre um quadro e
-// outro ninguém se mexe; cada quadro é um passinho e alterna a pose (pé no chão / no ar, ferramenta em cima / embaixo).
+const SPEED = 1.2; // tiles por segundo
+// O andar é liso, recalculado a cada frame. Já a pose (pé no chão / no ar, ferramenta em cima / embaixo) e a
+// rotina (esperas, próxima parada) avançam em passinhos de STEP segundos (5 por segundo).
 const STEP = 0.2;
+const MAX_DT = 0.25; // aba que volta de segundo plano não "teleporta" ninguém
 const SYNC_MS = 1000;
 const REST_EVERY = 3; // voltas de trabalho antes de descansar em casa
 const PRODUCERS = { fazenda: 'food', cais: 'food', moinho: 'food', serraria: 'wood', pedreira: 'stone', mina: 'gold' };
@@ -222,29 +223,38 @@ export class VillageLife {
     this.lastTime = now;
     if (game.state !== this.stateRef) { this.stateRef = game.state; this.people.clear(); this.lastSync = 0; } // reino novo ou ascendido
     if (now - this.lastSync > SYNC_MS) { this.lastSync = now; this.sync(game); }
-    // Acumula o tempo e avança em quadros fixos; no máximo 2 de uma vez (aba que volta de segundo plano não "teleporta").
+    this.walk(Math.min(dt, MAX_DT));
+    // Poses e rotina em passinhos fixos; no máximo 2 de uma vez.
     this.acc = Math.min((this.acc || 0) + dt, STEP * 2);
     while (this.acc >= STEP) { this.acc -= STEP; this.step(game, STEP); }
+  }
+
+  // Anda pelo caminho, a cada frame; a sobra de um trecho já segue para o próximo.
+  walk(dt) {
+    for (const p of this.people.values()) {
+      if (p.kind !== 'work' || p.state !== 'walk') continue;
+      let left = SPEED * dt;
+      while (left > 0 && p.path.length) {
+        const tgt = p.path[0];
+        const dx = tgt.x - p.x;
+        const dy = tgt.y - p.y;
+        const d = Math.hypot(dx, dy);
+        if (Math.abs(dx) > 0.01) p.flip = dx < 0;
+        if (d <= left) { p.x = tgt.x; p.y = tgt.y; p.path.shift(); left -= d; } else { p.x += (dx / d) * left; p.y += (dy / d) * left; left = 0; }
+      }
+      if (!p.path.length) {
+        const st = p.stops[p.stop];
+        p.state = 'act';
+        p.wait = st?.dur ?? 1;
+        if (st?.rest) p.hidden = true; // entrou em casa
+      }
+    }
   }
 
   step(game, dt) {
     for (const p of this.people.values()) {
       if (p.kind !== 'work') continue;
       if (p.state === 'walk') {
-        const tgt = p.path[0];
-        if (!tgt) {
-          const st = p.stops[p.stop];
-          p.state = 'act';
-          p.wait = st?.dur ?? 1;
-          if (st?.rest) p.hidden = true; // entrou em casa
-          continue;
-        }
-        const dx = tgt.x - p.x;
-        const dy = tgt.y - p.y;
-        const d = Math.hypot(dx, dy);
-        const step = SPEED * dt;
-        if (d <= step) { p.x = tgt.x; p.y = tgt.y; p.path.shift(); } else { p.x += (dx / d) * step; p.y += (dy / d) * step; }
-        if (Math.abs(dx) > 0.01) p.flip = dx < 0;
         p.pose ^= 1;
       } else {
         p.wait -= dt;
@@ -306,7 +316,7 @@ export class VillageLife {
     return out;
   }
 
-  // Balão de conversa com reticências que aparecem uma a uma (em degraus, como o resto da vila).
+  // Balão de conversa com reticências que aparecem uma a uma (uma a cada 0,4 s).
   drawChat(r, p, now, cx, cy, T) {
     const ctx = r.ctx;
     const w = T * 0.34;
@@ -348,9 +358,8 @@ export class VillageLife {
     ctx.lineWidth = 2.5;
     ctx.strokeStyle = 'rgba(30, 30, 50, 0.55)';
     ctx.fillStyle = '#ffffff';
-    const frame = Math.floor(now / (STEP * 1000)) * STEP * 1000; // os "z" também sobem em degraus
     for (let k = 0; k < 3; k++) {
-      const t = ((frame / 1600 + p.seed + k / 3) % 1);
+      const t = ((now / 1600 + p.seed + k / 3) % 1);
       const zx = cx + size * 0.25 + t * size * 0.35;
       const zy = cy - size * 0.15 - t * size * 0.9;
       ctx.globalAlpha = Math.sin(t * Math.PI);
