@@ -109,6 +109,33 @@ test('cais de pesca só produz na beira da água, +40% por água vizinha', () =>
   assert.ok(e.tiles[idx(7, 7)].out.food > 1.4);
 });
 
+test('cais e mina não podem ser construídos nem movidos para onde ficariam parados', () => {
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  s.stats.built = 20;
+  Object.assign(s.res, { gold: 1e6, wood: 1e6, stone: 1e6 });
+  put(s, 4, 4, 'water');
+  const r = g.build('cais', 7, 7);
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /ao lado de água/);
+  assert.equal(g.build('mina', 7, 7).reason, 'Mina de Ouro só funciona ao lado de montanha');
+  assert.equal(g.build('cais', 4, 5).ok, true);
+  const m = g.move(4, 5, 7, 7);
+  assert.equal(m.ok, false);
+  assert.equal(s.grid.tiles[idx(4, 5)].b.id, 'cais');
+  assert.equal(g.move(4, 5, 3, 4).ok, true);
+});
+
+test('relógio do aparelho voltando não congela o reino', () => {
+  const s = createState({ seed: 1, now: T0 + 3600e3 }); // save gravado com o relógio 1 h adiantado
+  const g = new Game(s, T0);
+  const gold = s.res.gold;
+  for (let t = 0; t <= 60; t++) g.tick(T0 + t * 1000);
+  assert.ok(s.res.gold > gold, 'produziu ouro');
+  assert.equal(s.lastTick, T0 + 60000);
+});
+
 test('código do reino guarda escadaria e cais', () => {
   const g = freshGame();
   put(g.state, 5, 5, 'grass', { id: 'cais', lvl: 3 });

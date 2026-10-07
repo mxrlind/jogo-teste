@@ -6,7 +6,7 @@ import { SEASON_TIERS, XP_PER_TIER } from '../data/seasons.js';
 import { ACHIEVEMENTS } from '../data/achievements.js';
 import { BANNERS, EMBLEMS } from '../data/cosmetics.js';
 import { EVENT_BY_ID } from '../data/events.js';
-import { TUTORIAL, TAB_UNLOCKS, TAB_NAMES, DIR_NAMES } from '../core/game.js';
+import { TUTORIAL, TAB_UNLOCKS, TAB_NAMES, DIR_NAMES, neighborName } from '../core/game.js';
 import { buildCost, upgradeCost, repairCost, canAfford, kingdomPower, heroStrength, heroPowerOf, storageMult, countOf, defenseWeight, wallFacing, maxLevelOf } from '../core/economy.js';
 import { idx, isUnlocked, ringOf, wallMask, GRID_H } from '../core/map.js';
 import { seasonInfo, tierOf, missionText, rewardFor } from '../core/season.js';
@@ -345,7 +345,7 @@ export function renderTileInfo(force = false) {
       ? info.adjParts.map((p) => `<li class="${p.value > 0 ? 'pos' : 'neg'}">${p.key in BUILDINGS ? BUILDINGS[p.key].name : TERRAIN[p.key].name} ${fmtPct(p.value)}</li>`).join('')
       : '<li class="muted">Nenhum vizinho com bônus</li>';
     const warn = info.damaged ? `<p class="warn">${ico('warning')} Danificada pela horda: não produz nem defende. Conserte antes da próxima derrota ou ela desaba.</p>`
-      : !info.active ? `<p class="warn">${ico('warning')} Só funciona ao lado de ${TERRAIN[def.requiresAdj].id === 'water' ? 'água' : TERRAIN[def.requiresAdj].name.toLowerCase()}.</p>`
+      : !info.active ? `<p class="warn">${ico('warning')} Só funciona ao lado de ${neighborName(def.requiresAdj)}.</p>`
       : info.workers > 0 && info.staff < 1 ? `<p class="warn">${ico('warning')} Faltam trabalhadores: rendendo ${Math.round(info.staff * 100)}%. Construa ou melhore casas.</p>` : '';
     const maxLvl = def.maxLevel ?? MAX_LEVEL;
     html = `<div class="title-row"><img src="${spriteOf(tile.b.id)}" alt=""><h3><small class="muted">Nível ${tile.b.lvl} de ${maxLvl}</small>${def.name}</h3></div>

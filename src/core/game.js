@@ -7,7 +7,7 @@ import { EVENTS, EVENT_BY_ID, EVENT_INTERVAL, CHEST_INTERVAL, CHEST_LIFETIME, RA
 import { XP_REWARDS, SEASON_TIERS } from '../data/seasons.js';
 import { ACHIEVEMENTS } from '../data/achievements.js';
 import { BANNERS, EMBLEMS, DAILY_REWARDS, SEASON_TITLES } from '../data/cosmetics.js';
-import { computeEconomy, buildCost, upgradeCost, repairCost, canAfford, pay, refund, countOf, PROD_RES, kingdomPower } from './economy.js';
+import { computeEconomy, adjacencyAt, buildCost, upgradeCost, repairCost, canAfford, pay, refund, countOf, PROD_RES, kingdomPower } from './economy.js';
 import { createState, carryOver, newSeed } from './state.js';
 import { GRID_W, GRID_H, idx, isUnlocked, RING_COSTS, MAX_RING } from './map.js';
 import { syncSeason, syncMissions, tierOf, rewardFor } from './season.js';
@@ -59,6 +59,9 @@ export const TAB_UNLOCKS = {
 };
 export const TAB_NAMES = { reino: 'Reino', herois: 'Heróis', temporada: 'Temporada', legado: 'Legado', social: 'Social', perfil: 'Perfil' };
 
+// Nome do vizinho obrigatório no meio de uma frase ("ao lado de água", "ao lado de montanha").
+export const neighborName = (key) => (key === 'water' ? 'água' : TERRAIN[key]?.name.toLowerCase() ?? key);
+
 export class Game {
   constructor(state, now = Date.now()) {
     this.state = state;
@@ -94,6 +97,9 @@ export class Game {
     this.now = now;
     this.growTrees(now);
     const dt = (now - s.lastTick) / 1000;
+    // Relógio do aparelho voltou (fuso, horário de verão, save de outro aparelho): recomeça a contar daqui.
+    // Sem isto o reino ficava parado até o relógio alcançar o horário salvo.
+    if (dt < 0) s.lastTick = now;
     if (dt <= 0) return;
     if (dt > OFFLINE_THRESHOLD) {
       const summary = this.catchUp(now, { efficiency: background ? 1 : undefined });
@@ -381,6 +387,14 @@ export class Game {
     return Math.max(this.state.stats.built + 2, onMap);
   }
 
+  // Prédios com vizinho obrigatório (Cais: água, Mina: montanha) não podem ir para onde ficariam parados.
+  // Retorna o motivo, ou null se o lugar serve.
+  missingNeighbor(id, x, y) {
+    const need = BUILDINGS[id]?.requiresAdj;
+    if (!need || adjacencyAt(this.state, id, x, y).hasRequired) return null;
+    return `${BUILDINGS[id].name} só funciona ao lado de ${neighborName(need)}`;
+  }
+
   build(id, x, y) {
     const s = this.state;
     const def = BUILDINGS[id];
@@ -390,6 +404,8 @@ export class Game {
     const tile = this.tileAt(x, y);
     if (tile.b) return { ok: false, reason: 'Já existe uma construção aqui' };
     if (!TERRAIN[tile.t].buildable) return { ok: false, reason: TERRAIN[tile.t].clearCost ? `Limpe a ${TERRAIN[tile.t].name.toLowerCase()} primeiro` : `Não dá para construir em ${TERRAIN[tile.t].name.toLowerCase()}` };
+    const needs = this.missingNeighbor(id, x, y);
+    if (needs) return { ok: false, reason: needs };
     const cost = buildCost(s, id, this.econ.mods);
     if (!canAfford(s.res, cost)) return { ok: false, reason: 'Recursos insuficientes' };
     const missions = s.season.missions?.list.map((m) => m.progress) ?? [];
@@ -455,6 +471,8 @@ export class Game {
     if (!isUnlocked(s.grid, tx, ty)) return { ok: false, reason: 'Terra ainda não conquistada' };
     if (to.b) return { ok: false, reason: 'Destino ocupado' };
     if (!TERRAIN[to.t].buildable) return { ok: false, reason: 'Terreno inválido' };
+    const needs = this.missingNeighbor(from.b.id, tx, ty);
+    if (needs) return { ok: false, reason: needs };
     to.b = from.b;
     from.b = null;
     delete to.ruin;

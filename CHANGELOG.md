@@ -2,6 +2,14 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.16.1] — 2026-10-07
+### Corrigido
+- **Relógio atrasado congelava o reino.** Se o relógio do aparelho voltava (fuso, horário de verão, save importado de outro aparelho), nada produzia e nenhuma horda vinha até o relógio alcançar o horário salvo. Agora o jogo recomeça a contar a partir da hora atual.
+- A prévia de construção do Cais dizia "Precisa de montanha". Agora diz "Precisa de água" (e "montanha" só para a Mina).
+- Cais e Mina não podem mais ser construídos nem movidos para onde não funcionariam: o jogo avisa "só funciona ao lado de água/montanha" em vez de cobrar e deixar o prédio parado.
+### Adicionado
+- Workflow `test.yml`: os testes rodam em todo PR, antes do merge.
+
 ## [0.16.0] — 2026-10-07
 ### Adicionado
 - **Hordas quebram construções.** Perder uma horda (fora a proteção de novato) agora também danifica de 2 a 4 construções, as mais perto da borda de onde ela veio; quanto mais faltou de defesa, mais golpes. Muralhas e torres estão na frente e gastam 2 golpes cada, então protegem o que está atrás delas (ideia do Kingdom Two Crowns).
