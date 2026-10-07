@@ -147,9 +147,15 @@ export const TERRAIN = {
   grass: { id: 'grass', name: 'Campo', buildable: true },
   forest: { id: 'forest', name: 'Floresta', buildable: false, clearCost: { gold: 30 }, clearYield: { wood: 40 } },
   rock: { id: 'rock', name: 'Rochas', buildable: false, clearCost: { gold: 50 }, clearYield: { stone: 30 } },
+  // Muda plantada pelo jogador: cresce sozinha até virar floresta (GROW_SECONDS). Arrancar é de graça.
+  sapling: { id: 'sapling', name: 'Muda', buildable: false, clearCost: {}, clearYield: {} },
   water: { id: 'water', name: 'Lago', buildable: false },
   mountain: { id: 'mountain', name: 'Montanha', buildable: false },
 };
+
+// Plantar árvores (inspirado no Forester do Banished): ouro sobrando vira floresta, que vira madeira.
+export const PLANT_COST = { gold: 25 };
+export const GROW_SECONDS = 180; // muda -> árvores jovens na metade -> floresta
 
 // `icon` = nome do arquivo em assets/icons/game-icons/ (sem .svg).
 export const RESOURCES = {

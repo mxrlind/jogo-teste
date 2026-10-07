@@ -1,5 +1,5 @@
 // HUD, paleta, painel do tile e abas do painel lateral. Só gera HTML/atualiza DOM; ações ficam em app.js.
-import { BUILDINGS, BUILDING_ORDER, RESOURCES, TERRAIN, MAX_LEVEL } from '../data/buildings.js';
+import { BUILDINGS, BUILDING_ORDER, RESOURCES, TERRAIN, MAX_LEVEL, PLANT_COST, GROW_SECONDS } from '../data/buildings.js';
 import { HEROES, RARITIES, EXPEDITIONS, RECRUIT_GEM_COST, MAX_STARS } from '../data/heroes.js';
 import { TALENTS, CROWN_DIVISOR } from '../data/talents.js';
 import { SEASON_TIERS, XP_PER_TIER } from '../data/seasons.js';
@@ -269,9 +269,14 @@ export function renderTileInfo(force = false) {
     const ter = TERRAIN[tile.t];
     const img = TERRAIN_SPRITES[tile.t]?.icon;
     html = `<div class="title-row">${img ? `<img src="${img}" alt="">` : ''}<h3>${ter.name}</h3></div>`;
-    if (ter.clearCost) html += `<p class="muted">Pode ser limpo para construir, mas os vizinhos que gostam de ${ter.name.toLowerCase()} perdem o bônus.</p>
+    if (tile.t === 'sapling') {
+      const left = Math.max(0, GROW_SECONDS - (Date.now() - (tile.p ?? 0)) / 1000);
+      html += `<p class="muted">Vira floresta em ${fmtTime(left)}. Floresta dá madeira ao ser limpa e +40% para serrarias vizinhas.</p>
+      <button class="btn small danger" data-action="clear">${ico('clear')} Arrancar a muda</button>`;
+    } else if (ter.clearCost) html += `<p class="muted">Pode ser limpo para construir, mas os vizinhos que gostam de ${ter.name.toLowerCase()} perdem o bônus.</p>
       <button class="btn ${canAfford(s.res, ter.clearCost) ? '' : 'poor'}" data-action="clear">${ico('clear')} Limpar ${costHtml(ter.clearCost, s.res)}, ganha ${costHtml(ter.clearYield)}</button>`;
-    else if (ter.buildable) html += '<p class="muted">Terreno livre. Escolha uma construção na paleta.</p>';
+    else if (ter.buildable) html += `<p class="muted">Terreno livre. Escolha uma construção na paleta, ou plante árvores: em ${fmtTime(GROW_SECONDS)} viram floresta.</p>
+      <button class="btn ${canAfford(s.res, PLANT_COST) ? '' : 'poor'}" data-action="plant">${ico('emblem-tree')} Plantar árvores ${costHtml(PLANT_COST, s.res)}</button>`;
     else html += `<p class="muted">Não dá para construir aqui, mas vizinhos podem ganhar bônus com ${tile.t === 'water' ? 'a água' : 'a montanha'}.</p>`;
   }
   const full = `<button class="btn small icon-only x" data-action="closeTile" aria-label="Fechar">${ico('close')}</button>${html}`;

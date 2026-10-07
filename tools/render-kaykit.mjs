@@ -66,6 +66,9 @@ const NATURE = {
   'forest-2': { parts: [{ model: NAT('trees_B_large') }], fit: 1.0 },
   'forest-3': { parts: [{ model: NAT('trees_A_large') }], fit: 1.0 },
   'forest-4': { parts: [{ model: NAT('trees_B_medium') }], fit: 1.0 },
+  // Árvore plantada pelo jogador, em dois estágios antes de virar floresta.
+  'sapling-1': { parts: [{ model: NAT('tree_single_A') }], fit: 0.26 },
+  'sapling-2': { parts: [{ model: NAT('trees_A_small') }], fit: 0.62 },
   'rock-1': { parts: [{ model: NAT('rock_single_A') }, { model: NAT('rock_single_C'), x: 0.3, z: 0.2 }], fit: 0.62 },
   'rock-2': { parts: [{ model: NAT('rock_single_B') }, { model: NAT('rock_single_D'), x: -0.3, z: 0.22 }], fit: 0.62 },
   'mountain-1': { parts: [{ model: NAT('mountain_A') }], fit: 1.0 },

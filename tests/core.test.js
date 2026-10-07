@@ -718,3 +718,47 @@ test('save: migração mantém runs/records e marca runBase ausente como null', 
   const st2 = deserialize(serialize(g.state));
   assert.ok(st2.runBase);
 });
+
+test('plantar: muda custa ouro e vira floresta pelo relógio', () => {
+  const g = freshGame();
+  const t0 = g.now;
+  const free = g.state.grid.tiles.findIndex((t, i) => t.t === 'grass' && !t.b && isUnlocked(g.state.grid, i % GRID_W, Math.floor(i / GRID_W)));
+  const x = free % GRID_W;
+  const y = Math.floor(free / GRID_W);
+  g.state.res.gold = 100;
+  assert.equal(g.plant(x, y).ok, true);
+  assert.equal(g.state.res.gold, 75);
+  assert.equal(g.tileAt(x, y).t, 'sapling');
+  assert.equal(g.plant(x, y).ok, false); // já plantado
+  assert.equal(g.build('casa', x, y).ok, false); // não dá para construir em muda
+  g.growTrees(t0 + 179000);
+  assert.equal(g.tileAt(x, y).t, 'sapling');
+  g.growTrees(t0 + 180000);
+  assert.equal(g.tileAt(x, y).t, 'forest');
+  assert.equal(g.tileAt(x, y).p, undefined);
+  assert.equal(g.state.stats.planted, 1);
+});
+
+test('plantar: arrancar a muda é grátis e não conta como limpar', () => {
+  const g = freshGame();
+  const free = g.state.grid.tiles.findIndex((t, i) => t.t === 'grass' && !t.b && isUnlocked(g.state.grid, i % GRID_W, Math.floor(i / GRID_W)));
+  const x = free % GRID_W;
+  const y = Math.floor(free / GRID_W);
+  g.state.res.gold = 25;
+  assert.equal(g.plant(x, y).ok, true);
+  assert.equal(g.plant(x, y).ok, false);
+  assert.equal(g.clear(x, y).ok, true);
+  assert.equal(g.tileAt(x, y).t, 'grass');
+  assert.equal(g.state.stats.cleared, 0);
+  g.state.res.gold = 0;
+  assert.equal(g.plant(x, y).ok, false); // sem ouro
+});
+
+test('plantar: muda sobrevive ao código do reino', () => {
+  const g = freshGame();
+  const free = g.state.grid.tiles.findIndex((t, i) => t.t === 'grass' && !t.b && isUnlocked(g.state.grid, i % GRID_W, Math.floor(i / GRID_W)));
+  g.state.res.gold = 100;
+  g.plant(free % GRID_W, Math.floor(free / GRID_W));
+  const k = decodeKingdom(encodeKingdom(g.state, 1));
+  assert.equal(k.grid.tiles[free].t, 'sapling');
+});
