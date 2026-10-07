@@ -3,7 +3,8 @@ import { BUILDINGS, BUILDING_ORDER, RESOURCES, TERRAIN, MAX_LEVEL, PLANT_COST, G
 import { HEROES, RARITIES, EXPEDITIONS, RECRUIT_GEM_COST, MAX_STARS, HERO_MAX_LEVEL } from '../data/heroes.js';
 import { TALENTS, CROWN_DIVISOR } from '../data/talents.js';
 import { SEASON_TIERS, XP_PER_TIER } from '../data/seasons.js';
-import { ACHIEVEMENTS } from '../data/achievements.js';
+import { ACHIEVEMENTS, ACH_PROD_BONUS } from '../data/achievements.js';
+import { GEM_SHOP, GEM_PACKS, PAYMENTS_ENABLED } from '../data/shop.js';
 import { BANNERS, EMBLEMS } from '../data/cosmetics.js';
 import { EVENT_BY_ID } from '../data/events.js';
 import { TUTORIAL, TAB_UNLOCKS, TAB_NAMES, DIR_NAMES } from '../core/game.js';
@@ -146,7 +147,7 @@ export function hudInfo(key) {
     food: `Comida: cada morador come 0,15/s. Sem comida, moradores vão embora e mercados param. Consumo atual: ${fmt(e.foodConsumption)}/s.`,
     wood: 'Madeira vem das serrarias; cada floresta vizinha dá +40%.',
     stone: 'Pedra vem das pedreiras (rochas vizinhas dão +50%). Necessária para defesa e expansão.',
-    gems: 'Gemas só se ganham jogando: invasões vencidas, carroças, missões, conquistas, passe e expedições.',
+    gems: 'Gemas vêm de invasões, carroças, missões, conquistas, passe e expedições, ou da Loja de Gemas (aba Perfil). Compram recursos, impulsos, pergaminhos, aceleram treinos e expedições e liberam cosméticos.',
     pop: `Moradores ${Math.floor(s.pop)} de ${e.popCap}. Os prédios pedem ${e.workersNeeded} trabalhadores. Fazendas e moinhos são ocupados primeiro; com menos gente, os outros prédios rendem menos.`,
     happiness: `Felicidade ${Math.floor(e.happiness)}: multiplica toda a produção por ${e.happinessMult.toFixed(2)}. Tavernas, templos e decorações aumentam; pedreiras, minas e superlotação reduzem.`,
     raid: `A próxima horda vem do ${DIR_NAMES[s.raid.dir]}. Torres e muralhas desse lado do mapa contam 100%; do lado oposto, 50%. Muralha de lado para a horda conta só metade. Heróis do Conselho sempre contam inteiros. Se a horda vencer, ela danifica construções desse lado (muralhas e torres seguram os golpes primeiro); o que não for consertado até a próxima derrota vira ruína.`,
@@ -632,7 +633,19 @@ function tabPerfil() {
   const g = ui.game;
   const s = g.state;
   const k = s.kingdom;
-  const got = ACHIEVEMENTS.filter((a) => s.achievements[a.id]).length;
+  const main = ACHIEVEMENTS.filter((a) => a.kind !== 'shadow');
+  const got = main.filter((a) => s.achievements[a.id]).length;
+  const shadows = ACHIEVEMENTS.filter((a) => a.kind === 'shadow');
+  const next = g.nextAchievement();
+  const achHtml = (a) => {
+    const has = !!s.achievements[a.id];
+    const hidden = a.kind && !has;
+    const name = hidden ? '???' : a.name;
+    const desc = hidden ? `Dica: ${a.hint}` : a.desc;
+    const extra = `${a.gems ? ` · ${a.gems} gema${a.gems === 1 ? '' : 's'}` : ''}${a.title && !hidden ? ` · título "${a.title}"` : ''}`;
+    const tag = has ? 'div' : 'button';
+    return `<${tag} class="ach ${has ? 'got' : ''} ${a.kind || ''}" ${has ? '' : 'data-action="achLocked"'}>${ico(has ? a.icon : 'lock')}<b>${esc(name)}</b><small>${esc(desc)}${extra}</small></${tag}>`;
+  };
   return `
     <section class="card">
       <h3>${ico('tab-profile')} Identidade</h3>
@@ -651,8 +664,19 @@ function tabPerfil() {
       <h4>Título</h4><div class="row">${s.cosmetics.titles.map((t) => `<button class="btn small ${k.title === t ? 'on' : ''}" data-action="equip" data-arg="title|${esc(t)}">${esc(t)}</button>`).join('')}</div>
     </section>
     <section class="card">
-      <h3>${ico('trophy')} Conquistas ${got}/${ACHIEVEMENTS.length}</h3>
-      <div class="achs">${ACHIEVEMENTS.map((a) => `<div class="ach ${s.achievements[a.id] ? 'got' : ''}">${ico(s.achievements[a.id] ? a.icon : 'lock')}<b>${a.name}</b><small>${esc(a.desc)} · ${a.gems} gemas${a.title ? ` · título "${a.title}"` : ''}</small></div>`).join('')}</div>
+      <h3>${ico('trophy')} Conquistas ${got}/${main.length}</h3>
+      <p class="muted">Cada conquista dá +${Math.round(ACH_PROD_BONUS * 100)}% de produção para sempre. Bônus atual: <b class="pos">+${Math.round(got * ACH_PROD_BONUS * 100)}%</b>.</p>
+      ${next ? `<div class="ach-next"><span>${ico(next.a.icon)} Próxima: <b>${esc(next.a.name)}</b> <small>${esc(next.a.desc)}</small></span><span class="bar"><i style="width:${Math.round(next.ratio * 100)}%"></i></span><small>${fmt(next.cur)} / ${fmt(next.goal)}</small></div>` : ''}
+      <div class="achs">${main.map(achHtml).join('')}</div>
+      <h4>Sombra <small class="muted">(não contam no total)</small></h4>
+      <div class="achs">${shadows.map(achHtml).join('')}</div>
+    </section>
+    <section class="card">
+      <h3>${resIco('gems')} Loja de Gemas</h3>
+      <p class="muted">Você tem <b>${fmt(s.res.gems)}</b> gemas.</p>
+      <div class="shop">${GEM_SHOP.map((i) => `<button class="shop-item ${s.res.gems >= i.gems ? '' : 'poor'}" data-action="buyShop" data-arg="${i.id}">${ico(i.icon)}<span>${esc(i.name)}</span><b>${resIco('gems')} ${i.gems}</b></button>`).join('')}</div>
+      <h4>Comprar gemas</h4>
+      <div class="shop">${GEM_PACKS.map((p) => `<button class="shop-item pack" data-action="buyGemPack" data-arg="${p.id}">${resIco('gems')}<span><b>${fmt(p.gems)} gemas</b> ${esc(p.name)}${p.tag ? ` <em class="tag">${esc(p.tag)}</em>` : ''}</span><b>${PAYMENTS_ENABLED ? esc(p.price) : 'Em breve'}</b></button>`).join('')}</div>
     </section>
     <section class="card">
       <h3>${ico('stats')} Estatísticas</h3>

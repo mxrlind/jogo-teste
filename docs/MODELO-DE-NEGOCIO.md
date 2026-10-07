@@ -21,11 +21,11 @@
 | 3. Cauda longa | Steam | DLC de apoio ("Pacote do Fundador": estandartes, emblemas, trilha sonora) | US$ 2–3 | Só cosméticos; temporadas continuam grátis (lição de Terraria) |
 | 4. Opcional | Mobile | Grátis + anúncio recompensado (ex.: "dobrar expedição") | — | Só se a retenção web justificar; sem aquisição paga de usuários |
 
-### Regras éticas (inegociáveis)
-1. **Nada de pay-to-win.** Dinheiro real nunca compra produção, defesa, heróis ou Coroas.
-2. **Nada de loot box paga.** O recrutamento aleatório usa só moedas do jogo.
-3. **Gemas só se ganham jogando** (já é assim no protótipo).
-4. Cosmético pago nunca é exclusivo de forma que deixe o jogador gratuito "feio": existem opções grátis em todas as categorias.
+### Regras
+Decisão de 2026-10-07: **gemas também são vendidas por dinheiro real** e aceleram e compram recursos, impulsos, pergaminhos e cosméticos (Loja de Gemas, versão 0.17.0). O pagamento real ainda não está ligado: precisa de conta num serviço (Stripe, itch.io ou Steam) e de um servidor que confirme a compra antes de creditar as gemas.
+1. Gemas continuam saindo de graça jogando (invasões, carroças, missões, conquistas, passe, expedições).
+2. Coroas e talentos de Legado não se compram.
+3. Cosmético pago nunca é exclusivo de forma que deixe o jogador gratuito "feio": existem opções grátis em todas as categorias.
 
 ## 3. Projeção (cenários)
 
