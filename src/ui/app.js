@@ -20,7 +20,7 @@ import { ico, resIco } from './icons.js';
 import { showModal, replaceModal, closeModal, confirmModal, runConfirm, toast, modalOpen, modalClosable } from './modals.js';
 import { renderHud, renderPalette, renderTileInfo, renderSide, renderModeHint, hudInfo, lockedTabHint, describeBonus } from './panels.js';
 
-const GAME_VERSION = '0.10.0';
+const GAME_VERSION = '0.11.0';
 const TAB_ORDER = ['reino', 'herois', 'temporada', 'legado', 'social', 'perfil'];
 const FLOAT_COLORS = RES_COLORS;
 
@@ -706,7 +706,8 @@ function showOptions(replace = false) {
     ${slider('sfxVolume', 'Efeitos', 0, 100, 'speaker')}
     <h3>Visual e acessibilidade</h3>
     ${slider('fontScale', 'Tamanho do texto', 85, 150, 'font')}
-    ${check('particles', 'Partículas, moradores e números flutuantes')}
+    ${check('villagers', 'Moradores andando pelo mapa')}
+    ${check('particles', 'Partículas e números flutuantes')}
     ${check('reduceMotion', 'Reduzir movimento (sem tremor, flash nem animações)')}
     ${check('highContrast', 'Alto contraste')}
     <h3>Teclado</h3>

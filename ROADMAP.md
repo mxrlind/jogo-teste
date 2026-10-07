@@ -1,6 +1,6 @@
 # Roadmap
 
-O que ficou de fora da versão 0.10.0, **em ordem de impacto** (o que mais muda a experiência ou o futuro do jogo vem primeiro). Cada item diz por que importa e o tamanho aproximado do trabalho.
+O que ficou de fora da versão 0.11.0, **em ordem de impacto** (o que mais muda a experiência ou o futuro do jogo vem primeiro). Cada item diz por que importa e o tamanho aproximado do trabalho.
 
 | # | Item | Por que importa | Esforço |
 |---|---|---|---|
@@ -21,6 +21,7 @@ O que ficou de fora da versão 0.10.0, **em ordem de impacto** (o que mais muda 
 ## Já entregue
 
 - **0.1.0**: protótipo completo (mapa, 15 prédios, hordas, heróis, temporadas, Ascensão, social simulado, offline, testes, simulador).
+- **0.11.0**: moradores passeiam pelo mapa todo, conversam nos pontos de encontro e têm opção própria (não somem mais com "Reduzir movimento").
 - **0.10.0**: muralhas que se ligam sozinhas (reta, em pé, canto, T, cruz) e muralha de lado para a horda conta metade.
 - **0.9.0**: Quartel para treinar heróis, taverna que barateia recrutas e abre vagas no Conselho, e sprites por nível (começando pela taverna e pelo quartel).
 - **0.8.0**: plantar árvores (muda cresce e vira floresta em 3 minutos).
