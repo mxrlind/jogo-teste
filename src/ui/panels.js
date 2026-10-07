@@ -24,6 +24,15 @@ const touchUi = () => window.matchMedia?.('(pointer: coarse)').matches ?? false;
 let hudBuilt = false;
 const RES_LIST = ['gold', 'food', 'wood', 'stone'];
 
+// Rosa dos ventos do canto do mapa (SVG próprio). A ponta do lado da próxima horda fica vermelha.
+const COMPASS_SVG = (() => {
+  const point = (len, w, rot, cls) => `<g class="${cls}" transform="rotate(${rot})"><polygon class="lt" points="0,-${len} -${w},-${w} 0,0"/><polygon class="dk" points="0,-${len} ${w},-${w} 0,0"/></g>`;
+  const diag = [45, 135, 225, 315].map((r) => point(19, 4.5, r, 'pt-d')).join('');
+  const card = [['n', 0], ['e', 90], ['s', 180], ['w', 270]].map(([d, r]) => point(31, 7, r, `pt pt-${d}`)).join('');
+  const letters = [['N', 0, -38.5], ['L', 38.5, 0], ['S', 0, 38.5], ['O', -38.5, 0]].map(([t, x, y]) => `<text x="${x}" y="${y}">${t}</text>`).join('');
+  return `<svg viewBox="-50 -50 100 100" aria-hidden="true"><circle class="ring" r="47"/><circle class="ring2" r="31.5"/>${diag}${card}<circle class="hub" r="4"/>${letters}</svg>`;
+})();
+
 function buildHud() {
   $('#menuBtn').innerHTML = ico('menu');
   $('#hud-res').innerHTML = [
@@ -37,6 +46,7 @@ function buildHud() {
     <button class="status event" id="st-event" data-action="info" data-arg="event" hidden></button>
     <button class="status boost" id="st-boost" data-action="info" data-arg="boost" hidden></button>
     <button class="status ascend" id="st-ascend" data-action="tab" data-arg="legado" hidden></button>`;
+  $('#compass').innerHTML = COMPASS_SVG;
   hudBuilt = true;
 }
 
@@ -94,6 +104,12 @@ export function renderHud() {
   // Duas linhas: o que é (horda, de onde, quando) e se a defesa daquele lado aguenta.
   setHtml(raid, `${ico(safe ? 'defense' : 'warning')}<span><small>Horda pelo ${DIR_NAMES[s.raid.dir]} · ${s.raid.warned ? 'chegando' : fmtTime(raidIn)}</small>Defesa <b class="def">${fmt(e.defense)}</b> / ${fmt(strength)} ${safe ? '· protegido' : '· vulnerável'}</span>`);
   raid.setAttribute('aria-label', `Próxima horda pelo ${DIR_NAMES[s.raid.dir]} em ${fmtTime(raidIn)}. Defesa ${fmt(e.defense)} contra força ${fmt(strength)}.`);
+  const compass = $('#compass');
+  compass.dataset.raid = s.raid.dir;
+  compass.classList.toggle('warned', !!s.raid.warned);
+  compass.hidden = !!ui.renderer?.view; // visitando outro reino: a horda anunciada é a do seu
+  const compassLabel = `Rosa dos ventos. Próxima horda pelo ${DIR_NAMES[s.raid.dir]}.`;
+  if (compass.title !== compassLabel) { compass.title = compassLabel; compass.setAttribute('aria-label', compassLabel); }
   const ev = s.event && s.event.endsAt > Date.now() ? EVENT_BY_ID[s.event.id] : null;
   const evEl = $('#st-event');
   evEl.hidden = !ev;
