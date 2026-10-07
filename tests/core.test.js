@@ -4,10 +4,10 @@ import assert from 'node:assert/strict';
 import { createState, serialize, deserialize, SAVE_VERSION, SAVE_KEY } from '../src/core/state.js';
 import { encodeSave, decodeSave, loadSave, writeSave, exportCode, importCode, checksum, CORRUPT_KEY, BACKUP_INTERVAL, listBackups } from '../src/core/storage.js';
 import { defaultConfig, normalizeConfig, actionForKey } from '../src/core/config.js';
-import { dirWeight } from '../src/core/economy.js';
+import { dirWeight, wallFacing } from '../src/core/economy.js';
 import { Game } from '../src/core/game.js';
 import { computeEconomy, adjacencyAt, buildCost, upgradeCost, collectModifiers } from '../src/core/economy.js';
-import { generateMap, ringOf, isUnlocked, idx, GRID_W, GRID_H } from '../src/core/map.js';
+import { generateMap, ringOf, isUnlocked, idx, wallMask, GRID_W, GRID_H } from '../src/core/map.js';
 import { seasonInfo, dailyMissions, tierOf } from '../src/core/season.js';
 import { encodeKingdom, decodeKingdom, generateRivals, rivalGrid } from '../src/core/social.js';
 import { addHero } from '../src/core/heroes.js';
@@ -470,6 +470,30 @@ test('hordas: a defesa pesa mais do lado de onde a horda vem', () => {
   const r = (() => { g.econ = computeEconomy(s, T0); return g.resolveRaid(T0); })();
   assert.ok(['n', 's', 'e', 'w'].includes(s.raid.dir), 'próxima horda já tem direção');
   assert.equal(r.dir, 's');
+});
+
+test('muralhas: se ligam sozinhas e de lado para a horda contam metade', () => {
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  s.pop = 50;
+  // Linha norte-sul de três muralhas, com uma torre a leste da do meio.
+  for (const y of [4, 5, 6]) put(s, 5, y, 'grass', { id: 'muralha', lvl: 1 });
+  put(s, 6, 5, 'grass', { id: 'torre', lvl: 1 });
+  assert.equal(wallMask(s.grid, 5, 4), 4, 'ponta de cima liga só para o sul');
+  assert.equal(wallMask(s.grid, 5, 5), 1 | 2 | 4, 'a do meio liga norte, sul e a torre a leste');
+  assert.equal(wallMask(s.grid, 5, 6), 1);
+  assert.equal(wallFacing(0, 'n'), 1, 'sozinha conta inteira');
+  assert.equal(wallFacing(5, 'n'), 0.5, 'norte-sul fica de lado para horda do norte');
+  assert.equal(wallFacing(5, 'e'), 1, 'norte-sul fica de frente para horda do leste');
+  assert.equal(wallFacing(3, 's'), 1, 'canto tem os dois lados');
+  // A linha norte-sul defende mais contra o oeste que contra o norte, mesmo estando no centro.
+  s.grid.tiles[idx(6, 5)].b = null;
+  s.raid.dir = 'n';
+  const n = computeEconomy(s, T0).defense;
+  s.raid.dir = 'w';
+  const w = computeEconomy(s, T0).defense;
+  assert.ok(w > n * 1.5);
 });
 
 test('core loop: melhorar ao máximo e melhorar todos do tipo', () => {

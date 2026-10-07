@@ -2,6 +2,11 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [Não lançado]
+### Adicionado
+- **Muralhas que se ligam sozinhas**: cada muralha olha para as vizinhas (muralhas e torres) e escolhe o sprite certo: deitada, em pé, canto, T ou cruz. São 15 variantes geradas por `tools/render-kaykit.mjs` com a peça reta do KayKit (CC0).
+- **Muralha de lado**: uma muralha atravessada no caminho da horda conta inteira; virada de lado para ela, conta só metade. Cantos e cruzamentos contam inteiros, e muralha sozinha também. O painel do tile mostra "muralha de lado" quando for o caso.
+
 ## [0.7.0] — 2026-10-07
 ### Mudou
 - **Arte nova no mapa**: prédios, árvores, rochas, montanhas e água agora vêm do **KayKit Medieval Hexagon Pack** (Kay Lousberg, CC0 1.0). Os modelos 3D foram renderizados como imagens 2D: o jogo continua um canvas 2D, sem 3D rodando. Os prédios ganharam fachada, volume e sombra e sobem para o tile de cima; natureza e prédios são desenhados linha a linha, de trás para a frente.

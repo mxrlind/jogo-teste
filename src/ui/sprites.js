@@ -46,6 +46,11 @@ export const BUILDING_SPRITES = {
   estatua: building('estatua'),
 };
 
+// Muralha que se liga sozinha: um sprite por combinação de vizinhos (máscara de wallMask em src/core/map.js).
+// Máscara 0 (sozinha) usa o sprite normal.
+const WALL_VARIANTS = Array.from({ length: 16 }, (_, m) => (m ? k(`building-muralha-${m}`) : BUILDING_SPRITES.muralha.src));
+export const buildingSrc = (id, mask = 0) => (id === 'muralha' ? WALL_VARIANTS[mask] : BUILDING_SPRITES[id].src);
+
 export const LOCKED_OVERLAY = 'rgba(20, 22, 32, 0.62)';
 
 // Carroça do mercador (evento surpresa) e invasores (time vermelho, que nenhum morador usa).
@@ -75,6 +80,7 @@ export function allSpriteUrls() {
   const urls = new Set();
   for (const v of Object.values(TERRAIN_SPRITES)) [...v.base, ...(v.over || [])].forEach((u) => urls.add(u));
   for (const v of Object.values(BUILDING_SPRITES)) { urls.add(v.src); if (v.blades) urls.add(v.blades.src); }
+  WALL_VARIANTS.forEach((x) => urls.add(x));
   [CART_SPRITE, ...RAIDER_SPRITES, ...SLEEPER_SPRITES].forEach((x) => urls.add(x));
   for (const p of Object.values(PROFESSIONS)) urls.add(p.sprite);
   return [...urls];

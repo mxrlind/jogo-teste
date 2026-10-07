@@ -7,7 +7,7 @@ import { HERO_BY_ID } from '../data/heroes.js';
 import { TALENT_BY_ID } from '../data/talents.js';
 import { EVENT_BY_ID } from '../data/events.js';
 import { seasonInfo } from './season.js';
-import { GRID_W, GRID_H, neighbors, idx, adjKey } from './map.js';
+import { GRID_W, GRID_H, neighbors, idx, adjKey, wallMask } from './map.js';
 
 export const PROD_RES = ['gold', 'food', 'wood', 'stone'];
 
@@ -93,6 +93,22 @@ export function dirWeight(dir, x, y) {
   const fx = x / (GRID_W - 1);
   const near = { n: 1 - fy, s: fy, w: 1 - fx, e: fx }[dir] ?? 0.5;
   return 0.5 + 0.5 * near;
+}
+
+// Muralha torta: de frente para a horda (atravessada no caminho dela) conta inteira; de lado, só metade.
+// Uma muralha leste-oeste segura hordas do norte e do sul; uma norte-sul segura as do leste e do oeste.
+// Cantos e cruzamentos têm os dois lados. Muralha sozinha não tem lado e conta inteira.
+export const SIDEWAYS_WALL = 0.5;
+export function wallFacing(mask, dir) {
+  if (!mask) return 1;
+  const across = dir === 'n' || dir === 's' ? mask & 10 : mask & 5;
+  return across ? 1 : SIDEWAYS_WALL;
+}
+
+// Peso total de uma defesa: lado do mapa e, para muralhas, a direção em que ela está virada.
+export function defenseWeight(state, id, dir, x, y) {
+  const w = dirWeight(dir, x, y);
+  return id === 'muralha' ? w * wallFacing(wallMask(state.grid, x, y), dir) : w;
 }
 
 // Bônus de adjacência de um prédio hipotético `id` na posição (x, y).
@@ -196,7 +212,7 @@ export function computeEconomy(state, now) {
       info.defense = def.defense * eff;
       const x = i % GRID_W;
       const y = Math.floor(i / GRID_W);
-      for (const d of Object.keys(defDir)) defDir[d] += info.defense * dirWeight(d, x, y);
+      for (const d of Object.keys(defDir)) defDir[d] += info.defense * defenseWeight(state, info.id, d, x, y);
     }
   });
 

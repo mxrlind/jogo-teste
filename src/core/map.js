@@ -39,6 +39,14 @@ export function neighbors(x, y) {
   return out;
 }
 
+// Muralha que se liga sozinha: quais vizinhos são muralha ou torre.
+// Bits: 1 = norte, 2 = leste, 4 = sul, 8 = oeste (mesma ordem dos sprites de tools/render-kaykit.mjs).
+const WALL_LINKS = new Set(['muralha', 'torre']);
+export function wallMask(grid, x, y) {
+  const linked = (nx, ny) => inBounds(nx, ny) && WALL_LINKS.has(grid.tiles[idx(nx, ny)].b?.id);
+  return (linked(x, y - 1) ? 1 : 0) | (linked(x + 1, y) ? 2 : 0) | (linked(x, y + 1) ? 4 : 0) | (linked(x - 1, y) ? 8 : 0);
+}
+
 // Chave de adjacência de um tile: id da construção se houver, senão o terreno.
 export function adjKey(tile) {
   return tile.b ? tile.b.id : tile.t;
