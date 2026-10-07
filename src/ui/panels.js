@@ -8,7 +8,7 @@ import { BANNERS, EMBLEMS } from '../data/cosmetics.js';
 import { EVENT_BY_ID } from '../data/events.js';
 import { TUTORIAL, TAB_UNLOCKS, TAB_NAMES, DIR_NAMES } from '../core/game.js';
 import { buildCost, upgradeCost, canAfford, kingdomPower, heroStrength, heroPowerOf, storageMult, countOf, defenseWeight, wallFacing, maxLevelOf } from '../core/economy.js';
-import { idx, isUnlocked, ringOf, wallMask } from '../core/map.js';
+import { idx, isUnlocked, ringOf, wallMask, GRID_H } from '../core/map.js';
 import { seasonInfo, tierOf, missionText, rewardFor } from '../core/season.js';
 import {
   councilSlots, recruitGoldCost, speedUpCost, tavernDiscount, heroLevelCap, trainingSlots, trainingCount, trainCost,
@@ -182,6 +182,20 @@ export function renderModeHint() {
     el.hidden = false;
     setHtml(el, `${ico('move')}<span>Escolha o novo lugar (mover é grátis).</span><button class="btn small" data-action="cancelMode">Cancelar</button>`);
   } else el.hidden = true;
+  dodgeModeHint(el);
+}
+
+// Com o mapa todo expandido a dica cobre a fileira da borda: se o tile sob o cursor
+// (ou o último toque) ficar embaixo dela, ela pula para a borda oposta.
+function dodgeModeHint(el) {
+  el.classList.remove('flip');
+  const t = ui.renderer.hover;
+  if (el.hidden || !t) return;
+  const c = ui.renderer.canvas.getBoundingClientRect();
+  const size = c.height / GRID_H;
+  const top = c.top + t.y * size, bottom = top + size;
+  const h = el.getBoundingClientRect();
+  if (bottom > h.top && top < h.bottom) el.classList.add('flip');
 }
 
 // ================================================================ paleta
