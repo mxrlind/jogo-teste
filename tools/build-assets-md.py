@@ -52,11 +52,11 @@ def main():
     w('## Licenças\n')
     w('| Licença | O que exige | Onde se aplica |')
     w('|---|---|---|')
-    w('| [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | Nada (crédito é cortesia, e damos) | KayKit Medieval Hexagon Pack; Kenney: Medieval RTS, UI Pack, Interface Sounds, RPG Audio, Impact Sounds, Music Jingles |')
+    w('| [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | Nada (crédito é cortesia, e damos) | KayKit Medieval Hexagon Pack e Dungeon Remastered; Kenney: Medieval RTS, UI Pack, Interface Sounds, RPG Audio, Impact Sounds, Music Jingles |')
     w('| [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Crédito ao autor ("Icons made by {autor}"), link da licença e indicação de mudanças. Atendido na tela de Créditos do jogo e neste arquivo | Ícones de game-icons.net |')
     w('| [SIL OFL 1.1](https://openfontlicense.org/) | Manter o aviso de licença junto da fonte; não vender a fonte isolada | Nunito |')
     w('')
-    w('Os arquivos de licença originais estão junto de cada pacote: `assets/sprites/kaykit/License.txt`, `assets/sprites/medieval-rts/License.txt`, `assets/ui/kenney-ui-pack/License.txt`, `assets/icons/game-icons/License.txt`, `assets/sfx/License-*.txt`, `assets/fonts/Nunito-OFL.txt`.\n')
+    w('Os arquivos de licença originais estão junto de cada pacote: `assets/sprites/kaykit/License.txt` (Medieval Hexagon), `assets/sprites/kaykit/License-Dungeon-Remastered.txt`, `assets/sprites/medieval-rts/License.txt`, `assets/ui/kenney-ui-pack/License.txt`, `assets/icons/game-icons/License.txt`, `assets/sfx/License-*.txt`, `assets/fonts/Nunito-OFL.txt`.\n')
     w('## Origem dos downloads\n')
     w('A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.io, freesound.org e game-icons.net. Por isso:')
     w('- **Kenney**: espelho público [github.com/ETdoFresh/kenney.nl](https://github.com/ETdoFresh/kenney.nl) (ZIPs extraídos, com o `License.txt` original). Como a licença é CC0, a redistribuição é permitida. O [EXECUTAR.md](EXECUTAR.md) explica como conferir com os ZIPs oficiais.')
@@ -64,6 +64,7 @@ def main():
     w('- **Sons Kenney**: convertidos de OGG para MP3 (96 kbps) para tocar em todos os navegadores. **Modificação**: só conversão de formato.')
     w('- **Nunito**: pacote npm [@fontsource/nunito](https://www.npmjs.com/package/@fontsource/nunito) (arquivos do Google Fonts).')
     w('- **KayKit**: repositório oficial [github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0](https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0) (modelos GLTF e `LICENSE.txt`). **Modificações**: os modelos 3D foram renderizados em PNG por `tools/render-kaykit.mjs` (vista de cima com a altura subindo na tela, luz e sombra próprias); alguns sprites juntam vários modelos (pedreira, jardim, estátua, e a taverna e o quartel nos níveis 5 e 10). O chão (grama e água) é um bloco de cor lisa renderizado na mesma luz.')
+    w('- **KayKit Dungeon Remastered** (subsolo e Escadaria): repositório oficial [github.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0](https://github.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0) (modelos GLB e `LICENSE.txt`). **Modificações**: renderizados pelo mesmo `tools/render-kaykit.mjs`, às vezes junto com peças do Medieval Hexagon. Veios de ouro e gemas e a horta de fungos são pedras e plantas do Medieval Hexagon recoloridas.')
     w('- **Ícone do app**: composição gerada por `tools/make-icons.py` com a grama e o castelo renderizados do KayKit.\n')
 
     # Sprites
@@ -87,11 +88,18 @@ def main():
             use = 'natureza no mapa: ' + {'forest': 'floresta', 'sapling': 'muda plantada (estágio de crescimento)', 'rock': 'rochas', 'mountain': 'montanha'}[n.split('-')[0]]
         elif n.startswith(('grass-', 'water-')):
             use = 'chão no mapa: ' + ('grama' if n.startswith('grass') else 'água')
+        elif n.startswith('room-'):
+            use = f'sala do subsolo: {n[5:]}'
+        elif n.startswith('u-'):
+            use = 'chão do subsolo: ' + {'rock': 'rocha', 'gold': 'veio de ouro', 'gem': 'veio de gemas', 'water': 'aquífero', 'magma': 'magma', 'floor': 'galeria cavada', 'cavern': 'caverna'}[n.split('-')[1]]
         elif n == 'logo-castelo':
             use = 'logo (menu e carregamento) e ícone do app'
         else:
             use = 'reservado'
-        w(f'| `assets/sprites/kaykit/{f}` | {use} | KayKit – Medieval Hexagon Pack, renderizado por `tools/render-kaykit.mjs` | Kay Lousberg (kaylousberg.com) | CC0 1.0 | [kaylousberg.itch.io/kaykit-medieval-hexagon](https://kaylousberg.itch.io/kaykit-medieval-hexagon) |')
+        dungeon = 'room-' in n or n.endswith('escadaria')
+        src = 'KayKit – Dungeon Remastered (com peças do Medieval Hexagon)' if dungeon else 'KayKit – Medieval Hexagon Pack'
+        link = '[kaylousberg.itch.io/kaykit-dungeon-remastered](https://kaylousberg.itch.io/kaykit-dungeon-remastered)' if dungeon else '[kaylousberg.itch.io/kaykit-medieval-hexagon](https://kaylousberg.itch.io/kaykit-medieval-hexagon)'
+        w(f'| `assets/sprites/kaykit/{f}` | {use} | {src}, renderizado por `tools/render-kaykit.mjs` | Kay Lousberg (kaylousberg.com) | CC0 1.0 | {link} |')
     w('')
     w('## Moradores, invasores e carroça (Kenney – Medieval RTS, CC0)\n')
     w('| Arquivo | Onde é usado | Fonte | Autor | Licença | Link |')

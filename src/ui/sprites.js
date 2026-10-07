@@ -49,6 +49,26 @@ export const BUILDING_SPRITES = {
   jardim: building('jardim'),
   fogueira: building('fogueira'), // poço do KayKit (o nome Fogueira vem da época do Medieval RTS)
   estatua: building('estatua'),
+  escadaria: building('escadaria'), // KayKit Dungeon Remastered (CC0)
+};
+
+// Subsolo: chão visto de cima (um por tipo de tile) e salas no quadro SPRITE_FRAME.
+export const UNDER_SPRITES = {
+  rock: [k('u-rock-1'), k('u-rock-2')],
+  gold: [k('u-gold')],
+  gem: [k('u-gem')],
+  water: [k('u-water')],
+  magma: [k('u-magma')],
+  floor: [k('u-floor-1'), k('u-floor-2')],
+  cavern: [k('u-cavern-1'), k('u-cavern-2')],
+};
+const room = (id) => ({ src: k(`room-${id}`), icon: k(`icon-room-${id}`) });
+export const ROOM_SPRITES = {
+  pedreira_funda: room('pedreira_funda'),
+  adega: room('adega'),
+  garimpo: room('garimpo'),
+  fungos: room('fungos'),
+  forja: room('forja'),
 };
 
 // Muralha que se liga sozinha: um sprite por combinação de vizinhos (máscara de wallMask em src/core/map.js).
@@ -105,6 +125,8 @@ export function allSpriteUrls() {
     for (const [, src] of v.stages ?? []) urls.add(src);
   }
   WALL_VARIANTS.forEach((x) => urls.add(x));
+  for (const list of Object.values(UNDER_SPRITES)) list.forEach((x) => urls.add(x));
+  for (const v of Object.values(ROOM_SPRITES)) urls.add(v.src);
   [CART_SPRITE, ...RAIDER_SPRITES, ...SLEEPER_SPRITES].forEach((x) => urls.add(x));
   for (const p of Object.values(PROFESSIONS)) urls.add(p.sprite);
   return [...urls];

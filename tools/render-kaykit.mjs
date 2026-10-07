@@ -4,7 +4,10 @@
 // Uso:
 //   git clone --depth 1 https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0 /tmp/kaykit
 //   npm i --no-save three@0.170.0 playwright
-//   node tools/render-kaykit.mjs /tmp/kaykit/addons/kaykit_medieval_hexagon_pack/Assets/gltf
+//   git clone --depth 1 https://github.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0 /tmp/kaykit-dungeon
+//   node tools/render-kaykit.mjs /tmp/kaykit/addons/kaykit_medieval_hexagon_pack/Assets/gltf /tmp/kaykit-dungeon/addons/kaykit_dungeon_remastered/Assets/gltf
+//
+// O segundo caminho (Dungeon Remastered, CC0) é usado pelo subsolo e pela Escadaria.
 //
 // Opção --sheet: em vez de salvar os sprites, gera tools/kaykit/sheet.png com todos os modelos (para escolher).
 import http from 'node:http';
@@ -15,7 +18,11 @@ import { chromium } from 'playwright';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GLTF = process.argv[2];
+const DUNGEON = process.argv[3] && !process.argv[3].startsWith('--') ? process.argv[3] : null;
 const SHEET = process.argv.includes('--sheet');
+// --only=a,b: gera só os sprites cujo nome começa com um desses prefixos (o resto do pacote fica como está).
+const ONLY = process.argv.find((a) => a.startsWith('--only='))?.slice(7).split(',');
+const want = (name) => !ONLY || ONLY.some((p) => name.startsWith(p));
 if (!GLTF || !fs.existsSync(GLTF)) {
   console.error('Informe a pasta gltf do KayKit (veja o cabeçalho deste arquivo).');
   process.exit(1);
@@ -32,6 +39,7 @@ const B = (n) => `buildings/blue/building_${n}_blue`;
 const N = (n) => `buildings/neutral/${n}`;
 const NAT = (n) => `decoration/nature/${n}`;
 const P = (n) => `decoration/props/${n}`;
+const DG = (n) => `dg/${n}`; // Dungeon Remastered: nome do arquivo com extensão
 const one = (model, extra = {}) => ({ parts: [{ model }], ...extra });
 
 // Prédios do jogo (ids de src/data/buildings.js).
@@ -84,6 +92,8 @@ const BUILDINGS = {
   fogueira: one(B('well'), { fit: 0.7 }),
   estatua: { parts: [{ model: B('tower_base') }, { model: P('flag_blue'), y: 0.6 }], fit: 0.62 },
 };
+// Escadaria para o subsolo (Dungeon Remastered): escada de pedra com tochas.
+if (DUNGEON) BUILDINGS.escadaria = { parts: [{ model: DG('stairs_walled.gltf.glb') }, { model: DG('torch_mounted.gltf.glb'), x: 1.3, z: 1.2 }, { model: DG('torch_mounted.gltf.glb'), x: -1.3, z: 1.2 }], fit: 0.8 };
 
 // Muralha que se liga sozinha: uma variante para cada combinação de vizinhos que também são muralha ou torre.
 // Bits da máscara: 1 = norte, 2 = leste, 4 = sul, 8 = oeste (mesma ordem de wallMask em src/core/map.js).
@@ -116,6 +126,41 @@ const NATURE = {
   'mountain-2': { parts: [{ model: NAT('mountain_C') }], fit: 1.0 },
 };
 
+// Subsolo (precisa do Dungeon Remastered): salas e escadas, no mesmo quadro dos prédios.
+const ROCKS = (tintColor, extra = {}) => [
+  { model: NAT('rock_single_A'), x: -0.42, z: -0.38, scale: 2.6, rot: 20, tint: tintColor, ...extra },
+  { model: NAT('rock_single_C'), x: 0.4, z: 0.36, scale: 2.4, rot: 70, tint: tintColor, ...extra },
+  { model: NAT('rock_single_B'), x: 0.42, z: -0.42, scale: 2.0, rot: 140, tint: tintColor, ...extra },
+  { model: NAT('rock_single_D'), x: -0.4, z: 0.42, scale: 2.0, rot: 200, tint: tintColor, ...extra },
+]
+const UNDER = {
+  'room-pedreira_funda': { parts: [{ model: DG('rubble_large.gltf.glb') }, { model: P('resource_stone'), x: 0.9, z: 0.8, scale: 1.4 }, { model: P('wheelbarrow'), x: -0.9, z: 0.8, rot: 30, scale: 1.4 }], fit: 0.86 },
+  'room-adega': { parts: [{ model: DG('barrel_large.gltf.glb') }, { model: DG('keg_decorated.gltf.glb'), x: 1.3, z: 0.6 }, { model: DG('barrel_small_stack.gltf.glb'), x: -1.2, z: 0.7 }, { model: DG('shelf_small.gltf.glb'), x: 0.2, z: -1.1 }], fit: 0.86 },
+  'room-garimpo': { parts: [{ model: DG('coin_stack_large.gltf.glb'), scale: 1.6 }, { model: P('bucket_water'), x: 1.0, z: 0.5, scale: 1.3 }, { model: P('sack'), x: -0.9, z: 0.6, scale: 1.3 }, { model: DG('chest_gold.glb'), x: 0.1, z: -0.9, scale: 0.8 }], fit: 0.84 },
+  'room-fungos': {
+    parts: [
+      { model: NAT('waterplant_A'), scale: 3, tint: '#d7a6ff', glow: 0.35 }, { model: NAT('waterplant_B'), x: 0.6, z: 0.4, scale: 3, tint: '#ffd27a', glow: 0.3 },
+      { model: NAT('waterplant_C'), x: -0.6, z: 0.35, scale: 3, tint: '#9fe3c4', glow: 0.3 }, { model: NAT('waterplant_A'), x: 0.45, z: -0.5, rot: 60, scale: 3, tint: '#ffd27a', glow: 0.3 },
+      { model: NAT('waterplant_B'), x: -0.5, z: -0.45, rot: 120, scale: 3, tint: '#d7a6ff', glow: 0.35 },
+    ],
+    fit: 0.86,
+  },
+  'room-forja': { parts: [{ model: B('blacksmith') }], fit: 0.9 },
+};
+// Chão do subsolo: vista de cima, como a grama.
+const UNDER_GROUND = {
+  'u-rock-1': { color: '#4b4552', ground: true, parts: ROCKS('#6d6577') },
+  'u-rock-2': { color: '#48424f', ground: true, parts: ROCKS('#655e70').map((p, i) => ({ ...p, rot: p.rot + 90 * i, scale: p.scale * 0.9 })) },
+  'u-gold': { color: '#4b4552', ground: true, parts: ROCKS('#f2b632', { flat: true, glow: 0.25 }) },
+  'u-gem': { color: '#4b4552', ground: true, parts: [...ROCKS('#7cc6f0', { flat: true, glow: 0.4 }).slice(0, 2), { ...ROCKS('#c08cff', { flat: true, glow: 0.4 })[2] }] },
+  'u-water': { color: '#2b6f96', ground: true },
+  'u-magma': { color: '#f76707', ground: true, parts: ROCKS('#3a2a2a', { flat: true }).slice(1, 3) },
+  'u-floor-1': { color: '#8a7058', ground: true },
+  'u-floor-2': { color: '#84694f', ground: true },
+  'u-cavern-1': { color: '#5f6b4e', ground: true, parts: [{ model: NAT('rock_single_E'), x: -0.5, z: 0.4, scale: 1.4 }] },
+  'u-cavern-2': { color: '#5a664a', ground: true, parts: [{ model: NAT('rock_single_A'), x: 0.45, z: -0.45, scale: 1.3 }] },
+};
+
 // Chão: vista de cima, um tile inteiro.
 const GROUND_FRAME = { left: -0.5, right: 0.5, top: -0.5, bottom: 0.5 };
 const GROUND = {
@@ -125,8 +170,8 @@ const GROUND = {
   'water-2': { color: '#4aa3c9', parts: [{ model: NAT('waterlily_A'), x: 0.35, z: -0.3 }, { model: NAT('waterlily_B'), x: -0.4, z: 0.35 }], ground: true },
 };
 
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream', '.png': 'image/png' };
-const roots = { '/three/': path.join(ROOT, 'node_modules/three/'), '/kk/': GLTF + '/', '/': path.join(ROOT, 'tools/kaykit/') };
+const MIME = { '.glb': 'model/gltf-binary', '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream', '.png': 'image/png' };
+const roots = { ...(DUNGEON ? { '/dg/': DUNGEON + '/' } : {}), '/three/': path.join(ROOT, 'node_modules/three/'), '/kk/': GLTF + '/', '/': path.join(ROOT, 'tools/kaykit/') };
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split('?')[0]);
   const prefix = Object.keys(roots).find((p) => url.startsWith(p));
@@ -160,21 +205,32 @@ if (SHEET) {
   fs.mkdirSync(OUT, { recursive: true });
   const meta = {};
   for (const [name, spec] of Object.entries(BUILDINGS)) {
+    if (!want(`building-${name}`)) continue;
     const r = await render({ ...spec, frame: FRAME, K, ppt: PPT, icon: 128 });
     save(`building-${name}`, r.url);
     save(`icon-${name}`, r.icon);
     if (r.bladesUrl) save(`building-${name}-blades`, r.bladesUrl);
     if (Object.keys(r.meta).length) meta[name] = r.meta;
   }
-  for (const [name, spec] of Object.entries(WALLS)) save(`building-${name}`, (await render({ ...spec, frame: FRAME, K, ppt: PPT })).url);
+  for (const [name, spec] of Object.entries(WALLS)) if (want(`building-${name}`)) save(`building-${name}`, (await render({ ...spec, frame: FRAME, K, ppt: PPT })).url);
   for (const [name, spec] of Object.entries(NATURE)) {
+    if (!want(name)) continue;
     const r = await render({ ...spec, frame: FRAME, K, ppt: PPT, icon: 128 });
     save(name, r.url);
     save(`icon-${name}`, r.icon);
   }
-  for (const [name, spec] of Object.entries(GROUND)) save(name, (await render({ ...spec, frame: GROUND_FRAME, ppt: PPT })).url);
+  for (const [name, spec] of Object.entries(GROUND)) if (want(name)) save(name, (await render({ ...spec, frame: GROUND_FRAME, ppt: PPT })).url);
+  if (DUNGEON) {
+    for (const [name, spec] of Object.entries(UNDER)) {
+      if (!want(name)) continue;
+      const r = await render({ ...spec, frame: FRAME, K, ppt: PPT, icon: 128 });
+      save(name, r.url);
+      save(`icon-${name}`, r.icon);
+    }
+    for (const [name, spec] of Object.entries(UNDER_GROUND)) if (want(name)) save(name, (await render({ ...spec, frame: GROUND_FRAME, ppt: PPT })).url);
+  } else console.log('Sem a pasta do Dungeon Remastered: sprites do subsolo e da Escadaria não foram gerados.');
   // Castelo do logo (menu, tela de carregamento e ícone do app via tools/make-icons.py).
-  save('logo-castelo', (await render({ parts: [{ model: B('castle') }], frame: FRAME, K, ppt: PPT, icon: 256, shadow: false })).icon);
+  if (want('logo-castelo')) save('logo-castelo', (await render({ parts: [{ model: B('castle') }], frame: FRAME, K, ppt: PPT, icon: 256, shadow: false })).icon);
   console.log('Sprites salvos em assets/sprites/kaykit/. Metadados (copie para src/ui/sprites.js):');
   console.log(JSON.stringify(meta, null, 2));
 }
