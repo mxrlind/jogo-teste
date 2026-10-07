@@ -77,7 +77,7 @@
 | Moedas, carroça, livro (recrutar), corte (limpar) | Kenney RPG Audio (CC0) |
 | Construir (madeira), pedreira e mina (mineração), sino da horda | Kenney Impact Sounds (CC0) |
 | Vitória, derrota, nível, conquista, herói raro, Ascensão | Kenney Music Jingles, família Pizzicato (CC0), escolhidos pela direção da melodia |
-| Música ambiente em loop | Opcional: instalada pelo jogador com `tools/prepare-music.py` (recomendação no EXECUTAR.md) |
+| Música de fundo | 5 faixas CC0 em `assets/music/`: folk na vila, metal na horda e no subsolo, com botão para ligar e desligar |
 
 Volumes separados; nada toca antes do primeiro gesto; a música abaixa durante fanfarras.
 
