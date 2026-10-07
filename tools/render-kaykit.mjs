@@ -85,6 +85,22 @@ const BUILDINGS = {
   estatua: { parts: [{ model: B('tower_base') }, { model: P('flag_blue'), y: 0.6 }], fit: 0.62 },
 };
 
+// Muralha que se liga sozinha: uma variante para cada combinação de vizinhos que também são muralha ou torre.
+// Bits da máscara: 1 = norte, 2 = leste, 4 = sul, 8 = oeste (mesma ordem de wallMask em src/core/map.js).
+// Cada lado ligado ganha meia muralha até a borda do tile; as metades se cruzam no centro e fecham os cantos.
+// Máscara 0 (sozinha) usa o sprite normal da muralha, deitada. 1 tile = 2 unidades, e a wall_straight tem exatamente 2 de comprimento.
+const T = 0.4; // meia espessura da muralha: cada metade passa um pouco do centro para não abrir buraco nos cantos
+function wallVariant(mask) {
+  const n = mask & 1, e = mask & 2, s = mask & 4, w = mask & 8;
+  const parts = [];
+  // A ponta de baixo da muralha em pé fica de frente para a câmera e mostraria o corte: ela para logo atrás da
+  // face da peça deitada (que sempre existe nesse caso; sem leste nem oeste vira um bloco que tampa a ponta).
+  if (e || w || (n && !s)) parts.push({ model: N('wall_straight'), keep: [w ? -1 : -T, e ? 1 : T, -1, 1] });
+  if (n || s) parts.push({ model: N('wall_straight'), rot: 90, keep: [-1, 1, n ? -1 : -T, s ? 1 : T - 0.02] });
+  return { parts, fixed: true };
+}
+const WALLS = Object.fromEntries(Array.from({ length: 15 }, (_, i) => [`muralha-${i + 1}`, wallVariant(i + 1)]));
+
 // Natureza que fica por cima do chão (floresta, rochas, montanha).
 const NATURE = {
   'forest-1': { parts: [{ model: NAT('trees_A_medium') }], fit: 1.0 },
@@ -133,7 +149,7 @@ const save = (name, dataUrl) => fs.writeFileSync(path.join(OUT, `${name}.png`), 
 const render = (spec) => page.evaluate((s) => window.renderSprite(s), spec);
 
 if (SHEET) {
-  const all = { ...BUILDINGS, ...NATURE };
+  const all = { ...BUILDINGS, ...WALLS, ...NATURE };
   const shots = [];
   for (const [name, spec] of Object.entries(all)) shots.push([name, (await render({ ...spec, frame: FRAME, K, ppt: PPT })).url]);
   const html = `<body style="margin:0;background:#5fa04a;display:flex;flex-wrap:wrap;gap:6px;font:12px sans-serif">${shots.map(([n, u]) => `<div style="outline:1px dashed #0004"><img src="${u}"><div>${n}</div></div>`).join('')}</body>`;
@@ -150,6 +166,7 @@ if (SHEET) {
     if (r.bladesUrl) save(`building-${name}-blades`, r.bladesUrl);
     if (Object.keys(r.meta).length) meta[name] = r.meta;
   }
+  for (const [name, spec] of Object.entries(WALLS)) save(`building-${name}`, (await render({ ...spec, frame: FRAME, K, ppt: PPT })).url);
   for (const [name, spec] of Object.entries(NATURE)) {
     const r = await render({ ...spec, frame: FRAME, K, ppt: PPT, icon: 128 });
     save(name, r.url);

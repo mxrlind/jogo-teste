@@ -2,6 +2,11 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.10.0] — 2026-10-07
+### Adicionado
+- **Muralhas que se ligam sozinhas**: cada muralha olha para as vizinhas (muralhas e torres) e escolhe o sprite certo: deitada, em pé, canto, T ou cruz. São 15 variantes geradas por `tools/render-kaykit.mjs` com a peça reta do KayKit (CC0).
+- **Muralha de lado**: uma muralha atravessada no caminho da horda conta inteira; virada de lado para ela, conta só metade. Cantos e cruzamentos contam inteiros, e muralha sozinha também. O painel do tile mostra "muralha de lado" quando for o caso.
+
 ## [0.9.0] — 2026-10-07
 ### Adicionado
 - **Quartel** (prédio novo, libera com 10 construções): treina heróis com ouro e comida. Cada treino leva 2 min × o nível atual e sobe o herói 1 nível; cada nível dá +10% de bônus e de poder, somado às estrelas. O herói chega até o nível do quartel mais alto + 1 (máximo 10), e cada quartel treina um herói por vez. Dá para acelerar com gemas. Gosta de muralhas e torres vizinhas.

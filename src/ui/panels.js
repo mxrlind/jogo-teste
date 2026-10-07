@@ -7,8 +7,8 @@ import { ACHIEVEMENTS } from '../data/achievements.js';
 import { BANNERS, EMBLEMS } from '../data/cosmetics.js';
 import { EVENT_BY_ID } from '../data/events.js';
 import { TUTORIAL, TAB_UNLOCKS, TAB_NAMES, DIR_NAMES } from '../core/game.js';
-import { buildCost, upgradeCost, canAfford, kingdomPower, heroStrength, heroPowerOf, storageMult, countOf, dirWeight, maxLevelOf } from '../core/economy.js';
-import { idx, isUnlocked, ringOf } from '../core/map.js';
+import { buildCost, upgradeCost, canAfford, kingdomPower, heroStrength, heroPowerOf, storageMult, countOf, defenseWeight, wallFacing, maxLevelOf } from '../core/economy.js';
+import { idx, isUnlocked, ringOf, wallMask } from '../core/map.js';
 import { seasonInfo, tierOf, missionText, rewardFor } from '../core/season.js';
 import {
   councilSlots, recruitGoldCost, speedUpCost, tavernDiscount, heroLevelCap, trainingSlots, trainingCount, trainCost,
@@ -142,7 +142,7 @@ export function hudInfo(key) {
     gems: 'Gemas só se ganham jogando: invasões vencidas, carroças, missões, conquistas, passe e expedições.',
     pop: `Moradores ${Math.floor(s.pop)} de ${e.popCap}. Os prédios pedem ${e.workersNeeded} trabalhadores. Fazendas e moinhos são ocupados primeiro; com menos gente, os outros prédios rendem menos.`,
     happiness: `Felicidade ${Math.floor(e.happiness)}: multiplica toda a produção por ${e.happinessMult.toFixed(2)}. Tavernas, templos e decorações aumentam; pedreiras, minas e superlotação reduzem.`,
-    raid: `A próxima horda vem do ${DIR_NAMES[s.raid.dir]}. Torres e muralhas desse lado do mapa contam 100%; do lado oposto, 50%. Heróis do Conselho sempre contam inteiros.`,
+    raid: `A próxima horda vem do ${DIR_NAMES[s.raid.dir]}. Torres e muralhas desse lado do mapa contam 100%; do lado oposto, 50%. Muralha de lado para a horda conta só metade. Heróis do Conselho sempre contam inteiros.`,
     event: s.event ? `${EVENT_BY_ID[s.event.id].name}: ${EVENT_BY_ID[s.event.id].desc}` : 'Nenhum evento agora.',
     boost: 'Bênção: +50% em toda a produção enquanto durar.',
   }[key];
@@ -221,7 +221,9 @@ function outputLines(info, def, tileX, tileY) {
   if (info.consume) lines.push(`${resIco('food')} -${fmt(info.consume)}/s`);
   if (info.defense) {
     const st = ui.game.state;
-    lines.push(`${ico('defense', 'c-def')} ${fmt(info.defense)} defesa (contra o ${DIR_NAMES[st.raid.dir]}: ${Math.round(dirWeight(st.raid.dir, tileX, tileY) * 100)}%)`);
+    const id = st.grid.tiles[idx(tileX, tileY)].b.id;
+    const sideways = id === 'muralha' && wallFacing(wallMask(st.grid, tileX, tileY), st.raid.dir) < 1;
+    lines.push(`${ico('defense', 'c-def')} ${fmt(info.defense)} defesa (contra o ${DIR_NAMES[st.raid.dir]}: ${Math.round(defenseWeight(st, id, st.raid.dir, tileX, tileY) * 100)}%${sideways ? ', muralha de lado' : ''})`);
   }
   if (def.popCap) lines.push(`${ico('people')} +${def.popCap * info.lvl} moradores`);
   if (def.happiness) lines.push(`${ico('heart', 'c-heart')} ${def.happiness > 0 ? '+' : ''}${fmt(def.happiness * (def.happiness > 0 ? info.mult : 1))} felicidade`);

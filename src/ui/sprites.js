@@ -51,6 +51,11 @@ export const BUILDING_SPRITES = {
   estatua: building('estatua'),
 };
 
+// Muralha que se liga sozinha: um sprite por combinação de vizinhos (máscara de wallMask em src/core/map.js).
+// Máscara 0 (sozinha) usa o sprite normal.
+const WALL_VARIANTS = Array.from({ length: 16 }, (_, m) => (m ? k(`building-muralha-${m}`) : BUILDING_SPRITES.muralha.src));
+export const wallSrc = (mask) => WALL_VARIANTS[mask];
+
 // Sprite do prédio no nível `lvl` (o último estágio alcançado).
 export function buildingSrc(spr, lvl) {
   let src = spr.src;
@@ -99,6 +104,7 @@ export function allSpriteUrls() {
     if (v.blades) urls.add(v.blades.src);
     for (const [, src] of v.stages ?? []) urls.add(src);
   }
+  WALL_VARIANTS.forEach((x) => urls.add(x));
   [CART_SPRITE, ...RAIDER_SPRITES, ...SLEEPER_SPRITES].forEach((x) => urls.add(x));
   for (const p of Object.values(PROFESSIONS)) urls.add(p.sprite);
   return [...urls];
