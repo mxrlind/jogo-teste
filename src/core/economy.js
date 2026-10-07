@@ -5,7 +5,7 @@ import {
 } from '../data/buildings.js';
 import { HERO_BY_ID, HERO_LEVEL_STEP, TAVERN_COUNCIL_LEVELS } from '../data/heroes.js';
 import { TALENT_BY_ID } from '../data/talents.js';
-import { EVENT_BY_ID } from '../data/events.js';
+import { EVENT_BY_ID, REPAIR_FRACTION } from '../data/events.js';
 import { seasonInfo } from './season.js';
 import { GRID_W, GRID_H, neighbors, idx, adjKey, wallMask } from './map.js';
 import { underMods, underEconomy } from './underground.js';
@@ -179,16 +179,20 @@ export function computeEconomy(state, now) {
     const y = Math.floor(i / GRID_W);
     const lm = levelMult(tile.b.lvl);
     const adj = adjacencyAt(state, tile.b.id, x, y, mods);
+    // Danificada por uma horda: não produz, não defende e não ocupa moradores até ser consertada.
+    const damaged = !!tile.b.dmg;
     const info = {
-      id: tile.b.id, lvl: tile.b.lvl, adjBonus: adj.total, adjParts: adj.parts,
-      active: adj.hasRequired, mult: Math.max(0, 1 + adj.total) * lm, workers: workersFor(def, tile.b.lvl),
+      id: tile.b.id, lvl: tile.b.lvl, adjBonus: adj.total, adjParts: adj.parts, damaged,
+      active: adj.hasRequired && !damaged, mult: Math.max(0, 1 + adj.total) * lm, workers: damaged ? 0 : workersFor(def, tile.b.lvl),
       out: {}, defense: 0,
     };
     tiles[i] = info;
+    // Moradores e estoque continuam (a casa rachada ainda abriga gente); o resto para.
     if (def.popCap) popCap += def.popCap * tile.b.lvl;
+    if (def.storage) for (const [r, v] of Object.entries(def.storage)) caps[r] += v * storageMult(tile.b.lvl);
+    if (damaged) return;
     workersNeeded += info.workers;
     if (def.happiness) happinessRaw += def.happiness * (def.happiness > 0 ? info.mult : 1);
-    if (def.storage) for (const [r, v] of Object.entries(def.storage)) caps[r] += v * storageMult(tile.b.lvl);
     if (def.globalGold) globalGold += def.globalGold;
     if (def.crownBonus) crownBonus += def.crownBonus;
   });
@@ -237,7 +241,7 @@ export function computeEconomy(state, now) {
       foodDemandMarkets += c;
       marketTiles.push(info);
     }
-    if (def.defense) {
+    if (def.defense && !info.damaged) {
       info.defense = def.defense * eff;
       const x = i % GRID_W;
       const y = Math.floor(i / GRID_W);
@@ -310,6 +314,11 @@ export function upgradeCost(id, lvl, mods) {
   const def = BUILDINGS[id];
   if (lvl >= (def.maxLevel ?? MAX_LEVEL)) return null;
   return scaleCost(def.cost, LEVEL_COST_GROWTH ** lvl * (1 - mods.cost));
+}
+
+// Conserto de uma construção danificada: uma fração do custo base, maior quanto mais alto o nível.
+export function repairCost(id, lvl, mods) {
+  return scaleCost(BUILDINGS[id].cost, REPAIR_FRACTION * lvl * (1 - mods.cost));
 }
 
 export function canAfford(res, cost) {

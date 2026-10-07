@@ -71,6 +71,10 @@ export const ROOM_SPRITES = {
   forja: room('forja'),
 };
 
+// Ruína deixada quando uma construção danificada não é consertada a tempo (KayKit building_destroyed).
+export const RUIN_SPRITE = k('building-ruina');
+export const RUIN_ICON = k('icon-ruina');
+
 // Muralha que se liga sozinha: um sprite por combinação de vizinhos (máscara de wallMask em src/core/map.js).
 // Máscara 0 (sozinha) usa o sprite normal.
 const WALL_VARIANTS = Array.from({ length: 16 }, (_, m) => (m ? k(`building-muralha-${m}`) : BUILDING_SPRITES.muralha.src));
@@ -125,6 +129,7 @@ export function allSpriteUrls() {
     for (const [, src] of v.stages ?? []) urls.add(src);
   }
   WALL_VARIANTS.forEach((x) => urls.add(x));
+  urls.add(RUIN_SPRITE);
   for (const list of Object.values(UNDER_SPRITES)) list.forEach((x) => urls.add(x));
   for (const v of Object.values(ROOM_SPRITES)) urls.add(v.src);
   [CART_SPRITE, ...RAIDER_SPRITES, ...SLEEPER_SPRITES].forEach((x) => urls.add(x));

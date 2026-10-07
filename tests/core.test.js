@@ -197,7 +197,7 @@ test('tick: recursos crescem, respeitam o limite e não ficam negativos', () => 
   assert.ok(s.res.gold <= g.econ.caps.gold);
 });
 
-test('invasões: vitória dá saque e sobe nível; derrota tira 5% (novato) e depois 15%', () => {
+test('invasões: vitória dá saque e sobe nível; derrota tira 5% (novato) e depois 10%', () => {
   const g = freshGame();
   const s = g.state;
   s.res.gold = 1000;
@@ -212,7 +212,7 @@ test('invasões: vitória dá saque e sobe nível; derrota tira 5% (novato) e de
   g.econ.defense = 0;
   g.econ.gross.gold = 1000;
   g.resolveRaid(T0);
-  assert.equal(s.res.gold, 850, 'depois perde 15%');
+  assert.equal(s.res.gold, 900, 'depois perde 10%');
   g.econ.defense = 0;
   g.econ.gross.gold = 1; // produção baixa: saque limitado a max(50, 2 min de produção)
   s.res.gold = 100000;
@@ -494,6 +494,56 @@ test('muralhas: se ligam sozinhas e de lado para a horda contam metade', () => {
   s.raid.dir = 'w';
   const w = computeEconomy(s, T0).defense;
   assert.ok(w > n * 1.5);
+});
+
+test('hordas: derrota quebra construções do lado de onde vem, e o que não foi consertado desaba', () => {
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  s.pop = 50;
+  s.stats.raidsLost = 5; // sem proteção de novato
+  // Fileira de casas no norte e no sul; horda do norte.
+  for (const x of [3, 4, 5, 6, 7]) { put(s, x, 3, 'grass', { id: 'casa', lvl: 1 }); put(s, x, 8, 'grass', { id: 'casa', lvl: 1 }); }
+  s.raid.dir = 'n';
+  g.econ = computeEconomy(s, T0);
+  g.econ.defense = 0;
+  const r1 = g.resolveRaid(T0);
+  assert.equal(r1.damaged.length, 4, 'sem defesa nenhuma: 4 golpes');
+  assert.ok(r1.damaged.every((d) => d.y === 3), 'só as casas do norte');
+  const hit = r1.damaged[0];
+  assert.equal(computeEconomy(s, T0).tiles[idx(hit.x, hit.y)].active, false, 'danificada não produz');
+  assert.deepEqual(g.upgrade(hit.x, hit.y), { ok: false, reason: 'Conserte antes de melhorar' });
+  // Consertar uma; as outras três desabam na próxima derrota.
+  s.res.gold = s.res.wood = s.res.stone = 1e6;
+  assert.equal(g.repair(hit.x, hit.y).ok, true);
+  assert.equal(computeEconomy(s, T0).tiles[idx(hit.x, hit.y)].active, true);
+  s.raid.dir = 's';
+  g.econ = computeEconomy(s, T0);
+  g.econ.defense = 0;
+  const r2 = g.resolveRaid(T0);
+  assert.equal(r2.collapsed.length, 3);
+  for (const c of r2.collapsed) { assert.equal(s.grid.tiles[idx(c.x, c.y)].b, null); assert.equal(s.grid.tiles[idx(c.x, c.y)].ruin, 'casa'); }
+  assert.ok(r2.damaged.every((d) => d.y === 8), 'horda do sul quebra as casas do sul');
+  // Construir em cima limpa a ruína; consertar tudo de uma vez.
+  const c = r2.collapsed[0];
+  assert.equal(g.build('casa', c.x, c.y).ok, true);
+  assert.equal(s.grid.tiles[idx(c.x, c.y)].ruin, undefined);
+  assert.equal(g.repairAll().count, 4);
+  assert.equal(g.damagedCount(), 0);
+});
+
+test('hordas: muralha na frente segura os golpes e protege o que está atrás', () => {
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  s.pop = 50;
+  s.stats.raidsLost = 5;
+  for (const x of [4, 5, 6]) { put(s, x, 2, 'grass', { id: 'muralha', lvl: 1 }); put(s, x, 4, 'grass', { id: 'casa', lvl: 1 }); }
+  s.raid.dir = 'n';
+  g.econ = computeEconomy(s, T0);
+  g.econ.defense = 0;
+  const r = g.resolveRaid(T0);
+  assert.ok(r.damaged.length >= 2 && r.damaged.every((d) => d.id === 'muralha'), 'só as muralhas apanham');
 });
 
 test('core loop: melhorar ao máximo e melhorar todos do tipo', () => {

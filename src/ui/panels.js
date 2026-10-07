@@ -7,14 +7,14 @@ import { ACHIEVEMENTS } from '../data/achievements.js';
 import { BANNERS, EMBLEMS } from '../data/cosmetics.js';
 import { EVENT_BY_ID } from '../data/events.js';
 import { TUTORIAL, TAB_UNLOCKS, TAB_NAMES, DIR_NAMES } from '../core/game.js';
-import { buildCost, upgradeCost, canAfford, kingdomPower, heroStrength, heroPowerOf, storageMult, countOf, defenseWeight, wallFacing, maxLevelOf } from '../core/economy.js';
+import { buildCost, upgradeCost, repairCost, canAfford, kingdomPower, heroStrength, heroPowerOf, storageMult, countOf, defenseWeight, wallFacing, maxLevelOf } from '../core/economy.js';
 import { idx, isUnlocked, ringOf, wallMask } from '../core/map.js';
 import { seasonInfo, tierOf, missionText, rewardFor } from '../core/season.js';
 import {
   councilSlots, recruitGoldCost, speedUpCost, tavernDiscount, heroLevelCap, trainingSlots, trainingCount, trainCost,
 } from '../core/heroes.js';
 import { fmt, fmtRate, fmtPct, fmtTime } from '../core/format.js';
-import { UNDER_SPRITES, ROOM_SPRITES, BUILDING_SPRITES, TERRAIN_SPRITES } from './sprites.js';
+import { UNDER_SPRITES, ROOM_SPRITES, BUILDING_SPRITES, TERRAIN_SPRITES, RUIN_ICON } from './sprites.js';
 import { ui, $, esc, costHtml, bannerColor, emblemIcon, deltaText } from './ctx.js';
 import { ico, resIco } from './icons.js';
 import { runHistoryHtml } from './ascension.js';
@@ -47,6 +47,7 @@ function buildHud() {
   ].join('');
   $('#hud-status').innerHTML = `
     <button class="status" id="st-raid" data-action="info" data-arg="raid"></button>
+    <button class="status danger" id="st-repair" data-action="repairAll" hidden></button>
     <button class="status event" id="st-event" data-action="info" data-arg="event" hidden></button>
     <button class="status boost" id="st-boost" data-action="info" data-arg="boost" hidden></button>
     <button class="status ascend" id="st-ascend" data-action="tab" data-arg="legado" hidden></button>`;
@@ -114,6 +115,10 @@ export function renderHud() {
   compass.hidden = !!ui.renderer?.view; // visitando outro reino: a horda anunciada é a do seu
   const compassLabel = `Rosa dos ventos. Próxima horda pelo ${DIR_NAMES[s.raid.dir]}.`;
   if (compass.title !== compassLabel) { compass.title = compassLabel; compass.setAttribute('aria-label', compassLabel); }
+  const broken = g.damagedCount();
+  const repEl = $('#st-repair');
+  repEl.hidden = !broken || !!ui.renderer?.view;
+  if (broken) setHtml(repEl, `${ico('build')}<span><small>${broken} danificada${broken > 1 ? 's' : ''}</small>Consertar tudo</span>`);
   const ev = s.event && s.event.endsAt > Date.now() ? EVENT_BY_ID[s.event.id] : null;
   const evEl = $('#st-event');
   evEl.hidden = !ev;
@@ -144,7 +149,7 @@ export function hudInfo(key) {
     gems: 'Gemas só se ganham jogando: invasões vencidas, carroças, missões, conquistas, passe e expedições.',
     pop: `Moradores ${Math.floor(s.pop)} de ${e.popCap}. Os prédios pedem ${e.workersNeeded} trabalhadores. Fazendas e moinhos são ocupados primeiro; com menos gente, os outros prédios rendem menos.`,
     happiness: `Felicidade ${Math.floor(e.happiness)}: multiplica toda a produção por ${e.happinessMult.toFixed(2)}. Tavernas, templos e decorações aumentam; pedreiras, minas e superlotação reduzem.`,
-    raid: `A próxima horda vem do ${DIR_NAMES[s.raid.dir]}. Torres e muralhas desse lado do mapa contam 100%; do lado oposto, 50%. Muralha de lado para a horda conta só metade. Heróis do Conselho sempre contam inteiros.`,
+    raid: `A próxima horda vem do ${DIR_NAMES[s.raid.dir]}. Torres e muralhas desse lado do mapa contam 100%; do lado oposto, 50%. Muralha de lado para a horda conta só metade. Heróis do Conselho sempre contam inteiros. Se a horda vencer, ela danifica construções desse lado (muralhas e torres seguram os golpes primeiro); o que não for consertado até a próxima derrota vira ruína.`,
     event: s.event ? `${EVENT_BY_ID[s.event.id].name}: ${EVENT_BY_ID[s.event.id].desc}` : 'Nenhum evento agora.',
     boost: 'Bênção: +50% em toda a produção enquanto durar.',
   }[key];
@@ -319,12 +324,14 @@ export function renderTileInfo(force = false) {
     const def = BUILDINGS[tile.b.id];
     const info = g.econ.tiles[idx(sel.x, sel.y)];
     const up = upgradeCost(tile.b.id, tile.b.lvl, g.econ.mods);
-    const upDelta = up ? g.previewUpgrade(sel.x, sel.y) : null;
+    const fix = tile.b.dmg ? repairCost(tile.b.id, tile.b.lvl, g.econ.mods) : null;
+    const upDelta = up && !fix ? g.previewUpgrade(sel.x, sel.y) : null;
     const sameType = countOf(s, tile.b.id);
     const adj = info.adjParts.length
       ? info.adjParts.map((p) => `<li class="${p.value > 0 ? 'pos' : 'neg'}">${p.key in BUILDINGS ? BUILDINGS[p.key].name : TERRAIN[p.key].name} ${fmtPct(p.value)}</li>`).join('')
       : '<li class="muted">Nenhum vizinho com bônus</li>';
-    const warn = !info.active ? `<p class="warn">${ico('warning')} Precisa estar encostada em ${TERRAIN[def.requiresAdj].name.toLowerCase()}.</p>`
+    const warn = info.damaged ? `<p class="warn">${ico('warning')} Danificada pela horda: não produz nem defende. Conserte antes da próxima derrota ou ela desaba.</p>`
+      : !info.active ? `<p class="warn">${ico('warning')} Precisa estar encostada em ${TERRAIN[def.requiresAdj].name.toLowerCase()}.</p>`
       : info.workers > 0 && info.staff < 1 ? `<p class="warn">${ico('warning')} Faltam trabalhadores: rendendo ${Math.round(info.staff * 100)}%. Construa ou melhore casas.</p>` : '';
     const maxLvl = def.maxLevel ?? MAX_LEVEL;
     html = `<div class="title-row"><img src="${spriteOf(tile.b.id)}" alt=""><h3><small class="muted">Nível ${tile.b.lvl} de ${maxLvl}</small>${def.name}</h3></div>
@@ -332,13 +339,15 @@ export function renderTileInfo(force = false) {
       <div class="lbl"><span>Produção</span></div>
       <div class="stats">${outputLines(info, def, sel.x, sel.y).map((l) => `<span>${l}</span>`).join('') || '<span class="muted">Sem produção direta</span>'}</div>
       <div class="lbl"><span>Vizinhos</span><span class="${info.adjBonus > 0 ? 'pos' : info.adjBonus < 0 ? 'neg' : ''}">${fmtPct(info.adjBonus)}</span></div><ul class="adj">${adj}</ul>
-      ${up ? `<div class="row"><button class="btn ${canAfford(s.res, up) ? 'primary' : 'poor'}" data-action="upgrade">${ico('upgrade')} Melhorar ${costHtml(up, s.res)}</button><span class="delta">${deltaText(upDelta)}</span></div>
+      ${tile.b.dmg ? `<div class="row"><button class="btn ${canAfford(s.res, fix) ? 'primary' : 'poor'}" data-action="repair">${ico('build')} Consertar ${costHtml(fix, s.res)}</button></div>`
+      : up ? `<div class="row"><button class="btn ${canAfford(s.res, up) ? 'primary' : 'poor'}" data-action="upgrade">${ico('upgrade')} Melhorar ${costHtml(up, s.res)}</button><span class="delta">${deltaText(upDelta)}</span></div>
       <div class="row"><button class="btn small" data-action="upgradeMax">Melhorar ao máximo possível</button>${sameType > 1 ? `<button class="btn small" data-action="upgradeAll">Melhorar todas as ${sameType} (${def.name})</button>` : ''}</div>` : '<p class="muted">Nível máximo.</p>'}
       <hr class="divider"><div class="row"><button class="btn small" data-action="move">${ico('move')} Mover</button><button class="btn small danger" data-action="sell">${ico('demolish')} Demolir</button></div>`;
   } else {
     const ter = TERRAIN[tile.t];
     const img = TERRAIN_SPRITES[tile.t]?.icon;
     html = `<div class="title-row">${img ? `<img src="${img}" alt="">` : ''}<h3>${ter.name}</h3></div>`;
+    if (tile.ruin) html = `<div class="title-row"><img src="${RUIN_ICON}" alt=""><h3>Ruína</h3></div><p class="muted">${BUILDINGS[tile.ruin]?.name ?? 'Construção'} destruída por uma horda. Construa algo aqui para limpar o terreno.</p>`;
     if (tile.t === 'sapling') {
       const left = Math.max(0, GROW_SECONDS - (Date.now() - (tile.p ?? 0)) / 1000);
       html += `<p class="muted">Vira floresta em ${fmtTime(left)}. Floresta dá madeira ao ser limpa e +40% para serrarias vizinhas.</p>

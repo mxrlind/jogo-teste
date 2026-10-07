@@ -20,7 +20,12 @@ export const RAID_INTERVAL = 240;
 export const RAID_WARNING = 20;
 export const RAID_BASE_STRENGTH = 8;
 export const RAID_GROWTH = 1.4;
-export const RAID_LOSS_FRACTION = 0.15;
+export const RAID_LOSS_FRACTION = 0.1;
+// Derrota também quebra construções do lado da horda (2 a 4 golpes; muralha e torre gastam 2 golpes cada).
+export const RAID_HITS_MIN = 2;
+export const RAID_HITS_MAX = 4;
+export const RAID_DEFENSE_HITS = 2;
+export const REPAIR_FRACTION = 0.3; // conserto = 30% do custo base por nível
 export const RAID_NEWBIE_LOSS = 0.05; // proteção de novato: nas 2 primeiras invasões
 export const RAID_NEWBIE_COUNT = 2;
 export const RAID_LOSS_CAP_SECONDS = 120; // o saque nunca passa de 2 min de produção do recurso (poupar continua viável)
