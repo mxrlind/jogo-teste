@@ -73,6 +73,7 @@ function decide() {
   const st = g.state;
   const e = g.econ;
   if (st.chest) g.openChest();
+  if (g.damagedCount()) g.repairAll(); // conserta antes de gastar com o resto (senão desaba na próxima derrota)
   if (g.dailyStatus().available) g.claimDaily();
   st.season.missions?.list.forEach((m, i) => { if (!m.claimed && m.progress >= m.target) g.claimMission(i); });
   if (st.items.scrolls > 0) g.recruit('scroll');

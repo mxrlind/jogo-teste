@@ -3,13 +3,13 @@
 import { BUILDINGS, TERRAIN, SELL_REFUND, POP_GROWTH, POP_STARVE, PLANT_COST, GROW_SECONDS } from '../data/buildings.js';
 import { HERO_BY_ID, EXPEDITIONS, RECRUIT_GEM_COST } from '../data/heroes.js';
 import { TALENT_BY_ID, CROWN_DIVISOR } from '../data/talents.js';
-import { EVENTS, EVENT_BY_ID, EVENT_INTERVAL, CHEST_INTERVAL, CHEST_LIFETIME, RAID_INTERVAL, RAID_WARNING, RAID_BASE_STRENGTH, RAID_GROWTH, RAID_LOSS_FRACTION, RAID_NEWBIE_LOSS, RAID_NEWBIE_COUNT, RAID_LOSS_CAP_SECONDS, RAID_NAMES } from '../data/events.js';
+import { EVENTS, EVENT_BY_ID, EVENT_INTERVAL, CHEST_INTERVAL, CHEST_LIFETIME, RAID_INTERVAL, RAID_WARNING, RAID_BASE_STRENGTH, RAID_GROWTH, RAID_LOSS_FRACTION, RAID_NEWBIE_LOSS, RAID_NEWBIE_COUNT, RAID_LOSS_CAP_SECONDS, RAID_NAMES, RAID_HITS_MIN, RAID_HITS_MAX, RAID_DEFENSE_HITS } from '../data/events.js';
 import { XP_REWARDS, SEASON_TIERS } from '../data/seasons.js';
 import { ACHIEVEMENTS } from '../data/achievements.js';
 import { BANNERS, EMBLEMS, DAILY_REWARDS, SEASON_TITLES } from '../data/cosmetics.js';
-import { computeEconomy, buildCost, upgradeCost, canAfford, pay, refund, countOf, PROD_RES, kingdomPower } from './economy.js';
+import { computeEconomy, buildCost, upgradeCost, repairCost, canAfford, pay, refund, countOf, PROD_RES, kingdomPower } from './economy.js';
 import { createState, carryOver, newSeed } from './state.js';
-import { GRID_W, idx, isUnlocked, RING_COSTS, MAX_RING } from './map.js';
+import { GRID_W, GRID_H, idx, isUnlocked, RING_COSTS, MAX_RING } from './map.js';
 import { syncSeason, syncMissions, tierOf, rewardFor } from './season.js';
 import {
   councilSlots, recruitCost, rollHero, addHero, expeditionReward, speedUpCost, expeditionSpeedUpCost, expeditionSlots, activeExpeditions, heroLevelCap, trainingSlots, trainingCount, trainCost, trainSeconds,
@@ -283,9 +283,11 @@ export class Game {
         lost[r] = Math.floor(Math.min(s.res[r] * fraction, cap));
         s.res[r] -= lost[r];
       }
+      // Fora a proteção de novato, a horda também quebra o que encontra pelo caminho.
+      const ruin = newbie ? { damaged: [], collapsed: [] } : this.raidDamage(s.raid.dir, 1 - e.defense / strength);
       s.stats.raidsLost++;
       s.raid.level = Math.max(0, s.raid.level - 1);
-      Object.assign(result, { win: false, lost });
+      Object.assign(result, { win: false, lost, ...ruin });
       this.log(`${name} saquearam o reino (força ${strength} contra defesa ${Math.floor(e.defense)}).`, 'warning');
     }
     const interval = RAID_INTERVAL * e.mods.raidInterval * (0.8 + Math.random() * 0.4);
@@ -298,6 +300,65 @@ export class Game {
     this.econ = computeEconomy(s, now);
     this.emit('raid', result);
     return result;
+  }
+
+  // Derrota: o que ficou danificado da última vez desaba, e a horda entra pela borda `dir` quebrando
+  // as construções que encontra primeiro. `gap` (0..1) é o quanto faltou de defesa: mais golpes.
+  // Muralhas e torres gastam mais golpes, protegendo o que está atrás delas.
+  raidDamage(dir, gap) {
+    const s = this.state;
+    const collapsed = [];
+    s.grid.tiles.forEach((t, i) => {
+      if (!t.b?.dmg) return;
+      collapsed.push({ x: i % GRID_W, y: Math.floor(i / GRID_W), id: t.b.id });
+      t.ruin = t.b.id;
+      t.b = null;
+    });
+    const depth = (x, y) => ({ n: y, s: GRID_H - 1 - y, w: x, e: GRID_W - 1 - x })[dir];
+    const targets = [];
+    s.grid.tiles.forEach((t, i) => {
+      if (!t.b || t.b.id === 'escadaria') return;
+      const x = i % GRID_W;
+      const y = Math.floor(i / GRID_W);
+      targets.push({ x, y, t, d: depth(x, y) - (BUILDINGS[t.b.id].defense ? 0.5 : 0) + Math.random() * 0.4 });
+    });
+    targets.sort((a, b) => a.d - b.d);
+    let hits = RAID_HITS_MIN + Math.round((RAID_HITS_MAX - RAID_HITS_MIN) * Math.max(0, Math.min(1, gap)));
+    const damaged = [];
+    for (const { x, y, t } of targets) {
+      if (hits <= 0) break;
+      t.b.dmg = 1;
+      hits -= BUILDINGS[t.b.id].defense ? RAID_DEFENSE_HITS : 1;
+      damaged.push({ x, y, id: t.b.id });
+    }
+    return { damaged, collapsed };
+  }
+
+  repair(x, y) {
+    const s = this.state;
+    const tile = this.tileAt(x, y);
+    if (!tile.b?.dmg) return { ok: false, reason: 'Nada para consertar' };
+    const cost = repairCost(tile.b.id, tile.b.lvl, this.econ.mods);
+    if (!canAfford(s.res, cost)) return { ok: false, reason: 'Recursos insuficientes' };
+    pay(s.res, cost);
+    delete tile.b.dmg;
+    this.econ = computeEconomy(s, this.now);
+    this.emit('repaired', { x, y, id: tile.b.id });
+    return { ok: true };
+  }
+
+  // Conserta o que der, das construções mais baratas para as mais caras.
+  repairAll() {
+    const list = [];
+    this.state.grid.tiles.forEach((t, i) => { if (t.b?.dmg) list.push({ x: i % GRID_W, y: Math.floor(i / GRID_W), c: Object.values(repairCost(t.b.id, t.b.lvl, this.econ.mods)).reduce((a, b) => a + b, 0) }); });
+    list.sort((a, b) => a.c - b.c);
+    let n = 0;
+    for (const { x, y } of list) if (this.repair(x, y).ok) n++;
+    return { ok: n > 0, count: n, left: list.length - n, reason: list.length ? 'Recursos insuficientes' : 'Nada para consertar' };
+  }
+
+  damagedCount() {
+    return this.state.grid.tiles.reduce((n, t) => n + (t.b?.dmg ? 1 : 0), 0);
   }
 
   // ------------------------------------------------------------ construção
@@ -335,6 +396,7 @@ export class Game {
     const xpBefore = s.season.xp;
     pay(s.res, cost);
     tile.b = { id, lvl: 1 };
+    delete tile.ruin; // construir em cima limpa a ruína
     s.stats.built++;
     if (id === 'escadaria') this.openEntrance(x, y);
     this.econ = computeEconomy(s, this.now);
@@ -354,6 +416,7 @@ export class Game {
     this.lastBuild = null;
     const tile = this.tileAt(x, y);
     if (!tile.b) return { ok: false, reason: 'Nada para melhorar' };
+    if (tile.b.dmg) return { ok: false, reason: 'Conserte antes de melhorar' };
     const cost = upgradeCost(tile.b.id, tile.b.lvl, this.econ.mods);
     if (!cost) return { ok: false, reason: 'Nível máximo' };
     if (!canAfford(s.res, cost)) return { ok: false, reason: 'Recursos insuficientes' };
@@ -394,6 +457,7 @@ export class Game {
     if (!TERRAIN[to.t].buildable) return { ok: false, reason: 'Terreno inválido' };
     to.b = from.b;
     from.b = null;
+    delete to.ruin;
     this.econ = computeEconomy(s, this.now);
     this.emit('moved', { fx, fy, tx, ty });
     return { ok: true };

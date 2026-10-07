@@ -117,6 +117,8 @@ const BOATS = {
     ],
     fit: 0.9,
   },
+  // Ruína deixada por uma horda (não é um prédio do jogo: some quando algo é construído no lugar).
+  ruina: one(N('building_destroyed'), { fit: 0.85 }),
 };
 // Escadaria para o subsolo (Dungeon Remastered): escada de pedra com tochas.
 if (DUNGEON) BUILDINGS.escadaria = { parts: [{ model: DG('stairs_walled.gltf.glb') }, { model: DG('torch_mounted.gltf.glb'), x: 1.3, z: 1.2 }, { model: DG('torch_mounted.gltf.glb'), x: -1.3, z: 1.2 }], fit: 0.8 };

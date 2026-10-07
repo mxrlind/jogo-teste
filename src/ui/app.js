@@ -5,6 +5,7 @@ import { HERO_BY_ID, RARITIES } from '../data/heroes.js';
 import { BANNERS, DAILY_REWARDS } from '../data/cosmetics.js';
 import { SEASON_TIERS, XP_PER_TIER } from '../data/seasons.js';
 import { LEVEL_NAMES } from '../data/underground.js';
+import { RAID_LOSS_FRACTION } from '../data/events.js';
 import { Game, DIR_NAMES, TAB_NAMES, UNDO_WINDOW } from '../core/game.js';
 import { createState, newSeed, SAVE_VERSION } from '../core/state.js';
 import { loadSave, writeSave, exportCode, importCode, listBackups, restoreBackup, clearSave, BACKUP_SLOTS } from '../core/storage.js';
@@ -21,7 +22,7 @@ import { ico, resIco } from './icons.js';
 import { showModal, replaceModal, closeModal, confirmModal, runConfirm, toast, modalOpen, modalClosable } from './modals.js';
 import { renderHud, renderPalette, renderTileInfo, renderSide, renderModeHint, hudInfo, lockedTabHint, describeBonus } from './panels.js';
 
-const GAME_VERSION = '0.15.0';
+const GAME_VERSION = '0.16.0';
 const TAB_ORDER = ['reino', 'herois', 'temporada', 'legado', 'social', 'perfil'];
 const FLOAT_COLORS = RES_COLORS;
 
@@ -244,6 +245,7 @@ function wireGame() {
   ui.game
     .on('toast', ({ text, kind, icon }) => toast(text, kind, icon))
     .on('built', ({ x, y, id }) => { play(id === 'mina' || id === 'pedreira' ? 'mine' : 'build'); r().pop(x, y); r().addBurst(x, y, '#fff3bf'); })
+    .on('repaired', ({ x, y }) => { play('build', 0.8); r().pop(x, y); r().addBurst(x, y, '#fff3bf'); })
     .on('upgraded', ({ x, y, lvl }) => { play('upgrade', 0.8); r().pop(x, y); r().addFloat(x, y, `Nível ${lvl}`, '#ffe08a'); })
     .on('sold', ({ name }) => toast(`${name} demolida (50% devolvido).`, 'info', 'demolish'))
     .on('moved', ({ tx, ty }) => { play('build', 0.6); r().pop(tx, ty); })
@@ -282,7 +284,13 @@ function wireGame() {
       if (res.win) { play('win'); r().doFlash('#f2b632'); toast(`Vitória sobre ${res.name}! +${fmt(res.loot)} de ouro e +${res.gems} gema(s). A próxima horda vem do ${next}.`, 'good', 'swords'); return; }
       play('lose'); r().doShake(650); r().doFlash('#b8412f');
       const lost = Object.entries(res.lost).filter(([, v]) => v > 0).map(([k, v]) => `${fmt(v)} de ${RESOURCES[k].name.toLowerCase()}`).join(', ');
-      toast(`${res.name} saquearam ${lost || 'quase nada'}${res.fraction < 0.1 ? ' (proteção de novato)' : ''}. A próxima horda vem do ${next}.`, 'bad', 'warning');
+      const broke = [
+        res.damaged?.length ? `danificaram ${res.damaged.length === 1 ? '1 construção' : `${res.damaged.length} construções`}` : '',
+        res.collapsed?.length ? (res.collapsed.length === 1 ? '1 que não foi consertada desabou' : `${res.collapsed.length} que não foram consertadas desabaram`) : '',
+      ].filter(Boolean).join(' e ');
+      for (const d of res.damaged || []) r().addBurst(d.x, d.y, '#ff8f7d');
+      for (const d of res.collapsed || []) r().addBurst(d.x, d.y, '#8a8a8a');
+      toast(`${res.name} saquearam ${lost || 'quase nada'}${broke ? ` e ${broke}` : ''}${res.fraction < RAID_LOSS_FRACTION ? ' (proteção de novato)' : ''}. A próxima horda vem do ${next}.`, 'bad', 'warning');
     })
     .on('event', (ev) => { play('event'); toast(`${ev.name}: ${ev.desc}`, 'event', ev.icon); })
     .on('chest', () => play('cart', 0.6))
@@ -495,6 +503,13 @@ const ACTIONS = {
   lockedBuilding: (el) => { const d = BUILDINGS[el.dataset.arg]; toast(`${d.name}: libera com ${d.unlock.buildings} construções. ${d.desc}`, 'info', 'lock'); },
   cancelMode: () => setMode({ type: 'select' }),
   upgrade: () => { const { x, y } = ui.renderer.selected; result(ui.game.upgrade(x, y)); },
+  repair: () => { const { x, y } = ui.renderer.selected; result(ui.game.repair(x, y)); },
+  repairAll: () => {
+    const res = ui.game.repairAll();
+    if (!res.ok) { play('error'); toast(res.reason, 'bad', 'warning'); return; }
+    toast(res.left ? `${res.count} consertada(s). Faltam recursos para mais ${res.left}.` : res.count === 1 ? 'Construção consertada.' : `${res.count} construções consertadas.`, 'good', 'build');
+    result({ ok: true });
+  },
   upgradeMax: () => {
     const { x, y } = ui.renderer.selected;
     const n = ui.game.upgradeMax(x, y);
@@ -774,7 +789,7 @@ function showIntro() {
     <p>Você herdou um terreno, uma casa e uma fazenda. O resto é com você.</p>
     <ul class="intro">
       <li>${ico('hero-architect')}<span><b>A posição importa:</b> cada prédio ganha (ou perde) bônus dos 4 vizinhos. Escolha um prédio e passe pelo mapa para ver.</span></li>
-      <li>${ico('swords')}<span><b>Hordas atacam</b> sempre por um lado anunciado. Defenda esse lado.</span></li>
+      <li>${ico('swords')}<span><b>Hordas atacam</b> sempre por um lado anunciado. Defenda esse lado: se perder, elas quebram construções, e o que não for consertado até a próxima derrota vira ruína.</span></li>
       <li>${ico('tab-heroes')}<span><b>Novas abas aparecem</b> conforme o reino cresce: heróis, temporada, social e legado.</span></li>
       <li>${ico('time')}<span>O reino <b>produz mesmo com você fora</b>. Entre 5 minutos ou fique 2 horas.</span></li>
     </ul>

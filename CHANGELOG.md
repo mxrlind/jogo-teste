@@ -2,6 +2,14 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.16.0] — 2026-10-07
+### Adicionado
+- **Hordas quebram construções.** Perder uma horda (fora a proteção de novato) agora também danifica de 2 a 4 construções, as mais perto da borda de onde ela veio; quanto mais faltou de defesa, mais golpes. Muralhas e torres estão na frente e gastam 2 golpes cada, então protegem o que está atrás delas (ideia do Kingdom Two Crowns).
+- **Construção danificada** pega fogo e solta fumaça, não produz nem defende e não ocupa moradores (casas continuam abrigando gente e armazéns continuam guardando). **Consertar** custa 30% do preço base por nível, pelo painel do tile ou pelo botão "Consertar tudo" no topo. Não dá para melhorar antes de consertar.
+- **Ruína**: o que continuar danificado na derrota seguinte desaba e vira ruína (sprite `building_destroyed` do KayKit, CC0). Construir em cima limpa o terreno. A Escadaria nunca é atingida.
+### Mudado
+- O saque de recursos na derrota caiu de 15% para 10%, já que agora a derrota também quebra coisas.
+
 ## [0.15.0] — 2026-10-07
 ### Alterado
 - **Expedições nerfadas**: mandar todos os heróis fora do Conselho em Patrulhas de 1 minuto rendia gemas e recursos demais. Agora só **2 expedições rodam ao mesmo tempo**, e a Taverna nos níveis 5 e 10 abre mais uma vaga cada (até 4). A aba de heróis mostra as vagas ocupadas.
