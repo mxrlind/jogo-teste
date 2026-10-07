@@ -426,6 +426,13 @@ test('config: padrões, limites e atalhos', () => {
   assert.equal(actionForKey(defaultConfig(), 'Escape'), 'menu');
 });
 
+test('config: moradores ligados por padrão e independentes de "Reduzir movimento"', () => {
+  assert.equal(defaultConfig().villagers, true);
+  const old = normalizeConfig({ reduceMotion: true, particles: false }); // config salva antes da opção existir
+  assert.equal(old.villagers, true);
+  assert.equal(normalizeConfig({ villagers: false }).villagers, false);
+});
+
 test('formatação de números e tempo', () => {
   assert.equal(fmt(999), '999');
   assert.equal(fmt(1500), '1,5K');
