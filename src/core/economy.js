@@ -8,6 +8,7 @@ import { TALENT_BY_ID } from '../data/talents.js';
 import { EVENT_BY_ID } from '../data/events.js';
 import { seasonInfo } from './season.js';
 import { GRID_W, GRID_H, neighbors, idx, adjKey, wallMask } from './map.js';
+import { underMods, underEconomy } from './underground.js';
 
 export const PROD_RES = ['gold', 'food', 'wood', 'stone'];
 
@@ -88,6 +89,11 @@ export function collectModifiers(state, now) {
     if (ev?.mods.xp) m.xp += ev.mods.xp;
     if (ev?.mods.raidLoot) m.raidLoot += ev.mods.raidLoot;
   }
+
+  // Subsolo: Forja de Magma (+produção geral) e Adega (+comida).
+  const um = underMods(state);
+  m.prodAll += um.prodAll;
+  m.prod.food += um.food;
 
   if (state.boostUntil > now) m.prodAll += 0.5;
   m.cost = Math.min(0.75, m.cost);
@@ -239,6 +245,11 @@ export function computeEconomy(state, now) {
     }
   });
 
+  // Subsolo: salas não usam moradores, mas seguem felicidade e multiplicadores globais.
+  const under = underEconomy(state, (r) => happinessMult * prodMult[r]);
+  for (const r of PROD_RES) gross[r] += under.gross[r];
+  for (const [r, v] of Object.entries(under.caps)) caps[r] += v;
+
   // Comida: moradores comem primeiro; mercados só convertem o que sobra quando o estoque acabou.
   const foodPop = pop * FOOD_PER_POP;
   let marketRatio = 1;
@@ -274,7 +285,7 @@ export function computeEconomy(state, now) {
 
   return {
     mods, tiles, rates, gross, foodConsumption, popCap, workersNeeded, staffing, occupancy,
-    happiness, happinessMult, defense, defenseByDir, heroPower, caps, crownBonus, marketRatio,
+    happiness, happinessMult, defense, defenseByDir, heroPower, caps, crownBonus, marketRatio, under: under.levels,
   };
 }
 

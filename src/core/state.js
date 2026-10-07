@@ -1,5 +1,6 @@
 // Estado do jogo: criação, salvamento, carregamento e migração.
 import { generateMap, START_RING, MAX_RING } from './map.js';
+import { createUnder } from './underground.js';
 import { seasonInfo } from './season.js';
 import { BASE_TITLES } from '../data/cosmetics.js';
 import { TALENT_BY_ID } from '../data/talents.js';
@@ -17,7 +18,7 @@ export function newSeed() {
 function freshStats() {
   return {
     totalGold: 0, runGold: 0, built: 0, upgrades: 0, raidsWon: 0, raidsLost: 0, recruits: 0, goldRecruits: 0,
-    expeditions: 0, chests: 0, ascensions: 0, cleared: 0, planted: 0, visits: 0, playTime: 0, bestRaid: 0,
+    expeditions: 0, chests: 0, ascensions: 0, cleared: 0, planted: 0, dug: 0, visits: 0, playTime: 0, bestRaid: 0,
   };
 }
 
@@ -48,6 +49,7 @@ export function createState({ seed = newSeed(), now = Date.now(), carry = null }
     },
     pop: 1,
     grid,
+    under: createUnder(seed), // subsolo: 3 níveis escondidos até a primeira Escadaria
     heroes: carry?.heroes ?? { owned: {}, council: [] },
     items: carry?.items ?? { scrolls: 1 },
     raid: { level: 0, nextAt: now + RAID_FIRST_DELAY * 1000, warned: false, name: null, dir: 'n' },
