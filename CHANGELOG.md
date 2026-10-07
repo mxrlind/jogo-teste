@@ -13,6 +13,13 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 - Treino em andamento na hora da Ascensão vira nível na hora. Se o Conselho perder vagas (taverna vendida, nova rodada), os últimos heróis a entrar saem.
 - O Código do Reino usa uma ordem fixa de letras, para códigos antigos continuarem válidos com o prédio novo.
 
+## [0.8.0] — 2026-10-07
+### Adicionado
+- **Plantar árvores**: num campo livre, o botão "Plantar árvores" (25 de ouro) cria uma muda. Ela cresce sozinha e em 3 minutos vira floresta, que dá madeira ao ser limpa e +40% para serrarias vizinhas. Na metade do caminho a muda vira um grupo de árvores jovens. O tempo conta também com o jogo fechado. Ideia tirada do Forester do Banished: ouro sobrando vira madeira.
+- Arrancar a própria muda é de graça e não conta para a missão "Limpe terrenos".
+- Sprites `sapling-1` e `sapling-2`, renderizados do KayKit Medieval Hexagon Pack (CC0) por `tools/render-kaykit.mjs`.
+- **Rosa dos ventos** no canto superior direito do mapa (desenho próprio em SVG, nas cores da interface). A ponta do lado de onde vem a próxima horda fica vermelha e pulsa quando a horda é anunciada; tocar nela explica a defesa por lado.
+
 ## [0.7.0] — 2026-10-07
 ### Mudou
 - **Arte nova no mapa**: prédios, árvores, rochas, montanhas e água agora vêm do **KayKit Medieval Hexagon Pack** (Kay Lousberg, CC0 1.0). Os modelos 3D foram renderizados como imagens 2D: o jogo continua um canvas 2D, sem 3D rodando. Os prédios ganharam fachada, volume e sombra e sobem para o tile de cima; natureza e prédios são desenhados linha a linha, de trás para a frente.

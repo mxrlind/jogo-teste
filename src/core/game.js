@@ -1,6 +1,6 @@
 // Game: orquestra estado + sistemas. A UI só conversa com esta classe.
 // Toda ação retorna { ok, reason? } e emite eventos para a UI (toast, fx, som).
-import { BUILDINGS, TERRAIN, SELL_REFUND, POP_GROWTH, POP_STARVE } from '../data/buildings.js';
+import { BUILDINGS, TERRAIN, SELL_REFUND, POP_GROWTH, POP_STARVE, PLANT_COST, GROW_SECONDS } from '../data/buildings.js';
 import { HERO_BY_ID, EXPEDITIONS, RECRUIT_GEM_COST } from '../data/heroes.js';
 import { TALENT_BY_ID, CROWN_DIVISOR } from '../data/talents.js';
 import { EVENTS, EVENT_BY_ID, EVENT_INTERVAL, CHEST_INTERVAL, CHEST_LIFETIME, RAID_INTERVAL, RAID_WARNING, RAID_BASE_STRENGTH, RAID_GROWTH, RAID_LOSS_FRACTION, RAID_NEWBIE_LOSS, RAID_NEWBIE_COUNT, RAID_LOSS_CAP_SECONDS, RAID_NAMES } from '../data/events.js';
@@ -88,6 +88,7 @@ export class Game {
   tick(now = Date.now(), { background = false } = {}) {
     const s = this.state;
     this.now = now;
+    this.growTrees(now);
     const dt = (now - s.lastTick) / 1000;
     if (dt <= 0) return;
     if (dt > OFFLINE_THRESHOLD) {
@@ -401,12 +402,49 @@ export class Game {
     if (!canAfford(s.res, ter.clearCost)) return { ok: false, reason: 'Recursos insuficientes' };
     pay(s.res, ter.clearCost);
     for (const [r, v] of Object.entries(ter.clearYield)) s.res[r] += v;
+    const wasSapling = tile.t === 'sapling';
     tile.t = 'grass';
-    s.stats.cleared++;
+    delete tile.p;
     this.econ = computeEconomy(s, this.now);
-    this.track('clear');
+    // Arrancar a própria muda não conta como limpar terreno (senão vira atalho barato para missões).
+    if (!wasSapling) {
+      s.stats.cleared++;
+      this.track('clear');
+    }
     this.emit('cleared', { x, y, yieldRes: ter.clearYield });
     return { ok: true };
+  }
+
+  plant(x, y) {
+    const s = this.state;
+    this.lastBuild = null;
+    if (!isUnlocked(s.grid, x, y)) return { ok: false, reason: 'Terra ainda não conquistada' };
+    const tile = this.tileAt(x, y);
+    if (tile.b || tile.t !== 'grass') return { ok: false, reason: 'Só dá para plantar em campo livre' };
+    if (!canAfford(s.res, PLANT_COST)) return { ok: false, reason: 'Recursos insuficientes' };
+    pay(s.res, PLANT_COST);
+    tile.t = 'sapling';
+    tile.p = this.now;
+    s.stats.planted = (s.stats.planted || 0) + 1;
+    this.econ = computeEconomy(s, this.now);
+    this.emit('planted', { x, y });
+    return { ok: true };
+  }
+
+  // Mudas viram floresta pelo relógio (vale também para o tempo offline).
+  growTrees(now) {
+    const s = this.state;
+    let grown = 0;
+    for (const t of s.grid.tiles) {
+      if (t.t !== 'sapling' || now - (t.p ?? 0) < GROW_SECONDS * 1000) continue;
+      t.t = 'forest';
+      delete t.p;
+      grown++;
+    }
+    if (!grown) return 0;
+    this.econ = computeEconomy(s, now);
+    this.emit('grown', { n: grown });
+    return grown;
   }
 
   expandCost() {

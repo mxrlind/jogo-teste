@@ -1,6 +1,6 @@
 # Roadmap
 
-O que ficou de fora da versão 0.7.0, **em ordem de impacto** (o que mais muda a experiência ou o futuro do jogo vem primeiro). Cada item diz por que importa e o tamanho aproximado do trabalho.
+O que ficou de fora da versão 0.9.0, **em ordem de impacto** (o que mais muda a experiência ou o futuro do jogo vem primeiro). Cada item diz por que importa e o tamanho aproximado do trabalho.
 
 | # | Item | Por que importa | Esforço |
 |---|---|---|---|
@@ -22,6 +22,7 @@ O que ficou de fora da versão 0.7.0, **em ordem de impacto** (o que mais muda a
 
 - **0.1.0**: protótipo completo (mapa, 15 prédios, hordas, heróis, temporadas, Ascensão, social simulado, offline, testes, simulador).
 - **0.9.0**: Quartel para treinar heróis, taverna que barateia recrutas e abre vagas no Conselho, e sprites por nível (começando pela taverna e pelo quartel).
+- **0.8.0**: plantar árvores (muda cresce e vira floresta em 3 minutos).
 - **0.7.0**: arte do mapa trocada pelo KayKit Medieval Hexagon Pack (prédios e natureza com volume e sombra); moradores continuam andando.
 - **0.6.0**: tela de estatísticas ao Ascender, com recordes e histórico das rodadas.
 - **0.5.0**: vida da vila (moradores com profissão, rotina e sprite por ofício; sem emprego dormem na rua).
