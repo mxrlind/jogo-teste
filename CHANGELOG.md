@@ -2,6 +2,15 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.14.0] — 2026-10-07
+### Adicionado
+- **Cais de Pesca** (primeira parte da zona portuária, libera com 3 construções): só funciona encostado num lago e dá 1,4 de comida por segundo, +40% por tile de água vizinho e +15% com armazém ao lado. Inspirado no cais de pesca do Banished.
+- Um **barquinho de pesca** fica indo e voltando na água ao lado de cada cais que está funcionando, e um morador novo, o **Pescador**, trabalha no cais e leva o peixe para o armazém.
+- Sprites do cais e do barco gerados por `tools/render-kaykit.mjs` com peças do KayKit Medieval Hexagon (CC0). O pacote não tem barco nem tábuas, então o render agora aceita peças simples (`box` e `hull`) feitas na hora.
+
+### Corrigido
+- O Código do Reino quebrava com uma Escadaria no mapa (ela não tinha letra). Escadaria e cais ganharam letras no fim da lista, e códigos antigos continuam válidos.
+- O aviso de prédio sem o vizinho obrigatório agora diz "Só funciona ao lado de ...", que serve para prédio de qualquer gênero.
 ## [0.13.0] — 2026-10-07
 ### Adicionado
 - **Música de fundo** no clima do Wind Rose: folk de taverna na vila (Minstrel Dance, The Old Tower Inn e King's Feast, do RandomMind) e metal quando uma horda se aproxima e no subsolo, como anões nas minas (Boss Battle #6 Metal e Boss Battle #2 Symphonic Metal, do nene). Todas CC0, do OpenGameArt, com volume igualado. As faixas de cada clima tocam em sequência e a troca de clima faz uma transição suave.

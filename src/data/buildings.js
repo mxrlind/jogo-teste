@@ -60,6 +60,15 @@ export const BUILDINGS = {
     adj: { fazenda: 0.25, water: 0.25 },
     unlock: { buildings: 5 },
   },
+  cais: {
+    id: 'cais', name: 'Cais de Pesca', category: 'producao',
+    desc: 'Pesca no lago: comida farta, mas só funciona na beira da água. Cada tile de água vizinho dá +40%.',
+    cost: { gold: 60, wood: 30 }, workers: 2,
+    prod: { food: 1.4 },
+    adj: { water: 0.4, armazem: 0.15 },
+    requiresAdj: 'water',
+    unlock: { buildings: 3 },
+  },
   armazem: {
     id: 'armazem', name: 'Armazém', category: 'economia',
     desc: 'Aumenta muito o limite de recursos (cresce com o quadrado do nível). Produtores vizinhos ganham +15%.',
@@ -148,7 +157,7 @@ export const BUILDINGS = {
 };
 
 export const BUILDING_ORDER = [
-  'casa', 'fazenda', 'serraria', 'pedreira', 'mercado', 'moinho', 'armazem',
+  'casa', 'fazenda', 'serraria', 'pedreira', 'cais', 'mercado', 'moinho', 'armazem',
   'taverna', 'muralha', 'torre', 'quartel', 'mina', 'templo', 'jardim', 'fogueira', 'estatua', 'escadaria',
 ];
 

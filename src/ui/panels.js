@@ -338,7 +338,7 @@ export function renderTileInfo(force = false) {
     const adj = info.adjParts.length
       ? info.adjParts.map((p) => `<li class="${p.value > 0 ? 'pos' : 'neg'}">${p.key in BUILDINGS ? BUILDINGS[p.key].name : TERRAIN[p.key].name} ${fmtPct(p.value)}</li>`).join('')
       : '<li class="muted">Nenhum vizinho com bônus</li>';
-    const warn = !info.active ? `<p class="warn">${ico('warning')} Precisa estar encostada em ${TERRAIN[def.requiresAdj].name.toLowerCase()}.</p>`
+    const warn = !info.active ? `<p class="warn">${ico('warning')} Só funciona ao lado de ${TERRAIN[def.requiresAdj].id === 'water' ? 'água' : TERRAIN[def.requiresAdj].name.toLowerCase()}.</p>`
       : info.workers > 0 && info.staff < 1 ? `<p class="warn">${ico('warning')} Faltam trabalhadores: rendendo ${Math.round(info.staff * 100)}%. Construa ou melhore casas.</p>` : '';
     const maxLvl = def.maxLevel ?? MAX_LEVEL;
     html = `<div class="title-row"><img src="${spriteOf(tile.b.id)}" alt=""><h3><small class="muted">Nível ${tile.b.lvl} de ${maxLvl}</small>${def.name}</h3></div>

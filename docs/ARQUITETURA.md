@@ -160,7 +160,7 @@ npm test                              # node --test tests/*.test.js
 npm run simulate -- 8 1 --ascend      # horas, semente, política de prestígio
 ```
 
-`tests/core.test.js` cobre: geração e garantias do mapa, determinismo, adjacência positiva e negativa, mina sem montanha, trabalho, mercados sem comida, custos, construir/melhorar/mover/demolir/limpar, falhas sem efeito colateral, limites no tick, invasões (novato, perda, teto, vitória), offline, estrelas e reembolso, conselho e expedições, Ascensão e herança, talentos de início, temporadas, missões, passe, sequência diária, código do reino (inclusive nível de 2 dígitos e XSS no nome), rivais, save e migração, formatação.
+`tests/core.test.js` cobre: geração e garantias do mapa, determinismo, adjacência positiva e negativa, mina sem montanha, cais sem água, trabalho, mercados sem comida, custos, construir/melhorar/mover/demolir/limpar, falhas sem efeito colateral, limites no tick, invasões (novato, perda, teto, vitória), offline, estrelas e reembolso, conselho e expedições, Ascensão e herança, talentos de início, temporadas, missões, passe, sequência diária, código do reino (inclusive nível de 2 dígitos e XSS no nome), rivais, save e migração, formatação.
 
 ## 8. Modo debug
 
