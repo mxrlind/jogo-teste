@@ -2,6 +2,13 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.12.0] — 2026-10-07
+### Alterado
+- **Expedições nerfadas**: mandar todos os heróis fora do Conselho em Patrulhas de 1 minuto rendia gemas e recursos demais. Agora só **2 expedições rodam ao mesmo tempo**, e a Taverna nos níveis 5 e 10 abre mais uma vaga cada (até 4). A aba de heróis mostra as vagas ocupadas.
+- Recompensa menor: as expedições trazem 15% da produção de ouro (antes 40%) e 10% da de madeira e pedra (antes 30%) durante a viagem. As longas rendem mais por minuto: Patrulha ×0,8, Exploração ×0,9, Jornada ×1 e Grande Expedição ×1,25.
+- Gemas: a Patrulha não dá mais gemas; Exploração 10% de chance de 1; Jornada 50% de chance de 1 a 2; Grande Expedição sempre 2 a 4 (antes 3 a 8).
+- Acelerar uma expedição custa 1 gema a cada 5 minutos restantes (antes 10). O treino no Quartel continua igual.
+
 ## [0.11.0] — 2026-10-07
 ### Adicionado
 - **Subsolo** no estilo Dwarf Fortress. A **Escadaria** (prédio novo, libera com 5 construções) abre o primeiro nível bem embaixo dela, e botões no canto do mapa trocam entre a superfície e os níveis descobertos. Toda a geração de superfície continua igual; só a pedra ganha a parte de baixo.

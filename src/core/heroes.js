@@ -2,6 +2,7 @@
 import {
   HEROES, HERO_BY_ID, RARITIES, MAX_STARS, BASE_COUNCIL_SLOTS, RECRUIT_GOLD_BASE, RECRUIT_GOLD_GROWTH, RECRUIT_GEM_COST, EXPEDITIONS,
   TAVERN_RECRUIT_DISCOUNT, HERO_MAX_LEVEL, TRAIN_COST, TRAIN_COST_GROWTH, TRAIN_RARITY_COST, TRAIN_SECONDS,
+  EXPEDITION_GOLD_SHARE, EXPEDITION_RES_SHARE, BASE_EXPEDITION_SLOTS, TAVERN_COUNCIL_LEVELS, EXPEDITION_SPEEDUP_SECONDS,
 } from '../data/heroes.js';
 import { weightedPick, pick, randInt } from './rng.js';
 import { maxLevelOf, countOf, heroPowerOf } from './economy.js';
@@ -74,11 +75,11 @@ export function addHero(state, hero) {
 export function expeditionReward(state, hero, exp, econ, rand) {
   const owned = state.heroes.owned[hero.id];
   const power = heroPowerOf(hero, owned);
-  const mult = (1 + power * 0.02) * (1 + econ.mods.expedition);
+  const mult = (1 + power * 0.02) * (1 + econ.mods.expedition) * exp.yield;
   const reward = {
-    gold: Math.floor(Math.max(30, econ.rates.gold * exp.duration * 0.4) * mult),
-    wood: Math.floor(Math.max(10, econ.gross.wood * exp.duration * 0.3) * mult),
-    stone: Math.floor(Math.max(5, econ.gross.stone * exp.duration * 0.3) * mult),
+    gold: Math.floor(Math.max(30, econ.rates.gold * exp.duration * EXPEDITION_GOLD_SHARE) * mult),
+    wood: Math.floor(Math.max(10, econ.gross.wood * exp.duration * EXPEDITION_RES_SHARE) * mult),
+    stone: Math.floor(Math.max(5, econ.gross.stone * exp.duration * EXPEDITION_RES_SHARE) * mult),
     gems: 0,
     scrolls: 0,
   };
@@ -89,6 +90,19 @@ export function expeditionReward(state, hero, exp, econ, rand) {
 
 export function speedUpCost(remainingSec) {
   return Math.max(1, Math.ceil(remainingSec / 600));
+}
+
+export function expeditionSpeedUpCost(remainingSec) {
+  return Math.max(1, Math.ceil(remainingSec / EXPEDITION_SPEEDUP_SECONDS));
+}
+
+export function expeditionSlots(state) {
+  const tavern = maxLevelOf(state, 'taverna');
+  return BASE_EXPEDITION_SLOTS + TAVERN_COUNCIL_LEVELS.filter((lvl) => tavern >= lvl).length;
+}
+
+export function activeExpeditions(state) {
+  return Object.values(state.heroes.owned).filter((h) => h.expedition).length;
 }
 
 export { EXPEDITIONS, HERO_BY_ID };

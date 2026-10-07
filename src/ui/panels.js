@@ -11,7 +11,7 @@ import { buildCost, upgradeCost, canAfford, kingdomPower, heroStrength, heroPowe
 import { idx, isUnlocked, ringOf, wallMask } from '../core/map.js';
 import { seasonInfo, tierOf, missionText, rewardFor } from '../core/season.js';
 import {
-  councilSlots, recruitGoldCost, speedUpCost, tavernDiscount, heroLevelCap, trainingSlots, trainingCount, trainCost,
+  councilSlots, recruitGoldCost, speedUpCost, expeditionSpeedUpCost, expeditionSlots, activeExpeditions, tavernDiscount, heroLevelCap, trainingSlots, trainingCount, trainCost,
 } from '../core/heroes.js';
 import { fmt, fmtRate, fmtPct, fmtTime } from '../core/format.js';
 import { UNDER_SPRITES, ROOM_SPRITES, BUILDING_SPRITES, TERRAIN_SPRITES } from './sprites.js';
@@ -489,9 +489,10 @@ function tabHerois() {
       const ex = EXPEDITIONS.find((x) => x.id === o.expedition.id);
       exp = left <= 0
         ? `<button class="btn small primary" data-action="collect" data-arg="${h.id}">${ico('check')} Coletar: ${ex.name}</button>`
-        : `<div class="row">${ico('expedition')} ${ex.name} · ${fmtTime(left)} <button class="btn small" data-action="speedup" data-arg="${h.id}">${ico('speedup')} Acelerar (${speedUpCost(left)} ${resIco('gems')})</button></div>`;
+        : `<div class="row">${ico('expedition')} ${ex.name} · ${fmtTime(left)} <button class="btn small" data-action="speedup" data-arg="${h.id}">${ico('speedup')} Acelerar (${expeditionSpeedUpCost(left)} ${resIco('gems')})</button></div>`;
     } else if (!inCouncil) {
-      exp = `<div class="lbl"><span>Enviar em expedição</span></div><div class="row">${EXPEDITIONS.map((x) => `<button class="btn small" data-action="expedition" data-arg="${h.id}|${x.id}" title="${x.name}" aria-label="${x.name}, ${fmtTime(x.duration)}">${ico('expedition')} ${fmtTime(x.duration)}</button>`).join('')}</div>`;
+      const full = activeExpeditions(s) >= expeditionSlots(s);
+      exp = `<div class="lbl"><span>Enviar em expedição</span><span>${activeExpeditions(s)}/${expeditionSlots(s)} vagas</span></div><div class="row">${EXPEDITIONS.map((x) => `<button class="btn small ${full ? 'poor' : ''}" ${full ? 'title="Todas as vagas de expedição estão ocupadas"' : ''} data-action="expedition" data-arg="${h.id}|${x.id}" ${full ? '' : `title="${x.name}"`} aria-label="${x.name}, ${fmtTime(x.duration)}">${ico('expedition')} ${fmtTime(x.duration)}</button>`).join('')}</div>`;
     }
     return `<div class="hero" style="--rc:var(--${h.rarity})">
       <div class="portrait">${ico(h.icon)}</div>
@@ -516,7 +517,7 @@ function tabHerois() {
     </section>
     <section class="card">
       <h3>${ico('tab-heroes')} Conselho <span class="count">${s.heroes.council.length}/${slots} vagas</span></h3>
-      <p class="muted">Heróis no Conselho dão bônus e defendem o reino de qualquer lado. Heróis fora dele podem partir em expedições. Tavernas de nível 5 e 10 abrem vagas.</p>
+      <p class="muted">Heróis no Conselho dão bônus e defendem o reino de qualquer lado. Heróis fora dele podem partir em expedições (2 de cada vez). Tavernas de nível 5 e 10 abrem uma vaga a mais no Conselho e nas expedições.</p>
       <p class="muted">${trainingSlots(s) ? `${ico('swords')} Quartel: treina ${trainingSlots(s)} herói${trainingSlots(s) > 1 ? 's' : ''} por vez, até o nível ${cap}. Cada nível dá +10% de bônus e poder.` : `${ico('swords')} Construa um Quartel para treinar heróis.`}</p>
       ${owned.length ? owned.map(card).join('') : '<p class="muted">Nenhum herói ainda. Use o pergaminho grátis.</p>'}
       ${missing.length ? `<div class="collection">${missing.map((h) => `<span class="ghost" style="--rc:var(--${h.rarity})" title="${RARITIES[h.rarity].name}, ainda não encontrado">${ico('info')}</span>`).join('')}</div><p class="muted">${missing.length} heróis por descobrir.</p>` : '<p>Coleção completa.</p>'}
