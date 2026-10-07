@@ -105,9 +105,10 @@ flowchart LR
 | Mercado | 120 ouro 40 madeira | 2 | 2 ouro/s consumindo 0,6 comida/s | casa +20%, armazém +15% | mercado −20% | 4 |
 | Moinho | 100 ouro 50 madeira | 1 | 0,4 comida/s | fazenda +25%, água +25% | — | 5 |
 | Armazém | 150 ouro 80 madeira | 1 | +8.000 ouro / +1.000 demais × nível² | — | — | 5 |
-| Taverna | 200 ouro 80 madeira 20 pedra | 2 | +6 felicidade, 0,8 ouro/s | casa +15% | taverna −50% | 6 |
+| Taverna | 200 ouro 80 madeira 20 pedra | 2 | +6 felicidade, 0,8 ouro/s; −4% no recrutamento com ouro por nível acima do 1; +1 vaga no Conselho nos níveis 5 e 10 | casa +15% | taverna −50% | 6 |
 | Muralha | 25 pedra | 0 | 3 defesa | muralha +25%, torre +25% | — | 6 |
 | Torre | 150 ouro 40 madeira 60 pedra | 2 | 10 defesa | muralha +30%, torre +10% | — | 6 |
+| Quartel | 400 ouro 150 madeira 100 pedra | 3 | +4 defesa; treina 1 herói por vez até o nível do quartel + 1 (máx. 10), +10% de bônus e poder por nível | muralha +15%, torre +15% | — | 10 |
 | Mina de Ouro | 500 ouro 150 madeira 120 pedra | 4 | 5 ouro/s, −3 felicidade, **exige montanha** | montanha +60%, armazém +15% | — | 10 |
 | Templo | 800 ouro 300 pedra | 3 | +10 felicidade, +5% Coroas | casa +10%, jardim +20% | — | 14 |
 | Jardim | 60 ouro | 0 | +2 felicidade (decoração, sem níveis) | — | — | 4 |

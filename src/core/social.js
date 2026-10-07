@@ -55,7 +55,12 @@ export function rivalGrid(rival) {
 // ---- Código do Reino (compartilhamento real, sem servidor) ----
 const TERRAIN_CODE = { grass: 'g', forest: 'f', rock: 'r', water: 'w', mountain: 'm' };
 const CODE_TERRAIN = Object.fromEntries(Object.entries(TERRAIN_CODE).map(([k, v]) => [v, k]));
-const BUILD_CODE = Object.fromEntries(BUILDING_ORDER.map((id, i) => [id, String.fromCharCode(65 + i)]));
+// Ordem fixa das letras: prédio novo entra no fim, para códigos antigos continuarem válidos.
+const CODE_ORDER = [
+  'casa', 'fazenda', 'serraria', 'pedreira', 'mercado', 'moinho', 'armazem',
+  'taverna', 'muralha', 'torre', 'mina', 'templo', 'jardim', 'fogueira', 'estatua', 'quartel',
+];
+const BUILD_CODE = Object.fromEntries(CODE_ORDER.map((id, i) => [id, String.fromCharCode(65 + i)]));
 const CODE_BUILD = Object.fromEntries(Object.entries(BUILD_CODE).map(([k, v]) => [v, k]));
 
 export function encodeKingdom(state, power) {
