@@ -51,28 +51,49 @@ def main():
     w('## Licenças\n')
     w('| Licença | O que exige | Onde se aplica |')
     w('|---|---|---|')
-    w('| [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | Nada (crédito é cortesia, e damos) | Kenney: Medieval RTS, UI Pack, Interface Sounds, RPG Audio, Impact Sounds, Music Jingles |')
+    w('| [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | Nada (crédito é cortesia, e damos) | KayKit Medieval Hexagon Pack; Kenney: Medieval RTS, UI Pack, Interface Sounds, RPG Audio, Impact Sounds, Music Jingles |')
     w('| [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Crédito ao autor ("Icons made by {autor}"), link da licença e indicação de mudanças. Atendido na tela de Créditos do jogo e neste arquivo | Ícones de game-icons.net |')
     w('| [SIL OFL 1.1](https://openfontlicense.org/) | Manter o aviso de licença junto da fonte; não vender a fonte isolada | Nunito |')
     w('')
-    w('Os arquivos de licença originais estão junto de cada pacote: `assets/sprites/medieval-rts/License.txt`, `assets/ui/kenney-ui-pack/License.txt`, `assets/icons/game-icons/License.txt`, `assets/sfx/License-*.txt`, `assets/fonts/Nunito-OFL.txt`.\n')
+    w('Os arquivos de licença originais estão junto de cada pacote: `assets/sprites/kaykit/License.txt`, `assets/sprites/medieval-rts/License.txt`, `assets/ui/kenney-ui-pack/License.txt`, `assets/icons/game-icons/License.txt`, `assets/sfx/License-*.txt`, `assets/fonts/Nunito-OFL.txt`.\n')
     w('## Origem dos downloads\n')
     w('A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.io, freesound.org e game-icons.net. Por isso:')
     w('- **Kenney**: espelho público [github.com/ETdoFresh/kenney.nl](https://github.com/ETdoFresh/kenney.nl) (ZIPs extraídos, com o `License.txt` original). Como a licença é CC0, a redistribuição é permitida. O [EXECUTAR.md](EXECUTAR.md) explica como conferir com os ZIPs oficiais.')
     w('- **game-icons.net**: repositório oficial [github.com/game-icons/icons](https://github.com/game-icons/icons). **Modificações**: fundo preto removido e cor trocada por `currentColor` (tingida por CSS).')
     w('- **Sons Kenney**: convertidos de OGG para MP3 (96 kbps) para tocar em todos os navegadores. **Modificação**: só conversão de formato.')
     w('- **Nunito**: pacote npm [@fontsource/nunito](https://www.npmjs.com/package/@fontsource/nunito) (arquivos do Google Fonts).')
-    w('- **Ícone do app**: composição gerada por `tools/make-icons.py` com dois sprites CC0 do Medieval RTS.\n')
+    w('- **KayKit**: repositório oficial [github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0](https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0) (modelos GLTF e `LICENSE.txt`). **Modificações**: os modelos 3D foram renderizados em PNG por `tools/render-kaykit.mjs` (vista de cima com a altura subindo na tela, luz e sombra próprias); alguns sprites juntam vários modelos (pedreira, jardim, estátua). O chão (grama e água) é um bloco de cor lisa renderizado na mesma luz.')
+    w('- **Ícone do app**: composição gerada por `tools/make-icons.py` com a grama e o castelo renderizados do KayKit.\n')
 
     # Sprites
-    w('## Sprites do mapa (Kenney – Medieval RTS, CC0)\n')
+    w('## Sprites do mapa (KayKit – Medieval Hexagon Pack, CC0)\n')
+    w('| Arquivo | Onde é usado | Fonte | Autor | Licença | Link |')
+    w('|---|---|---|---|---|---|')
+    kk = os.path.join(A, 'sprites', 'kaykit')
+    for f in sorted(x for x in os.listdir(kk) if x.endswith('.png')):
+        n = f[:-4]
+        if n.startswith('building-'):
+            use = 'hélice do moinho (gira no jogo)' if n.endswith('-blades') else f'prédio no mapa: {n[9:]}'
+        elif n.startswith('icon-'):
+            use = f'miniatura na interface: {n[5:]}'
+        elif n.startswith(('forest-', 'rock-', 'mountain-')):
+            use = 'natureza no mapa: ' + {'forest': 'floresta', 'rock': 'rochas', 'mountain': 'montanha'}[n.split('-')[0]]
+        elif n.startswith(('grass-', 'water-')):
+            use = 'chão no mapa: ' + ('grama' if n.startswith('grass') else 'água')
+        elif n == 'logo-castelo':
+            use = 'logo (menu e carregamento) e ícone do app'
+        else:
+            use = 'reservado'
+        w(f'| `assets/sprites/kaykit/{f}` | {use} | KayKit – Medieval Hexagon Pack, renderizado por `tools/render-kaykit.mjs` | Kay Lousberg (kaylousberg.com) | CC0 1.0 | [kaylousberg.itch.io/kaykit-medieval-hexagon](https://kaylousberg.itch.io/kaykit-medieval-hexagon) |')
+    w('')
+    w('## Moradores, invasores e carroça (Kenney – Medieval RTS, CC0)\n')
     w('| Arquivo | Onde é usado | Fonte | Autor | Licença | Link |')
     w('|---|---|---|---|---|---|')
     rts = os.path.join(A, 'sprites', 'medieval-rts')
     usage = {
-        'Tile': 'terreno: grama 57/58, floresta 42/43/46/47, água 27/28, pedra (montanha) 15/16, plantação da Fazenda 56; demais reservados',
-        'Structure': 'prédios (casa 18, serraria 21, pedreira 20, mercado 22, moinho 19 + hélice 13, armazém 9, taverna 23, muralha 2, torre 1, templo 4, estátua 12), carroça do mercador 7, castelo 6 (logo e ícone)',
-        'Environment': 'rochas 7/8, rochedo da montanha 9/11, mina de ouro 18, jardim 19, fogueira 20; demais reservados',
+        'Tile': 'reservado (era o terreno até a troca para o KayKit)',
+        'Structure': 'carroça do mercador 7; demais reservados (eram os prédios até a troca para o KayKit)',
+        'Environment': 'reservado (era a natureza até a troca para o KayKit)',
         'Unit': 'invasores 8/9/10 (time vermelho); moradores por profissão: lavrador 13, moleira 12, lenhador 19, pedreiro 1, mineira 18, mercadora 24, intendente 17, taverneiro 23, guarda 3, sacerdote 2; sem emprego (dormindo) 1/12/13/19; demais reservados',
     }
     for d in ['Tile', 'Structure', 'Environment', 'Unit']:
@@ -142,7 +163,7 @@ def main():
     w('| Arquivo | Onde é usado | Fonte | Autor | Licença | Link |')
     w('|---|---|---|---|---|---|')
     for f in sorted(os.listdir(os.path.join(A, 'icons', 'app'))):
-        w(f'| `assets/icons/app/{f}` | favicon, ícone de tela inicial, manifest | composição de `medievalTile_57` + `medievalStructure_06` (Kenney – Medieval RTS) via `tools/make-icons.py` | {KENNEY} | CC0 1.0 | [kenney.nl/assets/medieval-rts](https://kenney.nl/assets/medieval-rts) |')
+        w(f'| `assets/icons/app/{f}` | favicon, ícone de tela inicial, manifest | composição de `grass-1` + `logo-castelo` (KayKit – Medieval Hexagon Pack) via `tools/make-icons.py` | Kay Lousberg (kaylousberg.com) | CC0 1.0 | [kaylousberg.itch.io/kaykit-medieval-hexagon](https://kaylousberg.itch.io/kaykit-medieval-hexagon) |')
     w('')
     with open(os.path.join(ROOT, 'ASSETS.md'), 'w', encoding='utf-8') as fh:
         fh.write('\n'.join(out))

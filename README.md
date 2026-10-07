@@ -54,4 +54,4 @@ O jogo salva sozinho a cada 10 segundos no próprio navegador e guarda 3 backups
 
 ## Créditos
 
-Arte de Kenney (Medieval RTS e UI Pack, CC0), ícones de [game-icons.net](https://game-icons.net) (CC BY 3.0), fonte Nunito (OFL) e sons de Kenney (CC0). Atribuições completas na tela **Créditos** do jogo e em [ASSETS.md](ASSETS.md).
+Prédios e natureza do mapa do KayKit Medieval Hexagon Pack (Kay Lousberg, CC0), moradores e interface de Kenney (Medieval RTS e UI Pack, CC0), ícones de [game-icons.net](https://game-icons.net) (CC BY 3.0), fonte Nunito (OFL) e sons de Kenney (CC0). Atribuições completas na tela **Créditos** do jogo e em [ASSETS.md](ASSETS.md).

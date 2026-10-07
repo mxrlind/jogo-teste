@@ -20,7 +20,7 @@ import { ico, resIco } from './icons.js';
 import { showModal, replaceModal, closeModal, confirmModal, runConfirm, toast, modalOpen, modalClosable } from './modals.js';
 import { renderHud, renderPalette, renderTileInfo, renderSide, renderModeHint, hudInfo, lockedTabHint, describeBonus } from './panels.js';
 
-const GAME_VERSION = '0.6.0';
+const GAME_VERSION = '0.7.0';
 const TAB_ORDER = ['reino', 'herois', 'temporada', 'legado', 'social', 'perfil'];
 const FLOAT_COLORS = RES_COLORS;
 
@@ -715,7 +715,8 @@ async function showCredits() {
     <p><b>Reino de Bolso</b>, versão ${GAME_VERSION}.</p>
     <h3>Arte</h3>
     <ul class="credits">
-      <li><b>Medieval RTS</b> e <b>UI Pack</b>, por Kenney (kenney.nl). Licença CC0 1.0.</li>
+      <li>Prédios e natureza do mapa: <b>KayKit Medieval Hexagon Pack</b>, por Kay Lousberg (kaylousberg.com). Licença CC0 1.0. Modelos 3D renderizados como imagens 2D.</li>
+      <li>Moradores, invasores e carroça: <b>Medieval RTS</b>; interface: <b>UI Pack</b>. Por Kenney (kenney.nl). Licença CC0 1.0.</li>
       <li>Ícones de <a href="https://game-icons.net" target="_blank" rel="noopener">game-icons.net</a>, licença <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>. Icons made by ${Object.entries(byAuthor).map(([a, n]) => `<b>${authorNames[a] ?? esc(a)}</b> (${n})`).join(', ')}. Cores alteradas e fundo removido.</li>
       <li>Fonte <b>Nunito</b>, por The Nunito Project Authors. SIL Open Font License 1.1.</li>
     </ul>

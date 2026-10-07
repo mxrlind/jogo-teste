@@ -1,0 +1,185 @@
+<!doctype html>
+<!-- Página usada só por tools/render-kaykit.mjs: carrega modelos GLTF do KayKit e devolve sprites PNG. -->
+<meta charset="utf-8">
+<script type="importmap">{ "imports": { "three": "/three/build/three.module.js", "three/addons/": "/three/examples/jsm/" } }</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+// Projeção oblíqua: o chão continua um quadrado visto de cima (igual à grade do jogo) e a altura sobe na tela.
+// Cada unidade de altura sobe K unidades na tela. Um tile do jogo = 2 unidades do KayKit.
+const UNIT = 2;
+const loader = new GLTFLoader();
+const cache = new Map();
+const load = (path) => {
+  if (!cache.has(path)) cache.set(path, new Promise((res, rej) => loader.load(`/kk/${path}.gltf`, (g) => res(g.scene), undefined, rej)));
+  return cache.get(path).then((s) => s.clone(true));
+};
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setClearColor(0x000000, 0);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.localClippingEnabled = true;
+
+function scene(withShadow) {
+  const s = new THREE.Scene();
+  s.add(new THREE.HemisphereLight(0xfff6e6, 0x5a7a48, 1.7));
+  const sun = new THREE.DirectionalLight(0xffffff, 2.3);
+  // Luz da frente-esquerda: as sombras caem para cima e para a direita, dentro do quadro do sprite.
+  sun.position.set(-6, 14, 7);
+  sun.castShadow = withShadow;
+  sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 0.5, far: 40 });
+  sun.shadow.bias = -0.0005;
+  s.add(sun);
+  if (withShadow) {
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.ShadowMaterial({ opacity: 0.28 }));
+    plane.rotation.x = -Math.PI / 2;
+    plane.receiveShadow = true;
+    s.add(plane);
+  }
+  return s;
+}
+
+// Câmera de cima com cisalhamento: y da tela (para cima) = -z + K * altura.
+function obliqueCamera(left, right, top, bottom, K) {
+  const cam = new THREE.OrthographicCamera(left, right, top, bottom, 0.1, 100);
+  cam.position.set(0, 50, 0);
+  cam.up.set(0, 0, -1);
+  cam.lookAt(0, 0, 0);
+  cam.updateMatrixWorld();
+  // No espaço da câmera, a altura do ponto é vz + 50.
+  const shear = new THREE.Matrix4().set(1, 0, 0, 0, 0, 1, K, 50 * K, 0, 0, 1, 0, 0, 0, 0, 1);
+  cam.projectionMatrix.multiply(shear);
+  cam.projectionMatrixInverse.copy(cam.projectionMatrix).invert();
+  return cam;
+}
+
+async function buildGroup(spec) {
+  const group = new THREE.Group();
+  if (spec.color) {
+    // Chão liso: a grama e a água dos tiles hexagonais do pacote não saem com a cor certa vistas de cima.
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(UNIT, 0.2, UNIT), new THREE.MeshStandardMaterial({ color: spec.color, roughness: 1 }));
+    slab.position.y = -0.1;
+    const s = new THREE.Scene();
+    s.add(slab);
+    for (const part of spec.parts ?? []) {
+      const o = await load(part.model);
+      o.position.set(part.x ?? 0, 0, part.z ?? 0);
+      o.scale.setScalar(part.scale ?? 1);
+      s.add(o);
+    }
+    return s;
+  }
+  for (const part of spec.parts) {
+    const o = await load(part.model);
+    o.position.set(part.x ?? 0, part.y ?? 0, part.z ?? 0);
+    o.rotation.y = ((part.rot ?? 0) * Math.PI) / 180;
+    o.scale.setScalar(part.scale ?? 1);
+    group.add(o);
+  }
+  group.traverse((x) => { if (x.isMesh) { x.castShadow = true; x.receiveShadow = true; } });
+  group.updateMatrixWorld(true);
+  // Encaixa o grupo no tile: a maior medida do chão vira `fit` tiles.
+  const box = new THREE.Box3().setFromObject(group);
+  const size = box.getSize(new THREE.Vector3());
+  const k = spec.scale ?? ((spec.fit ?? 0.9) * UNIT) / Math.max(size.x, size.z);
+  const center = box.getCenter(new THREE.Vector3());
+  group.scale.setScalar(k);
+  group.position.set(-center.x * k + (spec.dx ?? 0), -box.min.y * k + (spec.dy ?? 0), -center.z * k + (spec.dz ?? 0));
+  group.updateMatrixWorld(true);
+  if (spec.clip) {
+    // Corta o modelo num quadrado do tamanho do tile (plantação que preenche o tile inteiro).
+    const h = (UNIT / 2) * spec.clip;
+    const planes = [new THREE.Plane(new THREE.Vector3(1, 0, 0), h), new THREE.Plane(new THREE.Vector3(-1, 0, 0), h), new THREE.Plane(new THREE.Vector3(0, 0, 1), h), new THREE.Plane(new THREE.Vector3(0, 0, -1), h)];
+    group.traverse((x) => { if (x.isMesh) { x.material = x.material.clone(); x.material.clippingPlanes = planes; } });
+  }
+  return group;
+}
+
+function snap(s, cam, w, h) {
+  renderer.setSize(w, h, false);
+  renderer.render(s, cam);
+  return renderer.domElement.toDataURL('image/png');
+}
+
+// Recorta a área com pixels visíveis e centraliza num quadrado (miniatura para a interface).
+async function trimToSquare(url, out) {
+  const img = new Image();
+  img.src = url;
+  await img.decode();
+  const c = document.createElement('canvas');
+  c.width = img.width; c.height = img.height;
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height).data;
+  let x0 = c.width, y0 = c.height, x1 = 0, y1 = 0;
+  for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) if (d[(y * c.width + x) * 4 + 3] > 10) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+  const side = Math.max(x1 - x0, y1 - y0) + 1;
+  const o = document.createElement('canvas');
+  o.width = out; o.height = out;
+  const og = o.getContext('2d');
+  og.imageSmoothingQuality = 'high';
+  const pad = out * 0.04;
+  const sc = (out - pad * 2) / side;
+  og.drawImage(c, x0, y0, x1 - x0 + 1, y1 - y0 + 1, (out - (x1 - x0 + 1) * sc) / 2, (out - (y1 - y0 + 1) * sc) / 2, (x1 - x0 + 1) * sc, (y1 - y0 + 1) * sc);
+  return o.toDataURL('image/png');
+}
+
+// spec: { parts, fit|scale, frame: {left,right,top,bottom} em tiles (tela, y para baixo), ppt, K, blades, ground, clip }
+window.renderSprite = async (spec) => {
+  const ppt = spec.ppt ?? 160;
+  const K = spec.ground ? 0 : spec.K;
+  const f = spec.frame;
+  const group = await buildGroup(spec);
+  const meta = {};
+  let fan = null;
+  if (spec.blades) {
+    group.traverse((x) => { if (!fan && x.name.includes(spec.blades)) fan = x; });
+    if (fan) {
+      fan.updateMatrixWorld(true);
+      const p = new THREE.Vector3().setFromMatrixPosition(fan.matrixWorld);
+      meta.hub = { x: +(p.x / UNIT).toFixed(3), y: +((p.z - K * p.y) / UNIT).toFixed(3) };
+      fan.visible = false;
+    }
+  }
+  const s = scene(!spec.ground && spec.shadow !== false);
+  s.add(group);
+  const cam = obliqueCamera(f.left * UNIT, f.right * UNIT, -f.top * UNIT, -f.bottom * UNIT, K);
+  const w = Math.round((f.right - f.left) * ppt);
+  const h = Math.round((f.bottom - f.top) * ppt);
+  const url = snap(s, cam, w, h);
+  let icon = null;
+  if (spec.icon) {
+    const s2 = scene(false);
+    if (fan) fan.visible = true;
+    s2.add(group);
+    icon = await trimToSquare(snap(s2, cam, w * 2, h * 2), spec.icon);
+  }
+  let bladesUrl = null;
+  if (fan) {
+    // Hélice vista de frente, sozinha, para girar no jogo.
+    const s3 = scene(false);
+    const ws = new THREE.Vector3();
+    fan.getWorldScale(ws);
+    const clone = fan.clone(true);
+    clone.position.set(0, 0, 0);
+    clone.rotation.set(0, 0, 0);
+    clone.scale.copy(ws);
+    clone.visible = true;
+    s3.add(clone);
+    const box = new THREE.Box3().setFromObject(clone);
+    const r = Math.max(Math.abs(box.min.x), box.max.x, Math.abs(box.min.y), box.max.y);
+    const cam3 = new THREE.OrthographicCamera(-r, r, r, -r, 0.1, 100);
+    cam3.position.set(0, 0, 20);
+    cam3.lookAt(0, 0, 0);
+    const px = Math.round(((2 * r) / UNIT) * ppt);
+    bladesUrl = snap(s3, cam3, px, px);
+    meta.bladesSize = +((2 * r) / UNIT).toFixed(3);
+  }
+  return { url, icon, bladesUrl, meta };
+};
+window.READY = true;
+</script>

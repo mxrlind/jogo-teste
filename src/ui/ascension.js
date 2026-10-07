@@ -54,7 +54,7 @@ export function showRunSummary(summary, { fresh = false } = {}) {
   ].join('');
   const c = summary.combo;
   const combo = c ? `<div class="as-combo ${rec.has('combo') ? 'is-rec' : ''}">${badge('combo')}
-      <img src="${BUILDING_SPRITES[c.id]?.src}" alt="">
+      <img src="${BUILDING_SPRITES[c.id]?.icon}" alt="">
       <span><small>Melhor combo da rodada</small><b>${BUILDINGS[c.id]?.name ?? c.id}</b> nível ${c.lvl}: ${count(c.bonus, 'pct')} dos vizinhos</span></div>` : '';
 
   let next = '';

@@ -2,6 +2,17 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.7.0] — 2026-10-07
+### Mudou
+- **Arte nova no mapa**: prédios, árvores, rochas, montanhas e água agora vêm do **KayKit Medieval Hexagon Pack** (Kay Lousberg, CC0 1.0). Os modelos 3D foram renderizados como imagens 2D: o jogo continua um canvas 2D, sem 3D rodando. Os prédios ganharam fachada, volume e sombra e sobem para o tile de cima; natureza e prédios são desenhados linha a linha, de trás para a frente.
+- A hélice do moinho continua girando, agora achatada na mesma perspectiva do prédio.
+- Miniaturas da paleta, do painel do prédio e da tela de Ascensão usam recortes dos novos sprites. Logo e ícone do app viraram o castelo do KayKit.
+- **Moradores, invasores e carroça do mercador continuam os do Kenney Medieval RTS**, com a mesma rotina e animação.
+- Jardim, Pedreira e Estátua do Fundador não existem prontos no KayKit: são montagens de modelos do pacote (árvores, plantas e cerca; rochedo, pedras e carrinho; base de torre com bandeira). A Fogueira virou o poço do pacote.
+
+### Adicionado
+- `tools/render-kaykit.mjs`: gera os sprites a partir dos modelos GLTF do KayKit (instruções no cabeçalho).
+
 ## [0.6.0] — 2026-10-06
 ### Adicionado
 - **Tela de estatísticas ao Ascender**: abre logo depois da Ascensão com as Coroas ganhas (contando até o valor), duração da rodada e tempo com o jogo aberto, ouro da rodada, ouro por segundo no fim, Poder do Reino, construções e melhorias, prédios no mapa (maior nível e anel), hordas vencidas e perdidas, expedições, carroças e o **melhor combo** (o prédio com maior bônus de vizinhos).
