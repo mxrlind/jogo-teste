@@ -65,7 +65,7 @@
 
 **Lacunas do pacote e soluções**: o KayKit é feito para hexágonos, então só usamos prédios, natureza e adereços; o chão é cor lisa renderizada na mesma luz (a grama e a água dos tiles hexagonais saem com a cor errada vistas de cima). Jardim, Pedreira e Estátua do Fundador são montagens de modelos do pacote; a Fogueira é o poço. Personagens só existem na versão paga do pacote, por isso os moradores seguem no Medieval RTS.
 
-**Animação**: hélice do moinho, "pop" ao construir, moradores com profissão e rotina (sprite e ferramenta por ofício; sem emprego dormem na rua) em ritmo de stop motion, 5 quadros por segundo com duas poses, invasores marchando pelo lado anunciado, carroça balançando, partículas. Tudo respeita "Reduzir movimento".
+**Animação**: hélice do moinho, "pop" ao construir, moradores com profissão e rotina (sprite e ferramenta por ofício; sem emprego dormem na rua; de folga passeiam entre pontos de encontro e conversam) em ritmo de stop motion, 5 quadros por segundo com duas poses, invasores marchando pelo lado anunciado, carroça balançando, partículas. Tudo respeita "Reduzir movimento", menos os moradores, que têm opção própria (o sistema do aparelho liga "Reduzir movimento" sozinho, e a vila não pode sumir por isso).
 
 **Proibido**: emoji (varredura em `npm test`), fontes ou ícones de CDN, pixel art misturado ao vetor, ícones desenhados em CSS.
 
@@ -77,7 +77,7 @@
 | Moedas, carroça, livro (recrutar), corte (limpar) | Kenney RPG Audio (CC0) |
 | Construir (madeira), pedreira e mina (mineração), sino da horda | Kenney Impact Sounds (CC0) |
 | Vitória, derrota, nível, conquista, herói raro, Ascensão | Kenney Music Jingles, família Pizzicato (CC0), escolhidos pela direção da melodia |
-| Música ambiente em loop | Opcional: instalada pelo jogador com `tools/prepare-music.py` (recomendação no EXECUTAR.md) |
+| Música de fundo | 5 faixas CC0 em `assets/music/`: folk na vila, metal na horda e no subsolo, com botão para ligar e desligar |
 
 Volumes separados; nada toca antes do primeiro gesto; a música abaixa durante fanfarras.
 

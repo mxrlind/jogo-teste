@@ -22,45 +22,9 @@ O jogo funciona offline, então o navegador pode ter guardado a versão anterior
 
 O seu save **não se perde** nesse processo: ele fica no `localStorage`, que é separado do cache, e é migrado automaticamente para o formato novo.
 
-## 3. Instalar a música ambiente (recomendado, 10 minutos)
+## 3. Música
 
-O jogo já toca uma música em loop se ela existir em `assets/music/`, e os créditos mostram a atribuição sozinhos. Não baixei nenhuma faixa porque não consegui abrir as páginas para confirmar a licença.
-
-**Sugestão**: "Medieval: Minstrel Dance", de RandomMind, no OpenGameArt. Qualquer outra faixa serve, desde que a licença permita publicar o jogo (CC0, CC BY 3.0 ou CC BY 4.0; **evite** CC BY-NC, CC BY-ND e "uso pessoal").
-
-1. Abra https://opengameart.org/content/medieval-minstrel-dance
-2. Na coluna da direita, em **License(s)**, confira a licença. Se for diferente das permitidas acima, escolha outra faixa (busca: https://opengameart.org/art-search-advanced?field_art_type_tid%5B%5D=12 e filtre por licença).
-3. Baixe o arquivo (WAV, OGG, FLAC ou MP3).
-4. Clone o repositório, se ainda não tiver:
-   ```bash
-   git clone https://github.com/mxrlind/jogo-teste.git
-   cd jogo-teste
-   ```
-5. Instale as bibliotecas de conversão (Python 3.9 ou mais novo):
-   ```bash
-   pip install soundfile lameenc numpy
-   ```
-6. Converta e registre a faixa. Troque o caminho e, se escolheu outra faixa, título, autor, licença e link **exatamente como estão na página**:
-   ```bash
-   python3 tools/prepare-music.py ~/Downloads/NOME-DO-ARQUIVO.wav \
-     --title "Medieval: Minstrel Dance" \
-     --author "RandomMind" \
-     --license "CC0" \
-     --url "https://opengameart.org/content/medieval-minstrel-dance"
-   ```
-   Isso cria um MP3 em `assets/music/` e atualiza `assets/music/music.json`.
-7. Atualize o registro de assets:
-   ```bash
-   python3 tools/build-assets-md.py
-   ```
-8. Teste: `npm start`, abra http://localhost:8080, clique em **Continuar** e ouça. Em **Opções** o volume da música deve funcionar.
-9. Publique:
-   ```bash
-   git add assets/music ASSETS.md
-   git commit -m "Adiciona música ambiente"
-   git push origin main
-   ```
-10. Repita o passo 1 para ver no ar.
+A trilha já vem instalada em `assets/music/` (5 faixas CC0 do OpenGameArt, listadas no `assets/music/music.json`). Cada faixa tem um clima: `vila` toca no dia a dia e `batalha` toca quando uma horda se aproxima e no subsolo. Para trocar uma faixa, coloque o MP3 na pasta e edite o `music.json` com título, autor, licença, link e clima; depois rode `python3 tools/build-assets-md.py`.
 
 ## 4. Conferir os links da Kenney (5 minutos)
 

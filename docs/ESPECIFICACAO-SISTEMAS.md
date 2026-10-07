@@ -89,7 +89,7 @@ flowchart LR
 | Campo | sim | — | tudo |
 | Floresta | não | sim: 30 ouro → +40 madeira | serraria (+40%) |
 | Rochas | não | sim: 50 ouro → +30 pedra | pedreira (+50%) |
-| Lago | não | não | fazenda (+50%), moinho (+25%) |
+| Lago | não | não | **cais de pesca (obrigatório, +40%)**, fazenda (+50%), moinho (+25%) |
 | Montanha | não | não | **mina (obrigatória)**, pedreira (+25%) |
 
 **Decisão central (P1):** limpar uma floresta dá madeira e espaço agora, mas tira +40% de cada serraria vizinha para sempre.
@@ -102,6 +102,7 @@ flowchart LR
 | Fazenda | 20 ouro | 2 | 1,2 comida/s | água +50%, moinho +50%, armazém +15%, fazenda +10% | — | início |
 | Serraria | 40 ouro | 2 | 0,6 madeira/s | floresta +40%, armazém +15% | — | início |
 | Pedreira | 60 ouro 20 madeira | 2 | 0,6 pedra/s, −2 felicidade | rocha +50%, montanha +25%, armazém +15% | — | 3 prédios |
+| Cais de Pesca | 60 ouro 30 madeira | 2 | 1,4 comida/s, **exige água** | água +40%, armazém +15% | — | 3 |
 | Mercado | 120 ouro 40 madeira | 2 | 2 ouro/s consumindo 0,6 comida/s | casa +20%, armazém +15% | mercado −20% | 4 |
 | Moinho | 100 ouro 50 madeira | 1 | 0,4 comida/s | fazenda +25%, água +25% | — | 5 |
 | Armazém | 150 ouro 80 madeira | 1 | +8.000 ouro / +1.000 demais × nível² | — | — | 5 |

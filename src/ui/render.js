@@ -5,7 +5,7 @@ import { BUILDINGS, TERRAIN, GROW_SECONDS } from '../data/buildings.js';
 import { GRID_W, GRID_H, idx, isUnlocked, neighbors, ringOf, wallMask } from '../core/map.js';
 import { adjacencyAt } from '../core/economy.js';
 import { fmtPct } from '../core/format.js';
-import { UNDER_SPRITES, ROOM_SPRITES, TERRAIN_SPRITES, BUILDING_SPRITES, buildingSrc, wallSrc, SPRITE_FRAME, SPRITE_K, LOCKED_OVERLAY, CART_SPRITE, RAIDER_SPRITES, saplingSprite } from './sprites.js';
+import { UNDER_SPRITES, ROOM_SPRITES, TERRAIN_SPRITES, BUILDING_SPRITES, buildingSrc, wallSrc, SPRITE_FRAME, SPRITE_K, LOCKED_OVERLAY, CART_SPRITE, BOAT_SPRITE, RAIDER_SPRITES, saplingSprite } from './sprites.js';
 import { VillageLife } from './villagers.js';
 import { images, iconKey, TOOL_COLOR } from './assets.js';
 import { UNDER_TILES } from '../data/underground.js';
@@ -21,7 +21,7 @@ export class MapRenderer {
     this.onTileClick = onTileClick;
     this.onHover = onHover;
     this.onResize = onResize; // telas estáticas (fundo do menu) redesenham só quando o tamanho muda
-    this.getConfig = getConfig ?? (() => ({ particles: true, reduceMotion: false }));
+    this.getConfig = getConfig ?? (() => ({ particles: true, villagers: true, reduceMotion: false }));
     this.hover = null;
     this.selected = null;
     this.cursor = null; // cursor do teclado
@@ -127,6 +127,30 @@ export class MapRenderer {
     this.img(url, cx + f.left * T * scale, cy + f.top * T * scale, (f.right - f.left) * T * scale, (f.bottom - f.top) * T * scale);
   }
 
+  // Água onde fica o barquinho de cada cais funcionando: a primeira água vizinha. Mapa água -> cais.
+  boatSpots(grid, econ) {
+    const out = new Map();
+    grid.tiles.forEach((t, i) => {
+      if (t.b?.id !== 'cais' || (econ && econ.tiles[i] && !econ.tiles[i].active)) return;
+      const w = neighbors(i % GRID_W, Math.floor(i / GRID_W)).find(([nx, ny]) => grid.tiles[idx(nx, ny)].t === 'water');
+      if (w && !out.has(idx(w[0], w[1]))) out.set(idx(w[0], w[1]), i);
+    });
+    return out;
+  }
+
+  // Barquinho indo e voltando devagar dentro do tile de água, balançando; vira para o lado em que anda.
+  drawBoat(x, y, T, now, seed, motion) {
+    const ctx = this.ctx;
+    const t = motion ? now / 2600 + seed : seed;
+    const cx = x * T + T / 2 + Math.sin(t) * T * 0.16;
+    const cy = y * T + T * 0.62 + (motion ? Math.sin(now / 520 + seed) * T * 0.025 : 0);
+    ctx.save();
+    ctx.translate(cx, cy);
+    if (Math.cos(t) < 0) ctx.scale(-1, 1);
+    this.framed(BOAT_SPRITE, 0, 0, T, 0.58);
+    ctx.restore();
+  }
+
   terrainSignature(grid) {
     let s = `${grid.ring}|${this.size}|`;
     for (const t of grid.tiles) s += t.t[0] + (t.b ? '1' : '0');
@@ -199,12 +223,14 @@ export class MapRenderer {
     }
     ctx.drawImage(this.terrainCache, 0, 0, this.size, this.size);
 
+    const boats = this.boatSpots(grid, econ);
     // Natureza e prédios, de trás para a frente
     for (let y = 0; y < GRID_H; y++) {
       for (let x = 0; x < GRID_W; x++) {
         const i = idx(x, y);
         const tile = grid.tiles[i];
         if (!tile.b) {
+          if (boats.has(i)) this.drawBoat(x, y, T, now, boats.get(i), motion);
           const over = tile.t === 'sapling' ? [saplingSprite(tile, Date.now(), GROW_SECONDS)] : TERRAIN_SPRITES[tile.t]?.over;
           if (over) this.framed(pick(over, i), x * T + T / 2, y * T + T / 2, T);
           continue;
@@ -250,7 +276,8 @@ export class MapRenderer {
     }
 
     if (!this.view && state) {
-      if (motion && this.fxOn()) { this.life.update(game, now); this.life.draw(this, now, T); }
+      // Moradores têm opção própria: "Reduzir movimento" (que o sistema do aparelho pode ligar sozinho) não os esconde.
+      if (this.getConfig().villagers !== false) { this.life.update(game, now); this.life.draw(this, now, T); }
       this.drawCart(state, now, T, motion);
       this.drawRaiders(state, now, T, motion);
     }
