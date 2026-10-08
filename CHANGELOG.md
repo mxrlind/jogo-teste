@@ -2,6 +2,14 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.18.0] — 2026-10-08
+### Adicionado
+- **Armazéns no subsolo.** Duas salas novas para guardar recursos lá embaixo:
+  - **Depósito** (a partir das Galerias): guarda 1.500 de madeira e 1.500 de pedra (vezes o nível ao quadrado, como o Armazém). Cada parede de rocha vizinha guarda +10%, então vale cavar uma galeria estreita para ele.
+  - **Cofre Anão** (a partir das Cavernas): guarda 12.000 de ouro (vezes o nível ao quadrado, +10% por parede de rocha vizinha) e esconde 10% do saque de ouro das hordas por nível. Todos os cofres juntos escondem no máximo 50%.
+- O painel da sala mostra o armazém já com o bônus das paredes e quanto do saque o cofre esconde.
+- Sprites das salas novas renderizados do KayKit Dungeon Remastered e do Medieval Hexagon (CC0).
+
 ## [0.17.0] — 2026-10-07
 ### Adicionado
 - **29 conquistas novas (53 no total).** 13 essenciais (árvores, muralhas, Cais de Pesca, subsolo, Quartel, Taverna, 3 lendários, 30 dias seguidos, 10 h de jogo), 13 **secretas** com piada (aparecem como "???" com uma dica: código Konami, clicar 30 vezes no mesmo prédio, jogar de madrugada, voltar depois de 7 dias, arrancar a própria muda...) e 3 de **sombra**, que não contam no total (ideia do Cookie Clicker), como a "Pura Sorte", com chance de 1 em 1 milhão por segundo.

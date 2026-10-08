@@ -20,6 +20,7 @@ O que ficou de fora da versão 0.15.0, **em ordem de impacto** (o que mais muda 
 
 ## Já entregue
 
+- **0.18.0**: armazéns no subsolo (Depósito de madeira e pedra, Cofre Anão de ouro que esconde parte do saque).
 - **0.17.0**: 29 conquistas novas (secretas e de sombra), +1% de produção por conquista, próxima conquista, escudo da sequência, pacote de volta e Loja de Gemas (pagamento real ainda não ligado).
 - **0.1.0**: protótipo completo (mapa, 15 prédios, hordas, heróis, temporadas, Ascensão, social simulado, offline, testes, simulador).
 - **0.15.0**: expedições nerfadas (2 de cada vez, +1 com a Taverna nos níveis 5 e 10; recompensa e gemas menores; acelerar custa o dobro).

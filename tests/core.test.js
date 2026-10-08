@@ -1111,6 +1111,46 @@ test('subsolo: Adega aumenta o armazém de comida e saves antigos ganham subsolo
   assert.equal(st.under.reached, 0);
 });
 
+test('subsolo: Depósito e Cofre Anão guardam mais com paredes e o cofre esconde ouro do saque', () => {
+  const g = freshGame();
+  const { x, y } = withEntrance(g);
+  const lv = levelOf(g.state, 1);
+  const nb = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]].find(([a, b]) => a >= 0 && b >= 0 && a < GRID_W && b < GRID_H);
+  lv.tiles[idx(...nb)] = { t: 'floor', s: true, b: null };
+  g.state.res.gold = 1e6; g.state.res.wood = 1e5; g.state.res.stone = 1e5;
+  const wood = g.econ.caps.wood;
+  assert.equal(g.buildRoom(1, ...nb, 'deposito').ok, true);
+  const info = g.econ.under[0][idx(...nb)];
+  assert.ok(info.store.wood >= 1500);
+  assert.equal(info.store.wood, Math.floor(1500 * (1 + info.adjBonus)));
+  assert.equal(g.econ.caps.wood, wood + info.store.wood);
+  // Cofre só a partir do nível 2
+  assert.equal(g.buildRoom(1, ...nb, 'cofre').ok, false);
+  assert.equal(g.econ.mods.raidShield, 0);
+  const lv2 = levelOf(g.state, 2);
+  lv2.tiles[idx(...nb)] = { t: 'floor', s: true, b: null };
+  g.state.under.reached = 2;
+  const gold = g.econ.caps.gold;
+  assert.equal(g.buildRoom(2, ...nb, 'cofre').ok, true);
+  assert.ok(g.econ.caps.gold >= gold + 12000);
+  assert.equal(g.econ.mods.raidShield, 0.1);
+  for (let i = 0; i < 4; i++) assert.equal(g.upgradeRoom(2, ...nb).ok, true);
+  assert.equal(g.econ.mods.raidShield, 0.5);
+  // mais um cofre não passa do teto
+  const nb2 = [[nb[0] + 1, nb[1]], [nb[0] - 1, nb[1]], [nb[0], nb[1] + 1], [nb[0], nb[1] - 1]].find(([a, b]) => a >= 0 && b >= 0 && a < GRID_W && b < GRID_H && !lv2.tiles[idx(a, b)].st);
+  lv2.tiles[idx(...nb2)] = { t: 'floor', s: true, b: null };
+  assert.equal(g.buildRoom(2, ...nb2, 'cofre').ok, true);
+  assert.equal(g.econ.mods.raidShield, 0.5);
+  // derrota: o ouro perde só metade do saque normal; madeira não é protegida
+  const s = g.state;
+  s.res.gold = 1000; s.res.wood = 1000;
+  g.econ.defense = 0;
+  g.econ.gross.gold = 1000; g.econ.gross.wood = 1000;
+  const lose = g.resolveRaid(T0);
+  assert.equal(lose.win, false);
+  assert.equal(lose.lost.gold, Math.floor(lose.lost.wood * 0.5));
+});
+
 test('conquistas secretas: gatilho marca, dá gemas e +1% de produção; sombra não conta no bônus', () => {
   const g = freshGame();
   const s = g.state;

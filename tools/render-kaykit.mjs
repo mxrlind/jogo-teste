@@ -164,6 +164,8 @@ const ROCKS = (tintColor, extra = {}) => [
 const UNDER = {
   'room-pedreira_funda': { parts: [{ model: DG('rubble_large.gltf.glb') }, { model: P('resource_stone'), x: 0.9, z: 0.8, scale: 1.4 }, { model: P('wheelbarrow'), x: -0.9, z: 0.8, rot: 30, scale: 1.4 }], fit: 0.86 },
   'room-adega': { parts: [{ model: DG('barrel_large.gltf.glb') }, { model: DG('keg_decorated.gltf.glb'), x: 1.3, z: 0.6 }, { model: DG('barrel_small_stack.gltf.glb'), x: -1.2, z: 0.7 }, { model: DG('shelf_small.gltf.glb'), x: 0.2, z: -1.1 }], fit: 0.86 },
+  'room-deposito': { parts: [{ model: DG('crates_stacked.gltf.glb'), x: -0.5, z: -0.3 }, { model: P('resource_lumber'), x: 1.0, z: -0.2, scale: 3.2 }, { model: P('resource_stone'), x: 0.6, z: 1.0, scale: 3.0 }, { model: DG('box_small.gltf.glb'), x: -1.2, z: 1.0 }], fit: 0.86 },
+  'room-cofre': { parts: [{ model: DG('chest_gold.glb'), scale: 1.2 }, { model: DG('pillar_decorated.gltf.glb'), x: -1.5, z: -1.2, scale: 0.6 }, { model: DG('pillar_decorated.gltf.glb'), x: 1.5, z: -1.2, scale: 0.6 }, { model: DG('coin_stack_small.gltf.glb'), x: 1.2, z: 0.9, scale: 1.4 }, { model: DG('keyring.gltf.glb'), x: -1.1, z: 1.0, scale: 1.6 }], fit: 0.84 },
   'room-garimpo': { parts: [{ model: DG('coin_stack_large.gltf.glb'), scale: 1.6 }, { model: P('bucket_water'), x: 1.0, z: 0.5, scale: 1.3 }, { model: P('sack'), x: -0.9, z: 0.6, scale: 1.3 }, { model: DG('chest_gold.glb'), x: 0.1, z: -0.9, scale: 0.8 }], fit: 0.84 },
   'room-fungos': {
     parts: [

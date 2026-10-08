@@ -70,6 +70,8 @@ const room = (id) => ({ src: k(`room-${id}`), icon: k(`icon-room-${id}`) });
 export const ROOM_SPRITES = {
   pedreira_funda: room('pedreira_funda'),
   adega: room('adega'),
+  deposito: room('deposito'),
+  cofre: room('cofre'),
   garimpo: room('garimpo'),
   fungos: room('fungos'),
   forja: room('forja'),

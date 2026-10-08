@@ -1,7 +1,7 @@
 // Subsolo: geração dos níveis, névoa, custos e a parte da economia que vem lá de baixo.
 // Funções puras sobre `state.under`; as ações (cavar, construir salas) ficam em Game (src/core/game.js).
 import {
-  DEPTHS, UNDER_TILES, ROOMS, DIG_BASE, DIG_DEPTH_GROWTH, DIG_COUNT_GROWTH, DIG_YIELD, STAIRS_COST,
+  DEPTHS, UNDER_TILES, ROOMS, RAID_SHIELD_MAX, DIG_BASE, DIG_DEPTH_GROWTH, DIG_COUNT_GROWTH, DIG_YIELD, STAIRS_COST,
 } from '../data/underground.js';
 import { LEVEL_COST_GROWTH, LEVEL_OUTPUT_STEP } from '../data/buildings.js';
 import { mulberry32, randInt } from './rng.js';
@@ -152,7 +152,7 @@ export function roomAdjacency(level, id, x, y) {
 
 // Modificadores globais que vêm do subsolo (somados em collectModifiers).
 export function underMods(state) {
-  const m = { prodAll: 0, food: 0 };
+  const m = { prodAll: 0, food: 0, raidShield: 0 };
   if (!state.under) return m;
   for (let d = 1; d <= DEPTHS; d++) {
     const lv = levelOf(state, d);
@@ -161,8 +161,10 @@ export function underMods(state) {
       const def = ROOMS[t.b.id];
       if (def.prodAll && roomAdjacency(lv, t.b.id, i % GRID_W, Math.floor(i / GRID_W)).hasRequired) m.prodAll += def.prodAll * t.b.lvl;
       if (def.foodBonus) m.food += def.foodBonus * t.b.lvl;
+      if (def.raidShield) m.raidShield += def.raidShield * t.b.lvl;
     });
   }
+  m.raidShield = Math.min(RAID_SHIELD_MAX, m.raidShield);
   return m;
 }
 
@@ -185,7 +187,12 @@ export function underEconomy(state, mult) {
         info.out[r] = base * eff * mult(r);
         gross[r] += info.out[r];
       }
-      for (const [r, v] of Object.entries(def.storage ?? {})) caps[r] = (caps[r] || 0) + v * t.b.lvl * t.b.lvl;
+      info.store = {};
+      const storeMult = t.b.lvl * t.b.lvl * (def.adjStorage ? 1 + adj.total : 1);
+      for (const [r, v] of Object.entries(def.storage ?? {})) {
+        info.store[r] = Math.floor(v * storeMult);
+        caps[r] = (caps[r] || 0) + info.store[r];
+      }
       infos[i] = info;
     });
     levels.push(infos);
