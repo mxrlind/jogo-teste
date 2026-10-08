@@ -41,7 +41,7 @@ export function maxLevelOf(state, id) {
 export function collectModifiers(state, now) {
   const m = {
     prodAll: 0, prod: { gold: 0, food: 0, wood: 0, stone: 0 }, eventProd: { gold: 0, food: 0, wood: 0, stone: 0 },
-    defense: 0, happiness: 0, cost: 0, raidLoot: 0, raidGems: 0, expedition: 0, terrainAdj: 0,
+    defense: 0, happiness: 0, cost: 0, raidLoot: 0, raidGems: 0, raidShield: 0, expedition: 0, terrainAdj: 0,
     offlineEff: 0, offlineHours: 0, councilSlots: 0, xp: 0, houseBonus: 0, landCost: 0,
     raidInterval: 1, eventRate: 1, crowns: 0, autoChest: false, startGold: 0, startWood: 0, startRing: 0,
   };
@@ -91,10 +91,11 @@ export function collectModifiers(state, now) {
     if (ev?.mods.raidLoot) m.raidLoot += ev.mods.raidLoot;
   }
 
-  // Subsolo: Forja de Magma (+produção geral) e Adega (+comida).
+  // Subsolo: Forja de Magma (+produção geral), Adega (+comida) e Cofre Anão (esconde ouro do saque).
   const um = underMods(state);
   m.prodAll += um.prodAll;
   m.prod.food += um.food;
+  m.raidShield += um.raidShield;
 
   // Cada conquista (fora as de sombra) dá +1% de produção para sempre.
   m.prodAll += achievementBonus(state);

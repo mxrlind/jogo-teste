@@ -307,7 +307,9 @@ export class Game {
       result.fraction = fraction;
       for (const r of PROD_RES) {
         const cap = Math.max(50, (e.gross[r] || 0) * RAID_LOSS_CAP_SECONDS);
-        lost[r] = Math.floor(Math.min(s.res[r] * fraction, cap));
+        // Cofre Anão: parte do ouro fica escondida no subsolo.
+        const shield = r === 'gold' ? e.mods.raidShield : 0;
+        lost[r] = Math.floor(Math.min(s.res[r] * fraction, cap) * (1 - shield));
         s.res[r] -= lost[r];
       }
       // Fora a proteção de novato, a horda também quebra o que encontra pelo caminho.
