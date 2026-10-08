@@ -26,8 +26,26 @@
     },
     "Lighting": {
       "$properties": {
-        "Ambient": [0.5, 0.5, 0.5],
+        "Ambient": [
+          0.5,
+          0.5,
+          0.5
+        ],
         "ClockTime": 14
+      }
+    },
+    "TextChatService": {
+      "ChatWindowConfiguration": {
+        "$properties": {
+          "Enabled": false
+        },
+        "$className": "ChatWindowConfiguration"
+      },
+      "ChatInputBarConfiguration": {
+        "$properties": {
+          "Enabled": false
+        },
+        "$className": "ChatInputBarConfiguration"
       }
     }
   }

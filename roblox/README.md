@@ -6,7 +6,7 @@ Esta pasta é o porte direto do jogo web para o Roblox. Ele tem as mesmas regras
 
 1. Abra `ReinoDeBolso.rbxl` no Roblox Studio. Ele é gerado com `rojo build default.project.json -o ReinoDeBolso.rbxl`.
 2. Para o progresso ser salvo, vá em **Home > Game Settings > Security** e ligue **Enable Studio Access to API Services**. Isso só funciona depois de publicar o jogo (passo 4).
-3. Para trocar os blocos coloridos pelos sprites:
+3. Os ids das folhas já estão em `ReplicatedStorage > Reino > Imagens` (enviadas pela conta do Josué). Para usar outra conta, envie as folhas de novo:
    - Abra **View > Asset Manager > Bulk Import**.
    - Envie `assets/folha-1.png` e `assets/folha-2.png`.
    - Clique com o botão direito em cada imagem e escolha **Copy Asset ID**.
