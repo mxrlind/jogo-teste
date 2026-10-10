@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createState, serialize, deserialize, carryOver, SAVE_VERSION, SAVE_KEY } from '../src/core/state.js';
 import { encodeSave, decodeSave, loadSave, writeSave, exportCode, importCode, checksum, CORRUPT_KEY, BACKUP_INTERVAL, listBackups } from '../src/core/storage.js';
-import { defaultConfig, normalizeConfig, actionForKey } from '../src/core/config.js';
+import { defaultConfig, normalizeConfig, actionForKey, effectiveVolumes, resetOptions } from '../src/core/config.js';
 import { dirWeight, wallFacing } from '../src/core/economy.js';
 import { Game } from '../src/core/game.js';
 import { computeEconomy, adjacencyAt, buildCost, upgradeCost, collectModifiers, heroPowerOf } from '../src/core/economy.js';
@@ -477,6 +477,22 @@ test('config: padrões, limites e atalhos', () => {
   assert.equal(c.keys.upgrade, 'j');
   assert.equal(actionForKey(c, 'J'), 'upgrade');
   assert.equal(actionForKey(defaultConfig(), 'Escape'), 'menu');
+});
+
+test('config: volume geral, segundo plano e restaurar padrões', () => {
+  const old = normalizeConfig({ musicVolume: 0.4, sfxVolume: 0.6 }); // config salva antes das opções novas
+  assert.equal(old.masterVolume, 1);
+  assert.equal(old.muteInBackground, true);
+  assert.equal(old.confirmDemolish, true);
+  assert.equal(old.batterySaver, false);
+  const c = normalizeConfig({ masterVolume: 0.5, musicVolume: 0.4, sfxVolume: 0.6, muteInBackground: true });
+  assert.deepEqual(effectiveVolumes(c), { music: 0.2, sfx: 0.3 });
+  assert.deepEqual(effectiveVolumes(c, true), { music: 0, sfx: 0 });
+  assert.deepEqual(effectiveVolumes({ ...c, muteInBackground: false }, true), { music: 0.2, sfx: 0.3 });
+  const r = resetOptions({ ...c, highContrast: true, keys: { ...c.keys, upgrade: 'j' } });
+  assert.equal(r.masterVolume, 1);
+  assert.equal(r.highContrast, false);
+  assert.equal(r.keys.upgrade, 'j');
 });
 
 test('config: moradores ligados por padrão e independentes de "Reduzir movimento"', () => {

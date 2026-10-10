@@ -2,6 +2,16 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.18.0] — 2026-10-10
+### Adicionado
+- **Opções novas**:
+  - **Volume geral**, que controla música e efeitos juntos.
+  - **Silenciar em segundo plano** (ligado por padrão): o som para quando você troca de aba ou minimiza o jogo.
+  - **Pedir confirmação antes de demolir** (ligado por padrão): desligue para demolir prédios e salas direto.
+  - **Modo economia de bateria**: o mapa é desenhado a 30 quadros por segundo.
+  - Botão **Jogar em tela cheia**, que só aparece se o navegador permitir.
+  - **Restaurar todas as opções**, que volta tudo ao padrão menos as teclas.
+
 ## [0.17.0] — 2026-10-07
 ### Adicionado
 - **29 conquistas novas (53 no total).** 13 essenciais (árvores, muralhas, Cais de Pesca, subsolo, Quartel, Taverna, 3 lendários, 30 dias seguidos, 10 h de jogo), 13 **secretas** com piada (aparecem como "???" com uma dica: código Konami, clicar 30 vezes no mesmo prédio, jogar de madrugada, voltar depois de 7 dias, arrancar a própria muda...) e 3 de **sombra**, que não contam no total (ideia do Cookie Clicker), como a "Pura Sorte", com chance de 1 em 1 milhão por segundo.

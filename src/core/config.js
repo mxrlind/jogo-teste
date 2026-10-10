@@ -21,9 +21,13 @@ export const KEY_ACTIONS = [
 export function defaultConfig() {
   return {
     version: CONFIG_VERSION,
+    masterVolume: 1,
     musicVolume: 0.5,
     musicOn: true,
     sfxVolume: 0.8,
+    muteInBackground: true,
+    batterySaver: false,
+    confirmDemolish: true,
     particles: true,
     villagers: true,
     reduceMotion: false,
@@ -45,18 +49,35 @@ export function normalizeConfig(raw, legacySettings = null) {
   }
   const keys = { ...d.keys };
   for (const a of KEY_ACTIONS) if (typeof c.keys?.[a.id] === 'string' && c.keys[a.id]) keys[a.id] = c.keys[a.id].toLowerCase();
+  const bool = (k) => (typeof c[k] === 'boolean' ? c[k] : d[k]);
   return {
     version: CONFIG_VERSION,
+    masterVolume: clamp(c.masterVolume, 0, 1, d.masterVolume),
     musicVolume: clamp(c.musicVolume, 0, 1, d.musicVolume),
-    musicOn: typeof c.musicOn === 'boolean' ? c.musicOn : d.musicOn,
+    musicOn: bool('musicOn'),
     sfxVolume: clamp(c.sfxVolume, 0, 1, d.sfxVolume),
-    particles: typeof c.particles === 'boolean' ? c.particles : d.particles,
-    villagers: typeof c.villagers === 'boolean' ? c.villagers : d.villagers,
-    reduceMotion: typeof c.reduceMotion === 'boolean' ? c.reduceMotion : d.reduceMotion,
+    muteInBackground: bool('muteInBackground'),
+    batterySaver: bool('batterySaver'),
+    confirmDemolish: bool('confirmDemolish'),
+    particles: bool('particles'),
+    villagers: bool('villagers'),
+    reduceMotion: bool('reduceMotion'),
     fontScale: clamp(c.fontScale, 0.85, 1.5, d.fontScale),
-    highContrast: typeof c.highContrast === 'boolean' ? c.highContrast : d.highContrast,
+    highContrast: bool('highContrast'),
     keys,
   };
+}
+
+// Volumes que de fato tocam: o volume geral multiplica música e efeitos, e a aba em segundo plano
+// silencia tudo quando a opção está ligada.
+export function effectiveVolumes(config, hidden = false) {
+  const m = hidden && config.muteInBackground ? 0 : config.masterVolume;
+  return { music: config.musicVolume * m, sfx: config.sfxVolume * m };
+}
+
+// Restaura as opções padrão sem mexer nas teclas (elas têm botão próprio).
+export function resetOptions(config) {
+  return { ...defaultConfig(), keys: { ...config.keys } };
 }
 
 // Primeira ação ligada a uma tecla (para o atalho e para detectar conflitos no remapeamento).
