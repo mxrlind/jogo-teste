@@ -334,8 +334,10 @@ local function pbNode(it, s, mobile)
 	}, {
 		h("Frame", {
 			Name = "Cartao", BackgroundTransparency = 1,
+			-- Segue o Conteudo (fit/fitX) em vez de AutomaticSize: o halo da Deco faria o cartão crescer sem parar.
 			Size = mobile and UDim2.new(0, minW, 1, 0) or UDim2.fromScale(1, 0),
-			AutomaticSize = mobile and Enum.AutomaticSize.X or AY,
+			fit = (not mobile) and "Conteudo" or nil,
+			fitX = mobile and "Conteudo" or nil,
 			ref = function(inst)
 				reg.inner = inst
 				inst.Position = UDim2.fromOffset(shift and 3 or 0, 0)

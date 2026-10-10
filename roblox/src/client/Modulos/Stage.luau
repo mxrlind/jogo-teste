@@ -130,7 +130,8 @@ local lastExtra = 0
 -- Faixa de cartão das dicas (#tutorial, #modeHint, #visitBar).
 local function strip(o, children)
 	return h("Frame", {
-		Name = o.name, BackgroundTransparency = 1, Size = UDim2.fromScale(1, 0), AutomaticSize = AY,
+		-- A altura segue o Conteudo (fit): com AutomaticSize, o halo da Deco faria a faixa crescer até o fim do palco.
+		Name = o.name, BackgroundTransparency = 1, Size = UDim2.fromScale(1, 0), fit = "Conteudo",
 		AnchorPoint = o.anchor, Position = o.pos, Active = o.active,
 	}, {
 		h("Frame", { Name = "Deco", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) }, {

@@ -14,6 +14,11 @@ local PLACE = "/tmp/reino-smoke.rbxl"
 local built = process.exec("rojo", { "build", "default.project.json", "-o", PLACE })
 assert(built.ok, built.stderr)
 local place = roblox.deserializePlace(fs.readFile(PLACE))
+-- Sem áudio no teste: as propriedades de Sound (IsLoaded...) só existem no motor de verdade.
+do
+	local img = place:GetService("ReplicatedStorage"):FindFirstChild("Reino"):FindFirstChild("Imagens")
+	img.Source = string.gsub(img.Source, "audio = {.-}", "audio = {}")
+end
 
 -- ------------------------------------------------------------ sinais simulados
 local Signal = {}
@@ -51,6 +56,9 @@ local function signalFor(inst, name)
 end
 for _, ev in { "MouseButton1Click", "MouseEnter", "MouseLeave", "Activated", "FocusLost" } do
 	roblox.implementProperty("GuiObject", ev, function(self) return signalFor(self, ev) end)
+end
+for _, ev in { "AncestryChanged", "Destroying", "ChildAdded" } do
+	roblox.implementProperty("Instance", ev, function(self) return signalFor(self, ev) end)
 end
 roblox.implementMethod("Instance", "GetPropertyChangedSignal", function(self, prop) return signalFor(self, "chg:" .. prop) end)
 roblox.implementMethod("Instance", "WaitForChild", function(self, name)
@@ -300,7 +308,47 @@ local function openMenu()
 	end
 	return has("Salvar e voltar")
 end
-local function show(tag) if not process.env.DEBUG_SMOKE then return end print("== " .. tag .. ": " .. string.sub(screenText(), 1, 700)) end
+-- No Roblox, um filho com Size em escala dentro de um pai com AutomaticSize faz o pai crescer até ocupar
+-- todo o espaço (o fundo do tutorial cobria o mapa). Junta os casos de cada tela; o fim do teste confere.
+local autoScale = {}
+local function auditAuto(tag)
+	local AY, AX, AXY = roblox.Enum.AutomaticSize.Y, roblox.Enum.AutomaticSize.X, roblox.Enum.AutomaticSize.XY
+	local function autoIn(inst, axis)
+		local a = inst.AutomaticSize
+		return a == AXY or (axis == "Y" and a == AY) or (axis == "X" and a == AX)
+	end
+	for _, d in playerGui:GetDescendants() do
+		if d:IsA("GuiObject") then
+			for _, axis in { "X", "Y" } do
+				local dim = d.Size[axis]
+				if dim.Scale > 0 and dim.Offset > 0 then
+					-- Sobe pela cadeia de pais em escala até achar um com AutomaticSize nesse eixo.
+					local par = d.Parent
+					while par and par:IsA("GuiObject") do
+						if autoIn(par, axis) then
+							local path = par.Name .. "/../" .. d.Name
+							local p2 = par.Parent
+							for _ = 1, 3 do
+								if not p2 or p2 == playerGui then break end
+								path = p2.Name .. "/" .. path
+								p2 = p2.Parent
+							end
+							autoScale[path] = autoScale[path] or tag
+							break
+						end
+						if par.Size[axis].Scale == 0 then break end
+						par = par.Parent
+					end
+				end
+			end
+		end
+	end
+end
+local function show(tag)
+	auditAuto(tag)
+	if not process.env.DEBUG_SMOKE then return end
+	print("== " .. tag .. ": " .. string.sub(screenText(), 1, 700))
+end
 second(2)
 show("inicio")
 check("menu: novo reino", press("Novo reino"))
@@ -491,6 +539,10 @@ local okR, eR = pcall(function()
 	Ctx.modal.close()
 end)
 check("janelas extras", okR, eR)
+local listAuto = {}
+for path, tag in autoScale do table.insert(listAuto, path .. " (" .. tag .. ")") end
+table.sort(listAuto)
+check("nenhum filho em escala dentro de AutomaticSize", #listAuto == 0, table.concat(listAuto, "\n  "))
 press("Salvar e voltar")
 
 

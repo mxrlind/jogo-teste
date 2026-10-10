@@ -3,14 +3,14 @@
 -- Enquanto um id for 0, a tela usa blocos coloridos no lugar das imagens e fica sem aquele som.
 return {
 	sheets = {
-		["sprites-1"] = "rbxassetid://0",
-		["sprites-2"] = "rbxassetid://0",
-		["icones-1"] = "rbxassetid://0",
-		["ui-1"] = "rbxassetid://0",
+		["sprites-1"] = "rbxassetid://74521145479700",
+		["sprites-2"] = "rbxassetid://119741662885729",
+		["icones-1"] = "rbxassetid://89102863564901",
+		["ui-1"] = "rbxassetid://110462512866369",
 	},
 	audio = {
-		efeitos = "rbxassetid://0",
-		["musica-vila"] = "rbxassetid://0",
-		["musica-batalha"] = "rbxassetid://0",
+		efeitos = "rbxassetid://111303391864146",
+		["musica-vila"] = "rbxassetid://126056865525333",
+		["musica-batalha"] = "rbxassetid://127634626535015",
 	},
 }

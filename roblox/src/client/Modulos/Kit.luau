@@ -18,6 +18,9 @@
 --   press          tabela de props aplicada enquanto está pressionado (o :active do CSS)
 --   tip            texto de dica ao parar o mouse em cima (o title="" do HTML); ver Kit.setTipHandler
 --   attrs          atributos (SetAttribute)
+--   fit / fitX     nome de um filho: a altura (fit) ou a largura (fitX) segue o AbsoluteSize dele. Use no lugar de
+--                  AutomaticSize quando o quadro tem decoração em escala com sobra (sombra, halo): no Roblox, um
+--                  neto com Size = (1, +x) dentro de um pai com AutomaticSize faz o pai crescer até ocupar a tela.
 -- Filhos podem ser nós, false/nil (ignorados) ou listas de nós (achatadas).
 -- Sem LayoutOrder explícito, cada filho GuiObject recebe LayoutOrder = posição, para UIListLayout seguir a ordem.
 local Kit = {}
@@ -25,7 +28,7 @@ local Kit = {}
 local EMPTY = table.freeze({})
 local SPECIAL = {
 	key = true, ref = true, onClick = true, onDown = true, onUp = true, onEnter = true, onLeave = true, onMove = true,
-	onWheel = true, onText = true, onFocusLost = true, onSize = true, hover = true, press = true, tip = true, attrs = true,
+	onWheel = true, onText = true, onFocusLost = true, onSize = true, fit = true, fitX = true, hover = true, press = true, tip = true, attrs = true,
 }
 
 export type Node = { class: string, props: { [string]: any }, children: { any }? }
@@ -252,6 +255,47 @@ local function wire(inst, rec: Rec)
 				f(enter, inst)
 			end
 		end)
+	end
+	if (p.fit or p.fitX) and inst:IsA("GuiObject") then
+		local function apply()
+			local fy, fx = prop("fit"), prop("fitX")
+			local base = rec.node.props.Size or (inst :: GuiObject).Size
+			local cy = fy and inst:FindFirstChild(fy)
+			local cx = fx and inst:FindFirstChild(fx)
+			local x = (cx and cx:IsA("GuiBase2d")) and UDim.new(0, cx.AbsoluteSize.X) or base.X
+			local y = (cy and cy:IsA("GuiBase2d")) and UDim.new(0, cy.AbsoluteSize.Y) or base.Y
+			local size = UDim2.new(x, y)
+			if (inst :: GuiObject).Size ~= size then
+				(inst :: GuiObject).Size = size
+			end
+		end
+		local function bind()
+			for _, k in { "fitY", "fitXc" } do
+				if conns[k] then
+					conns[k]:Disconnect()
+					conns[k] = nil
+				end
+			end
+			local fy, fx = prop("fit"), prop("fitX")
+			local cy = fy and inst:FindFirstChild(fy)
+			local cx = fx and inst:FindFirstChild(fx)
+			if cy and cy:IsA("GuiBase2d") then
+				conns.fitY = cy:GetPropertyChangedSignal("AbsoluteSize"):Connect(apply)
+			end
+			if cx and cx ~= cy and cx:IsA("GuiBase2d") then
+				conns.fitXc = cx:GetPropertyChangedSignal("AbsoluteSize"):Connect(apply)
+			end
+			apply()
+		end
+		if not conns.fit then
+			-- Os filhos são montados depois do wire: liga no próximo quadro e quando um filho entra.
+			conns.fit = inst.ChildAdded:Connect(function()
+				task.defer(bind)
+			end)
+			task.defer(bind)
+		else
+			apply()
+		end
 	end
 	if p.onSize and not conns.size and inst:IsA("GuiBase2d") then
 		conns.size = inst:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()

@@ -293,12 +293,18 @@ function U.panel(props, children, o)
 	elseif type(pad) == "number" then
 		pad = Kit.pad(pad)
 	end
+	local auto = props and props.AutomaticSize == AY
 	local outer = merge({ BackgroundTransparency = 1, ClipsDescendants = false }, props)
+	if auto then
+		-- A altura segue o Body (fit): com AutomaticSize, a sombra entraria na conta e sobraria espaço embaixo.
+		outer.AutomaticSize = Enum.AutomaticSize.None
+		outer.fit = "Body"
+	end
 	local bodyProps = {
 		Name = "Body",
 		BackgroundTransparency = 1,
-		Size = UDim2.fromScale(1, (props and props.AutomaticSize == AY) and 0 or 1),
-		AutomaticSize = (props and props.AutomaticSize == AY) and AY or Enum.AutomaticSize.None,
+		Size = UDim2.fromScale(1, auto and 0 or 1),
+		AutomaticSize = auto and AY or Enum.AutomaticSize.None,
 		ZIndex = 2,
 	}
 	if o.bodyProps then
