@@ -3,18 +3,19 @@ import { BUILDINGS, BUILDING_ORDER, RESOURCES, TERRAIN, MAX_LEVEL, PLANT_COST, G
 import { HEROES, RARITIES, EXPEDITIONS, RECRUIT_GEM_COST, MAX_STARS, HERO_MAX_LEVEL } from '../data/heroes.js';
 import { TALENTS, CROWN_DIVISOR } from '../data/talents.js';
 import { SEASON_TIERS, XP_PER_TIER } from '../data/seasons.js';
-import { ACHIEVEMENTS } from '../data/achievements.js';
+import { ACHIEVEMENTS, ACH_PROD_BONUS } from '../data/achievements.js';
+import { GEM_SHOP, GEM_PACKS, PAYMENTS_ENABLED } from '../data/shop.js';
 import { BANNERS, EMBLEMS } from '../data/cosmetics.js';
 import { EVENT_BY_ID } from '../data/events.js';
-import { TUTORIAL, TAB_UNLOCKS, TAB_NAMES, DIR_NAMES } from '../core/game.js';
-import { buildCost, upgradeCost, canAfford, kingdomPower, heroStrength, heroPowerOf, storageMult, countOf, defenseWeight, wallFacing, maxLevelOf } from '../core/economy.js';
+import { TUTORIAL, TAB_UNLOCKS, TAB_NAMES, DIR_NAMES, neighborName } from '../core/game.js';
+import { buildCost, upgradeCost, repairCost, canAfford, kingdomPower, heroStrength, heroPowerOf, storageMult, countOf, defenseWeight, wallFacing, maxLevelOf } from '../core/economy.js';
 import { idx, isUnlocked, ringOf, wallMask, GRID_H } from '../core/map.js';
 import { seasonInfo, tierOf, missionText, rewardFor } from '../core/season.js';
 import {
   councilSlots, recruitGoldCost, speedUpCost, expeditionSpeedUpCost, expeditionSlots, activeExpeditions, tavernDiscount, heroLevelCap, trainingSlots, trainingCount, trainCost,
 } from '../core/heroes.js';
 import { fmt, fmtRate, fmtPct, fmtTime } from '../core/format.js';
-import { UNDER_SPRITES, ROOM_SPRITES, BUILDING_SPRITES, TERRAIN_SPRITES } from './sprites.js';
+import { UNDER_SPRITES, ROOM_SPRITES, BUILDING_SPRITES, TERRAIN_SPRITES, RUIN_ICON } from './sprites.js';
 import { ui, $, esc, costHtml, bannerColor, emblemIcon, deltaText } from './ctx.js';
 import { ico, resIco } from './icons.js';
 import { runHistoryHtml } from './ascension.js';
@@ -47,6 +48,7 @@ function buildHud() {
   ].join('');
   $('#hud-status').innerHTML = `
     <button class="status" id="st-raid" data-action="info" data-arg="raid"></button>
+    <button class="status danger" id="st-repair" data-action="repairAll" hidden></button>
     <button class="status event" id="st-event" data-action="info" data-arg="event" hidden></button>
     <button class="status boost" id="st-boost" data-action="info" data-arg="boost" hidden></button>
     <button class="status ascend" id="st-ascend" data-action="tab" data-arg="legado" hidden></button>`;
@@ -114,6 +116,10 @@ export function renderHud() {
   compass.hidden = !!ui.renderer?.view; // visitando outro reino: a horda anunciada é a do seu
   const compassLabel = `Rosa dos ventos. Próxima horda pelo ${DIR_NAMES[s.raid.dir]}.`;
   if (compass.title !== compassLabel) { compass.title = compassLabel; compass.setAttribute('aria-label', compassLabel); }
+  const broken = g.damagedCount();
+  const repEl = $('#st-repair');
+  repEl.hidden = !broken || !!ui.renderer?.view;
+  if (broken) setHtml(repEl, `${ico('build')}<span><small>${broken} danificada${broken > 1 ? 's' : ''}</small>Consertar tudo</span>`);
   const ev = s.event && s.event.endsAt > Date.now() ? EVENT_BY_ID[s.event.id] : null;
   const evEl = $('#st-event');
   evEl.hidden = !ev;
@@ -141,10 +147,10 @@ export function hudInfo(key) {
     food: `Comida: cada morador come 0,15/s. Sem comida, moradores vão embora e mercados param. Consumo atual: ${fmt(e.foodConsumption)}/s.`,
     wood: 'Madeira vem das serrarias; cada floresta vizinha dá +40%.',
     stone: 'Pedra vem das pedreiras (rochas vizinhas dão +50%). Necessária para defesa e expansão.',
-    gems: 'Gemas só se ganham jogando: invasões vencidas, carroças, missões, conquistas, passe e expedições.',
+    gems: 'Gemas vêm de invasões, carroças, missões, conquistas, passe e expedições, ou da Loja de Gemas (aba Perfil). Compram recursos, impulsos, pergaminhos, aceleram treinos e expedições e liberam cosméticos.',
     pop: `Moradores ${Math.floor(s.pop)} de ${e.popCap}. Os prédios pedem ${e.workersNeeded} trabalhadores. Fazendas e moinhos são ocupados primeiro; com menos gente, os outros prédios rendem menos.`,
     happiness: `Felicidade ${Math.floor(e.happiness)}: multiplica toda a produção por ${e.happinessMult.toFixed(2)}. Tavernas, templos e decorações aumentam; pedreiras, minas e superlotação reduzem.`,
-    raid: `A próxima horda vem do ${DIR_NAMES[s.raid.dir]}. Torres e muralhas desse lado do mapa contam 100%; do lado oposto, 50%. Muralha de lado para a horda conta só metade. Heróis do Conselho sempre contam inteiros.`,
+    raid: `A próxima horda vem do ${DIR_NAMES[s.raid.dir]}. Torres e muralhas desse lado do mapa contam 100%; do lado oposto, 50%. Muralha de lado para a horda conta só metade. Heróis do Conselho sempre contam inteiros. Se a horda vencer, ela danifica construções desse lado (muralhas e torres seguram os golpes primeiro); o que não for consertado até a próxima derrota vira ruína.`,
     event: s.event ? `${EVENT_BY_ID[s.event.id].name}: ${EVENT_BY_ID[s.event.id].desc}` : 'Nenhum evento agora.',
     boost: 'Bênção: +50% em toda a produção enquanto durar.',
   }[key];
@@ -333,12 +339,14 @@ export function renderTileInfo(force = false) {
     const def = BUILDINGS[tile.b.id];
     const info = g.econ.tiles[idx(sel.x, sel.y)];
     const up = upgradeCost(tile.b.id, tile.b.lvl, g.econ.mods);
-    const upDelta = up ? g.previewUpgrade(sel.x, sel.y) : null;
+    const fix = tile.b.dmg ? repairCost(tile.b.id, tile.b.lvl, g.econ.mods) : null;
+    const upDelta = up && !fix ? g.previewUpgrade(sel.x, sel.y) : null;
     const sameType = countOf(s, tile.b.id);
     const adj = info.adjParts.length
       ? info.adjParts.map((p) => `<li class="${p.value > 0 ? 'pos' : 'neg'}">${p.key in BUILDINGS ? BUILDINGS[p.key].name : TERRAIN[p.key].name} ${fmtPct(p.value)}</li>`).join('')
       : '<li class="muted">Nenhum vizinho com bônus</li>';
-    const warn = !info.active ? `<p class="warn">${ico('warning')} Só funciona ao lado de ${TERRAIN[def.requiresAdj].id === 'water' ? 'água' : TERRAIN[def.requiresAdj].name.toLowerCase()}.</p>`
+    const warn = info.damaged ? `<p class="warn">${ico('warning')} Danificada pela horda: não produz nem defende. Conserte antes da próxima derrota ou ela desaba.</p>`
+      : !info.active ? `<p class="warn">${ico('warning')} Só funciona ao lado de ${neighborName(def.requiresAdj)}.</p>`
       : info.workers > 0 && info.staff < 1 ? `<p class="warn">${ico('warning')} Faltam trabalhadores: rendendo ${Math.round(info.staff * 100)}%. Construa ou melhore casas.</p>` : '';
     const maxLvl = def.maxLevel ?? MAX_LEVEL;
     html = `<div class="title-row"><img src="${spriteOf(tile.b.id)}" alt=""><h3><small class="muted">Nível ${tile.b.lvl} de ${maxLvl}</small>${def.name}</h3></div>
@@ -346,13 +354,15 @@ export function renderTileInfo(force = false) {
       <div class="lbl"><span>Produção</span></div>
       <div class="stats">${outputLines(info, def, sel.x, sel.y).map((l) => `<span>${l}</span>`).join('') || '<span class="muted">Sem produção direta</span>'}</div>
       <div class="lbl"><span>Vizinhos</span><span class="${info.adjBonus > 0 ? 'pos' : info.adjBonus < 0 ? 'neg' : ''}">${fmtPct(info.adjBonus)}</span></div><ul class="adj">${adj}</ul>
-      ${up ? `<div class="row"><button class="btn ${canAfford(s.res, up) ? 'primary' : 'poor'}" data-action="upgrade">${ico('upgrade')} Melhorar ${costHtml(up, s.res)}</button><span class="delta">${deltaText(upDelta)}</span></div>
+      ${tile.b.dmg ? `<div class="row"><button class="btn ${canAfford(s.res, fix) ? 'primary' : 'poor'}" data-action="repair">${ico('build')} Consertar ${costHtml(fix, s.res)}</button></div>`
+      : up ? `<div class="row"><button class="btn ${canAfford(s.res, up) ? 'primary' : 'poor'}" data-action="upgrade">${ico('upgrade')} Melhorar ${costHtml(up, s.res)}</button><span class="delta">${deltaText(upDelta)}</span></div>
       <div class="row"><button class="btn small" data-action="upgradeMax">Melhorar ao máximo possível</button>${sameType > 1 ? `<button class="btn small" data-action="upgradeAll">Melhorar todas as ${sameType} (${def.name})</button>` : ''}</div>` : '<p class="muted">Nível máximo.</p>'}
       <hr class="divider"><div class="row"><button class="btn small" data-action="move">${ico('move')} Mover</button><button class="btn small danger" data-action="sell">${ico('demolish')} Demolir</button></div>`;
   } else {
     const ter = TERRAIN[tile.t];
     const img = TERRAIN_SPRITES[tile.t]?.icon;
     html = `<div class="title-row">${img ? `<img src="${img}" alt="">` : ''}<h3>${ter.name}</h3></div>`;
+    if (tile.ruin) html = `<div class="title-row"><img src="${RUIN_ICON}" alt=""><h3>Ruína</h3></div><p class="muted">${BUILDINGS[tile.ruin]?.name ?? 'Construção'} destruída por uma horda. Construa algo aqui para limpar o terreno.</p>`;
     if (tile.t === 'sapling') {
       const left = Math.max(0, GROW_SECONDS - (Date.now() - (tile.p ?? 0)) / 1000);
       html += `<p class="muted">Vira floresta em ${fmtTime(left)}. Floresta dá madeira ao ser limpa e +40% para serrarias vizinhas.</p>
@@ -623,7 +633,19 @@ function tabPerfil() {
   const g = ui.game;
   const s = g.state;
   const k = s.kingdom;
-  const got = ACHIEVEMENTS.filter((a) => s.achievements[a.id]).length;
+  const main = ACHIEVEMENTS.filter((a) => a.kind !== 'shadow');
+  const got = main.filter((a) => s.achievements[a.id]).length;
+  const shadows = ACHIEVEMENTS.filter((a) => a.kind === 'shadow');
+  const next = g.nextAchievement();
+  const achHtml = (a) => {
+    const has = !!s.achievements[a.id];
+    const hidden = a.kind && !has;
+    const name = hidden ? '???' : a.name;
+    const desc = hidden ? `Dica: ${a.hint}` : a.desc;
+    const extra = `${a.gems ? ` · ${a.gems} gema${a.gems === 1 ? '' : 's'}` : ''}${a.title && !hidden ? ` · título "${a.title}"` : ''}`;
+    const tag = has ? 'div' : 'button';
+    return `<${tag} class="ach ${has ? 'got' : ''} ${a.kind || ''}" ${has ? '' : 'data-action="achLocked"'}>${ico(has ? a.icon : 'lock')}<b>${esc(name)}</b><small>${esc(desc)}${extra}</small></${tag}>`;
+  };
   return `
     <section class="card">
       <h3>${ico('tab-profile')} Identidade</h3>
@@ -642,8 +664,19 @@ function tabPerfil() {
       <h4>Título</h4><div class="row">${s.cosmetics.titles.map((t) => `<button class="btn small ${k.title === t ? 'on' : ''}" data-action="equip" data-arg="title|${esc(t)}">${esc(t)}</button>`).join('')}</div>
     </section>
     <section class="card">
-      <h3>${ico('trophy')} Conquistas ${got}/${ACHIEVEMENTS.length}</h3>
-      <div class="achs">${ACHIEVEMENTS.map((a) => `<div class="ach ${s.achievements[a.id] ? 'got' : ''}">${ico(s.achievements[a.id] ? a.icon : 'lock')}<b>${a.name}</b><small>${esc(a.desc)} · ${a.gems} gemas${a.title ? ` · título "${a.title}"` : ''}</small></div>`).join('')}</div>
+      <h3>${ico('trophy')} Conquistas ${got}/${main.length}</h3>
+      <p class="muted">Cada conquista dá +${Math.round(ACH_PROD_BONUS * 100)}% de produção para sempre. Bônus atual: <b class="pos">+${Math.round(got * ACH_PROD_BONUS * 100)}%</b>.</p>
+      ${next ? `<div class="ach-next"><span>${ico(next.a.icon)} Próxima: <b>${esc(next.a.name)}</b> <small>${esc(next.a.desc)}</small></span><span class="bar"><i style="width:${Math.round(next.ratio * 100)}%"></i></span><small>${fmt(next.cur)} / ${fmt(next.goal)}</small></div>` : ''}
+      <div class="achs">${main.map(achHtml).join('')}</div>
+      <h4>Sombra <small class="muted">(não contam no total)</small></h4>
+      <div class="achs">${shadows.map(achHtml).join('')}</div>
+    </section>
+    <section class="card">
+      <h3>${resIco('gems')} Loja de Gemas</h3>
+      <p class="muted">Você tem <b>${fmt(s.res.gems)}</b> gemas.</p>
+      <div class="shop">${GEM_SHOP.map((i) => `<button class="shop-item ${s.res.gems >= i.gems ? '' : 'poor'}" data-action="buyShop" data-arg="${i.id}">${ico(i.icon)}<span>${esc(i.name)}</span><b>${resIco('gems')} ${i.gems}</b></button>`).join('')}</div>
+      <h4>Comprar gemas</h4>
+      <div class="shop">${GEM_PACKS.map((p) => `<button class="shop-item pack" data-action="buyGemPack" data-arg="${p.id}">${resIco('gems')}<span><b>${fmt(p.gems)} gemas</b> ${esc(p.name)}${p.tag ? ` <em class="tag">${esc(p.tag)}</em>` : ''}</span><b>${PAYMENTS_ENABLED ? esc(p.price) : 'Em breve'}</b></button>`).join('')}</div>
     </section>
     <section class="card">
       <h3>${ico('stats')} Estatísticas</h3>

@@ -5,10 +5,11 @@ import { HERO_BY_ID, RARITIES } from '../data/heroes.js';
 import { BANNERS, DAILY_REWARDS } from '../data/cosmetics.js';
 import { SEASON_TIERS, XP_PER_TIER } from '../data/seasons.js';
 import { LEVEL_NAMES } from '../data/underground.js';
+import { RAID_LOSS_FRACTION } from '../data/events.js';
 import { Game, DIR_NAMES, TAB_NAMES, UNDO_WINDOW } from '../core/game.js';
 import { createState, newSeed, SAVE_VERSION } from '../core/state.js';
 import { loadSave, writeSave, exportCode, importCode, listBackups, restoreBackup, clearSave, BACKUP_SLOTS } from '../core/storage.js';
-import { CONFIG_KEY, KEY_ACTIONS, normalizeConfig, actionForKey, keyLabel } from '../core/config.js';
+import { CONFIG_KEY, KEY_ACTIONS, normalizeConfig, actionForKey, keyLabel, effectiveVolumes, resetOptions } from '../core/config.js';
 import { buildCost, canAfford, kingdomPower, heroStrength, heroPowerOf } from '../core/economy.js';
 import { generateRivals, rivalGrid, encodeKingdom, decodeKingdom } from '../core/social.js';
 import { fmt, fmtTime } from '../core/format.js';
@@ -21,7 +22,7 @@ import { ico, resIco } from './icons.js';
 import { showModal, replaceModal, closeModal, confirmModal, runConfirm, toast, modalOpen, modalClosable } from './modals.js';
 import { renderHud, renderPalette, renderTileInfo, renderSide, renderModeHint, hudInfo, lockedTabHint, describeBonus } from './panels.js';
 
-const GAME_VERSION = '0.15.0';
+const GAME_VERSION = '0.18.0';
 const TAB_ORDER = ['reino', 'herois', 'temporada', 'legado', 'social', 'perfil'];
 const FLOAT_COLORS = RES_COLORS;
 
@@ -60,11 +61,14 @@ export async function boot() {
   // Soltar o botão fora da janela não gera pointerup: sem isto o painel lateral parava de atualizar.
   window.addEventListener('blur', () => { ui.pointerHeld = false; });
   document.addEventListener('visibilitychange', onVisibility);
+  document.addEventListener('visibilitychange', applyVolumes); // silencia com a aba em segundo plano
+  document.addEventListener('fullscreenchange', () => { if (modalOpen() && $('#opt-fullscreen')) showOptions(true); });
   window.addEventListener('beforeunload', save);
   window.addEventListener('pagehide', save); // celulares nem sempre disparam beforeunload
   $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal' && modalClosable()) closeModal(); });
 
   initAudio(ui.config);
+  applyVolumes();
   let imgDone = 0; let imgTotal = 1; let sfxDone = 0; let sfxTotal = 1;
   const progress = () => {
     const p = Math.round(((imgDone + sfxDone) / (imgTotal + sfxTotal)) * 100);
@@ -92,8 +96,15 @@ function applyConfig() {
   document.documentElement.style.setProperty('--fs', String(c.fontScale));
   document.body.classList.toggle('high-contrast', c.highContrast);
   document.body.classList.toggle('reduce-motion', c.reduceMotion);
-  setVolumes(c.musicVolume, c.sfxVolume, c.musicOn);
+  applyVolumes();
   renderMusicBtn();
+  const v = effectiveVolumes(c);
+  if (ui.game && (!c.musicOn || v.music <= 0) && v.sfx <= 0) ui.game.secret('silence');
+}
+
+function applyVolumes() {
+  const v = effectiveVolumes(ui.config, document.hidden);
+  setVolumes(v.music, v.sfx, ui.config.musicOn);
 }
 
 function save() {
@@ -216,9 +227,13 @@ function startLoops() {
     renderTileInfo();
     ambientFx();
   }, 1000);
-  const loop = () => {
-    if (ui.game && !gameEl.hidden) ui.renderer.draw(ui.game);
+  // Modo economia: desenha o mapa a no máximo 30 quadros por segundo (poupa bateria no celular).
+  let lastDraw = 0;
+  const loop = (now) => {
     requestAnimationFrame(loop);
+    if (ui.config.batterySaver && now - lastDraw < 1000 / 30 - 2) return;
+    lastDraw = now;
+    if (ui.game && !gameEl.hidden) ui.renderer.draw(ui.game);
   };
   requestAnimationFrame(loop);
 }
@@ -244,6 +259,7 @@ function wireGame() {
   ui.game
     .on('toast', ({ text, kind, icon }) => toast(text, kind, icon))
     .on('built', ({ x, y, id }) => { play(id === 'mina' || id === 'pedreira' ? 'mine' : 'build'); r().pop(x, y); r().addBurst(x, y, '#fff3bf'); })
+    .on('repaired', ({ x, y }) => { play('build', 0.8); r().pop(x, y); r().addBurst(x, y, '#fff3bf'); })
     .on('upgraded', ({ x, y, lvl }) => { play('upgrade', 0.8); r().pop(x, y); r().addFloat(x, y, `Nível ${lvl}`, '#ffe08a'); })
     .on('sold', ({ name }) => toast(`${name} demolida (50% devolvido).`, 'info', 'demolish'))
     .on('moved', ({ tx, ty }) => { play('build', 0.6); r().pop(tx, ty); })
@@ -282,7 +298,13 @@ function wireGame() {
       if (res.win) { play('win'); r().doFlash('#f2b632'); toast(`Vitória sobre ${res.name}! +${fmt(res.loot)} de ouro e +${res.gems} gema(s). A próxima horda vem do ${next}.`, 'good', 'swords'); return; }
       play('lose'); r().doShake(650); r().doFlash('#b8412f');
       const lost = Object.entries(res.lost).filter(([, v]) => v > 0).map(([k, v]) => `${fmt(v)} de ${RESOURCES[k].name.toLowerCase()}`).join(', ');
-      toast(`${res.name} saquearam ${lost || 'quase nada'}${res.fraction < 0.1 ? ' (proteção de novato)' : ''}. A próxima horda vem do ${next}.`, 'bad', 'warning');
+      const broke = [
+        res.damaged?.length ? `danificaram ${res.damaged.length === 1 ? '1 construção' : `${res.damaged.length} construções`}` : '',
+        res.collapsed?.length ? (res.collapsed.length === 1 ? '1 que não foi consertada desabou' : `${res.collapsed.length} que não foram consertadas desabaram`) : '',
+      ].filter(Boolean).join(' e ');
+      for (const d of res.damaged || []) r().addBurst(d.x, d.y, '#ff8f7d');
+      for (const d of res.collapsed || []) r().addBurst(d.x, d.y, '#8a8a8a');
+      toast(`${res.name} saquearam ${lost || 'quase nada'}${broke ? ` e ${broke}` : ''}${res.fraction < RAID_LOSS_FRACTION ? ' (proteção de novato)' : ''}. A próxima horda vem do ${next}.`, 'bad', 'warning');
     })
     .on('event', (ev) => { play('event'); toast(`${ev.name}: ${ev.desc}`, 'event', ev.icon); })
     .on('chest', () => play('cart', 0.6))
@@ -302,7 +324,7 @@ function wireGame() {
       toast(`Expedição de ${HERO_BY_ID[hid].name}: ${parts.join(', ')}.`, 'good', 'expedition');
     })
     .on('tierUp', ({ tier }) => { play('tier'); toast(`Passe de temporada: nível ${tier}! Resgate na aba Temporada.`, 'season', 'star'); })
-    .on('achievement', (a) => { play('achievement'); toast(`Conquista: ${a.name} (+${a.gems} gemas${a.title ? `, título "${a.title}"` : ''})`, 'good', a.icon); })
+    .on('achievement', (a) => { play('achievement'); toast(`Conquista: ${a.name} (+${a.gems} gema${a.gems === 1 ? '' : 's'}${a.title ? `, título "${a.title}"` : ''})`, 'good', a.icon); })
     .on('tutorial', () => { play('confirm'); renderPalette(true); renderSide(true); })
     .on('unlock', ({ tab, name }) => { play('tier'); toast(`Nova aba aberta: ${name}.`, 'season', 'star'); if (tab === 'herois') ui.tab = 'herois'; renderSide(true); })
     .on('offline', (sum) => showOffline(sum))
@@ -346,9 +368,28 @@ function tileClick(x, y) {
     return;
   }
   play('click', 0.6);
+  if (g.tileAt(x, y).b && poke(`${x},${y}`) >= 30) g.secret('poke');
   const sel = ui.renderer.selected;
   ui.renderer.selected = sel && sel.x === x && sel.y === y ? null : { x, y };
   renderTileInfo(true);
+}
+
+// Cliques seguidos no mesmo alvo (conquistas secretas). Trocar de alvo ou parar 3 s zera.
+let pokeState = { key: null, n: 0, at: 0 };
+function poke(key) {
+  const now = Date.now();
+  if (pokeState.key !== key || now - pokeState.at > 3000) pokeState = { key, n: 0, at: now };
+  pokeState.n++;
+  pokeState.at = now;
+  return pokeState.n;
+}
+
+// Código Konami: cima, cima, baixo, baixo, esquerda, direita, esquerda, direita, B, A.
+const KONAMI = ['arrowup', 'arrowup', 'arrowdown', 'arrowdown', 'arrowleft', 'arrowright', 'arrowleft', 'arrowright', 'b', 'a'];
+let konamiPos = 0;
+function trackKonami(key) {
+  konamiPos = key === KONAMI[konamiPos] ? konamiPos + 1 : key === KONAMI[0] ? 1 : 0;
+  if (konamiPos === KONAMI.length) { konamiPos = 0; ui.game?.secret('konami'); }
 }
 
 function onHover(t) {
@@ -394,6 +435,7 @@ function onKey(e) {
     return;
   }
   if (e.target.matches?.('input, textarea, select')) return;
+  trackKonami(key);
   const action = actionForKey(ui.config, key);
   if (action === 'menu') {
     e.preventDefault();
@@ -476,8 +518,12 @@ const ACTIONS = {
   gameMenu: () => showGameMenu(),
   toggleMusic: () => {
     const c = ui.config;
-    if (c.musicOn && c.musicVolume > 0) c.musicOn = false;
-    else { c.musicOn = true; if (c.musicVolume <= 0) c.musicVolume = 0.5; }
+    if (c.musicOn && c.musicVolume > 0 && c.masterVolume > 0) c.musicOn = false;
+    else {
+      c.musicOn = true;
+      if (c.musicVolume <= 0) c.musicVolume = 0.5;
+      if (c.masterVolume <= 0) c.masterVolume = 1;
+    }
     saveConfig();
     applyConfig();
     play('click');
@@ -488,13 +534,27 @@ const ACTIONS = {
   saveMenu: () => showSaveMenu(),
   closeModal: () => { play('close', 0.5); closeModal(); },
   confirmYes: () => runConfirm(),
-  info: (el) => { const t = hudInfo(el.dataset.arg); if (t) toast(t, 'info', 'info'); },
+  info: (el) => {
+    const t = hudInfo(el.dataset.arg);
+    if (t) toast(t, 'info', 'info');
+    if (el.dataset.arg === 'gems' && poke('gems') >= 10) ui.game.secret('gemPoke');
+  },
+  achLocked: () => { ui.game.secret('curious'); play('click', 0.6); },
+  buyShop: (el) => { const r = ui.game.buyShop(el.dataset.arg); if (result(r)) { play('coin'); toast(`Comprado: ${r.item.name}`, 'good', r.item.icon); } },
+  buyGemPack: (el) => { if (result(ui.game.buyGemPack(el.dataset.arg))) play('coin'); },
 
   // paleta e mapa
   build: (el) => selectBuild(el.dataset.arg),
   lockedBuilding: (el) => { const d = BUILDINGS[el.dataset.arg]; toast(`${d.name}: libera com ${d.unlock.buildings} construções. ${d.desc}`, 'info', 'lock'); },
   cancelMode: () => setMode({ type: 'select' }),
   upgrade: () => { const { x, y } = ui.renderer.selected; result(ui.game.upgrade(x, y)); },
+  repair: () => { const { x, y } = ui.renderer.selected; result(ui.game.repair(x, y)); },
+  repairAll: () => {
+    const res = ui.game.repairAll();
+    if (!res.ok) { play('error'); toast(res.reason, 'bad', 'warning'); return; }
+    toast(res.left ? `${res.count} consertada(s). Faltam recursos para mais ${res.left}.` : res.count === 1 ? 'Construção consertada.' : `${res.count} construções consertadas.`, 'good', 'build');
+    result({ ok: true });
+  },
   upgradeMax: () => {
     const { x, y } = ui.renderer.selected;
     const n = ui.game.upgradeMax(x, y);
@@ -520,7 +580,9 @@ const ACTIONS = {
   },
   sell: () => {
     const { x, y } = ui.renderer.selected;
-    confirmModal(`<h2>${ico('demolish')} Demolir?</h2><p>Você recebe 50% do que gastou de volta.</p>`, () => { result(ui.game.sell(x, y)); ui.renderer.selected = null; renderTileInfo(true); }, { yes: 'Demolir', danger: true });
+    const go = () => { result(ui.game.sell(x, y)); ui.renderer.selected = null; renderTileInfo(true); };
+    if (!ui.config.confirmDemolish) { go(); return; }
+    confirmModal(`<h2>${ico('demolish')} Demolir?</h2><p>Você recebe 50% do que gastou de volta.</p>`, go, { yes: 'Demolir', danger: true });
   },
   clear: () => { const { x, y } = ui.renderer.selected; result(ui.game.clear(x, y)); },
   layer: (el) => { play('tab', 0.6); setLayer(Number(el.dataset.arg)); },
@@ -531,7 +593,9 @@ const ACTIONS = {
   roomSell: () => {
     const { x, y } = ui.renderer.selected;
     const d = ui.renderer.layer;
-    confirmModal(`<h2>${ico('demolish')} Demolir a sala?</h2><p>Você recebe 50% do que gastou de volta.</p>`, () => { result(ui.game.sellRoom(d, x, y)); renderTileInfo(true); }, { yes: 'Demolir', danger: true });
+    const go = () => { result(ui.game.sellRoom(d, x, y)); renderTileInfo(true); };
+    if (!ui.config.confirmDemolish) { go(); return; }
+    confirmModal(`<h2>${ico('demolish')} Demolir a sala?</h2><p>Você recebe 50% do que gastou de volta.</p>`, go, { yes: 'Demolir', danger: true });
   },
   goLayer: (el) => {
     const r = ui.renderer;
@@ -615,6 +679,19 @@ const ACTIONS = {
     startGame(createState({ seed: newSeed() }), { isNew: true });
   }, { yes: 'Apagar', danger: true }),
   remap: (el) => { remapping = el.dataset.arg; showOptions(true); },
+  resetOptions: () => {
+    ui.config = resetOptions(ui.config);
+    saveConfig();
+    applyConfig();
+    ui.renderer?.resize();
+    showOptions(true);
+    toast('Opções restauradas para o padrão.', 'good', 'check');
+  },
+  fullscreen: () => {
+    // O botão se atualiza sozinho pelo evento fullscreenchange.
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    else document.documentElement.requestFullscreen?.().catch(() => toast('O navegador não deixou entrar em tela cheia.', 'bad', 'warning'));
+  },
   resetKeys: () => { ui.config.keys = Object.fromEntries(KEY_ACTIONS.map((a) => [a.id, a.key])); saveConfig(); showOptions(true); },
   startKingdom: () => {
     ui.game.setKingdomName($('#introName').value || 'Reino de Bolso');
@@ -646,7 +723,7 @@ function onInput(e) {
   if (out) out.textContent = `${Math.round(Number(el.value))}%`;
   saveConfig();
   applyConfig();
-  if (k === 'sfxVolume') play('click');
+  if (k === 'sfxVolume' || k === 'masterVolume') play('click');
   if (k === 'fontScale') ui.renderer?.resize();
 }
 
@@ -695,7 +772,7 @@ function updateMood() {
 function renderMusicBtn() {
   const el = $('#musicBtn');
   if (!el) return;
-  const on = ui.config.musicOn && ui.config.musicVolume > 0;
+  const on = ui.config.musicOn && effectiveVolumes(ui.config).music > 0;
   el.hidden = !hasMusic();
   el.innerHTML = ico(on ? 'music' : 'speaker-off');
   el.setAttribute('aria-pressed', String(on));
@@ -774,7 +851,7 @@ function showIntro() {
     <p>Você herdou um terreno, uma casa e uma fazenda. O resto é com você.</p>
     <ul class="intro">
       <li>${ico('hero-architect')}<span><b>A posição importa:</b> cada prédio ganha (ou perde) bônus dos 4 vizinhos. Escolha um prédio e passe pelo mapa para ver.</span></li>
-      <li>${ico('swords')}<span><b>Hordas atacam</b> sempre por um lado anunciado. Defenda esse lado.</span></li>
+      <li>${ico('swords')}<span><b>Hordas atacam</b> sempre por um lado anunciado. Defenda esse lado: se perder, elas quebram construções, e o que não for consertado até a próxima derrota vira ruína.</span></li>
       <li>${ico('tab-heroes')}<span><b>Novas abas aparecem</b> conforme o reino cresce: heróis, temporada, social e legado.</span></li>
       <li>${ico('time')}<span>O reino <b>produz mesmo com você fora</b>. Entre 5 minutos ou fique 2 horas.</span></li>
     </ul>
@@ -821,10 +898,16 @@ function showOptions(replace = false) {
   const m = nowPlaying();
   const html = `<h2>${ico('settings')} Opções</h2>
     <h3>Som</h3>
+    ${slider('masterVolume', 'Volume geral', 0, 100, 'speaker')}
     ${hasMusic() ? check('musicOn', 'Tocar música') : ''}
     ${slider('musicVolume', 'Música', 0, 100, 'music')}
     ${hasMusic() ? `<p class="muted">${m ? `Tocando: ${esc(m.title)} (${esc(m.author)}, ${esc(m.license)}). ` : ''}Folk de taverna na vila; metal quando uma horda se aproxima e no subsolo.</p>` : '<p class="muted">Nenhuma faixa de música instalada.</p>'}
     ${slider('sfxVolume', 'Efeitos', 0, 100, 'speaker')}
+    ${check('muteInBackground', 'Silenciar quando o jogo estiver em segundo plano')}
+    <h3>Jogo</h3>
+    ${check('confirmDemolish', 'Pedir confirmação antes de demolir')}
+    ${check('batterySaver', 'Modo economia de bateria (mapa a 30 quadros por segundo)')}
+    ${document.fullscreenEnabled ? `<div class="row"><button class="btn small" id="opt-fullscreen" data-action="fullscreen">${ico('map')} ${document.fullscreenElement ? 'Sair da tela cheia' : 'Jogar em tela cheia'}</button></div>` : ''}
     <h3>Visual e acessibilidade</h3>
     ${slider('fontScale', 'Tamanho do texto', 85, 150, 'font')}
     ${check('villagers', 'Moradores andando pelo mapa')}
@@ -834,6 +917,8 @@ function showOptions(replace = false) {
     <h3>Teclado</h3>
     <div class="keys">${keys}</div>
     <div class="row"><button class="btn small" data-action="resetKeys">Restaurar teclas padrão</button></div>
+    <h3>Padrões</h3>
+    <div class="row"><button class="btn small" data-action="resetOptions">Restaurar todas as opções (menos as teclas)</button></div>
     <button class="btn big primary" data-action="closeModal">Fechar</button>`;
   if (replace && modalOpen()) { replaceModal(html); return; }
   showModal(html, '', { priority: true });
@@ -900,6 +985,7 @@ function showDaily() {
       const icon = done ? ico('check') : r.gems ? resIco('gems') : r.boost ? ico('boost', 'c-gold') : r.scroll ? ico('scroll', 'c-crowns') : resIco('gold');
       return `<div class="dr ${done ? 'done' : ''} ${st.available && r.day === cur ? 'today' : ''}"><b>Dia ${r.day}</b>${icon}<span>${r.label}</span></div>`;
     }).join('')}</div>
+    <p class="muted">${ico('defense')} ${st.shield ? 'Você faltou ontem, mas o escudo da semana salva a sua sequência.' : st.shieldReady ? 'Escudo da semana pronto: se faltar um dia, a sequência não zera.' : 'Escudo da semana já usado; volta na segunda.'}</p>
     ${st.available ? `<button class="btn big primary" data-action="daily" data-autofocus>Resgatar: ${st.reward.label}</button>` : '<p class="muted">Já resgatada hoje. Volte amanhã para manter a sequência.</p><button class="btn big" data-action="closeModal">Fechar</button>'}`);
 }
 
@@ -908,6 +994,7 @@ function showOffline(sum) {
   showModal(`<h2>${ico('time')} Enquanto você esteve fora (${fmtTime(sum.elapsed)})</h2>
     <p>Seu reino trabalhou com ${Math.round(sum.efficiency * 100)}% de eficiência${sum.capped ? ` por até ${fmtTime(sum.simulated)} (limite offline)` : ''}.</p>
     <div class="gains">${['gold', 'food', 'wood', 'stone'].map((r) => `<div>${resIco(r)}<b class="${g[r] < 0 ? 'neg' : ''}">${g[r] >= 0 ? '+' : ''}${fmt(g[r])}</b></div>`).join('')}</div>
+    ${sum.welcome ? `<p class="pos">${ico('gems')} Pacote de volta (${sum.welcome.days} dias fora): +${sum.welcome.gems} gemas, +${sum.welcome.scroll} pergaminho e ${sum.welcome.goldMinutes} min de ouro.</p>` : ''}
     ${sum.expeditionsReady ? `<p>${ico('expedition')} ${sum.expeditionsReady} expedição(ões) pronta(s) para coletar.</p>` : ''}
     ${sum.capped ? '<p class="muted">Aumente o limite com o talento Vigília ou o herói O Relojoeiro.</p>' : ''}
     <button class="btn big primary" data-action="closeModal" data-autofocus>Continuar</button>`);

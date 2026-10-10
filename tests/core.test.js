@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createState, serialize, deserialize, carryOver, SAVE_VERSION, SAVE_KEY } from '../src/core/state.js';
 import { encodeSave, decodeSave, loadSave, writeSave, exportCode, importCode, checksum, CORRUPT_KEY, BACKUP_INTERVAL, listBackups } from '../src/core/storage.js';
-import { defaultConfig, normalizeConfig, actionForKey } from '../src/core/config.js';
+import { defaultConfig, normalizeConfig, actionForKey, effectiveVolumes, resetOptions } from '../src/core/config.js';
 import { dirWeight, wallFacing } from '../src/core/economy.js';
 import { Game } from '../src/core/game.js';
 import { computeEconomy, adjacencyAt, buildCost, upgradeCost, collectModifiers, heroPowerOf } from '../src/core/economy.js';
@@ -107,6 +107,33 @@ test('cais de pesca só produz na beira da água, +40% por água vizinha', () =>
   assert.equal(e.tiles[idx(7, 7)].active, true);
   assert.equal(adjacencyAt(s, 'cais', 7, 7).total, 0.8);
   assert.ok(e.tiles[idx(7, 7)].out.food > 1.4);
+});
+
+test('cais e mina não podem ser construídos nem movidos para onde ficariam parados', () => {
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  s.stats.built = 20;
+  Object.assign(s.res, { gold: 1e6, wood: 1e6, stone: 1e6 });
+  put(s, 4, 4, 'water');
+  const r = g.build('cais', 7, 7);
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /ao lado de água/);
+  assert.equal(g.build('mina', 7, 7).reason, 'Mina de Ouro só funciona ao lado de montanha');
+  assert.equal(g.build('cais', 4, 5).ok, true);
+  const m = g.move(4, 5, 7, 7);
+  assert.equal(m.ok, false);
+  assert.equal(s.grid.tiles[idx(4, 5)].b.id, 'cais');
+  assert.equal(g.move(4, 5, 3, 4).ok, true);
+});
+
+test('relógio do aparelho voltando não congela o reino', () => {
+  const s = createState({ seed: 1, now: T0 + 3600e3 }); // save gravado com o relógio 1 h adiantado
+  const g = new Game(s, T0);
+  const gold = s.res.gold;
+  for (let t = 0; t <= 60; t++) g.tick(T0 + t * 1000);
+  assert.ok(s.res.gold > gold, 'produziu ouro');
+  assert.equal(s.lastTick, T0 + 60000);
 });
 
 test('código do reino guarda escadaria e cais', () => {
@@ -223,7 +250,7 @@ test('tick: recursos crescem, respeitam o limite e não ficam negativos', () => 
   assert.ok(s.res.gold <= g.econ.caps.gold);
 });
 
-test('invasões: vitória dá saque e sobe nível; derrota tira 5% (novato) e depois 15%', () => {
+test('invasões: vitória dá saque e sobe nível; derrota tira 5% (novato) e depois 10%', () => {
   const g = freshGame();
   const s = g.state;
   s.res.gold = 1000;
@@ -238,7 +265,7 @@ test('invasões: vitória dá saque e sobe nível; derrota tira 5% (novato) e de
   g.econ.defense = 0;
   g.econ.gross.gold = 1000;
   g.resolveRaid(T0);
-  assert.equal(s.res.gold, 850, 'depois perde 15%');
+  assert.equal(s.res.gold, 900, 'depois perde 10%');
   g.econ.defense = 0;
   g.econ.gross.gold = 1; // produção baixa: saque limitado a max(50, 2 min de produção)
   s.res.gold = 100000;
@@ -452,6 +479,22 @@ test('config: padrões, limites e atalhos', () => {
   assert.equal(actionForKey(defaultConfig(), 'Escape'), 'menu');
 });
 
+test('config: volume geral, segundo plano e restaurar padrões', () => {
+  const old = normalizeConfig({ musicVolume: 0.4, sfxVolume: 0.6 }); // config salva antes das opções novas
+  assert.equal(old.masterVolume, 1);
+  assert.equal(old.muteInBackground, true);
+  assert.equal(old.confirmDemolish, true);
+  assert.equal(old.batterySaver, false);
+  const c = normalizeConfig({ masterVolume: 0.5, musicVolume: 0.4, sfxVolume: 0.6, muteInBackground: true });
+  assert.deepEqual(effectiveVolumes(c), { music: 0.2, sfx: 0.3 });
+  assert.deepEqual(effectiveVolumes(c, true), { music: 0, sfx: 0 });
+  assert.deepEqual(effectiveVolumes({ ...c, muteInBackground: false }, true), { music: 0.2, sfx: 0.3 });
+  const r = resetOptions({ ...c, highContrast: true, keys: { ...c.keys, upgrade: 'j' } });
+  assert.equal(r.masterVolume, 1);
+  assert.equal(r.highContrast, false);
+  assert.equal(r.keys.upgrade, 'j');
+});
+
 test('config: moradores ligados por padrão e independentes de "Reduzir movimento"', () => {
   assert.equal(defaultConfig().villagers, true);
   const old = normalizeConfig({ reduceMotion: true, particles: false }); // config salva antes da opção existir
@@ -527,6 +570,56 @@ test('muralhas: se ligam sozinhas e de lado para a horda contam metade', () => {
   s.raid.dir = 'w';
   const w = computeEconomy(s, T0).defense;
   assert.ok(w > n * 1.5);
+});
+
+test('hordas: derrota quebra construções do lado de onde vem, e o que não foi consertado desaba', () => {
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  s.pop = 50;
+  s.stats.raidsLost = 5; // sem proteção de novato
+  // Fileira de casas no norte e no sul; horda do norte.
+  for (const x of [3, 4, 5, 6, 7]) { put(s, x, 3, 'grass', { id: 'casa', lvl: 1 }); put(s, x, 8, 'grass', { id: 'casa', lvl: 1 }); }
+  s.raid.dir = 'n';
+  g.econ = computeEconomy(s, T0);
+  g.econ.defense = 0;
+  const r1 = g.resolveRaid(T0);
+  assert.equal(r1.damaged.length, 4, 'sem defesa nenhuma: 4 golpes');
+  assert.ok(r1.damaged.every((d) => d.y === 3), 'só as casas do norte');
+  const hit = r1.damaged[0];
+  assert.equal(computeEconomy(s, T0).tiles[idx(hit.x, hit.y)].active, false, 'danificada não produz');
+  assert.deepEqual(g.upgrade(hit.x, hit.y), { ok: false, reason: 'Conserte antes de melhorar' });
+  // Consertar uma; as outras três desabam na próxima derrota.
+  s.res.gold = s.res.wood = s.res.stone = 1e6;
+  assert.equal(g.repair(hit.x, hit.y).ok, true);
+  assert.equal(computeEconomy(s, T0).tiles[idx(hit.x, hit.y)].active, true);
+  s.raid.dir = 's';
+  g.econ = computeEconomy(s, T0);
+  g.econ.defense = 0;
+  const r2 = g.resolveRaid(T0);
+  assert.equal(r2.collapsed.length, 3);
+  for (const c of r2.collapsed) { assert.equal(s.grid.tiles[idx(c.x, c.y)].b, null); assert.equal(s.grid.tiles[idx(c.x, c.y)].ruin, 'casa'); }
+  assert.ok(r2.damaged.every((d) => d.y === 8), 'horda do sul quebra as casas do sul');
+  // Construir em cima limpa a ruína; consertar tudo de uma vez.
+  const c = r2.collapsed[0];
+  assert.equal(g.build('casa', c.x, c.y).ok, true);
+  assert.equal(s.grid.tiles[idx(c.x, c.y)].ruin, undefined);
+  assert.equal(g.repairAll().count, 4);
+  assert.equal(g.damagedCount(), 0);
+});
+
+test('hordas: muralha na frente segura os golpes e protege o que está atrás', () => {
+  const g = freshGame();
+  const s = g.state;
+  clearArea(s);
+  s.pop = 50;
+  s.stats.raidsLost = 5;
+  for (const x of [4, 5, 6]) { put(s, x, 2, 'grass', { id: 'muralha', lvl: 1 }); put(s, x, 4, 'grass', { id: 'casa', lvl: 1 }); }
+  s.raid.dir = 'n';
+  g.econ = computeEconomy(s, T0);
+  g.econ.defense = 0;
+  const r = g.resolveRaid(T0);
+  assert.ok(r.damaged.length >= 2 && r.damaged.every((d) => d.id === 'muralha'), 'só as muralhas apanham');
 });
 
 test('core loop: melhorar ao máximo e melhorar todos do tipo', () => {
@@ -1032,4 +1125,93 @@ test('subsolo: Adega aumenta o armazém de comida e saves antigos ganham subsolo
   const st = deserialize(JSON.stringify(data));
   assert.equal(st.under.levels.length, 3);
   assert.equal(st.under.reached, 0);
+});
+
+test('conquistas secretas: gatilho marca, dá gemas e +1% de produção; sombra não conta no bônus', () => {
+  const g = freshGame();
+  const s = g.state;
+  const gems = s.res.gems;
+  const before = collectModifiers(s, T0).prodAll;
+  g.secret('konami');
+  assert.ok(s.achievements['codigo-antigo']);
+  assert.equal(s.res.gems, gems + 5);
+  assert.ok(Math.abs(collectModifiers(s, T0).prodAll - before - 0.01) < 1e-9);
+  g.secret('timeTravel');
+  assert.ok(s.achievements['viajante-do-tempo']);
+  assert.ok(Math.abs(collectModifiers(s, T0).prodAll - before - 0.01) < 1e-9);
+  g.secret('konami'); // repetir não paga de novo
+  assert.equal(s.res.gems, gems + 5);
+  // Flags sobrevivem ao save e à Ascensão.
+  assert.ok(deserialize(serialize(s)).flags.konami);
+  assert.ok(createState({ seed: 2, now: T0, carry: carryOver(s) }).flags.konami);
+});
+
+test('conquistas: nome padrão, muda arrancada e 3 derrotas seguidas', () => {
+  const g = freshGame();
+  const s = g.state;
+  g.setKingdomName('Reino de Bolso'); // fundar com o nome padrão não conta
+  assert.equal(s.achievements['nome-original'], undefined);
+  g.setKingdomName('Camelot');
+  g.setKingdomName('Reino de Bolso');
+  assert.ok(s.achievements['nome-original']);
+  clearArea(s);
+  s.res.gold = 1e6; s.res.wood = 1e6; s.res.food = 1e6; s.res.stone = 1e6;
+  assert.ok(g.plant(5, 5).ok);
+  assert.ok(g.clear(5, 5).ok);
+  assert.ok(s.achievements['lenhador-arrependido']);
+  s.stats.lossStreak = 3;
+  g.checkAchievements();
+  assert.ok(s.achievements['deixa-queimar']);
+});
+
+test('próxima conquista aponta a mais perto de sair', () => {
+  const g = freshGame();
+  const n = g.nextAchievement();
+  assert.ok(n && n.goal > 0 && n.ratio < 1);
+  assert.equal(n.a.kind, undefined);
+});
+
+test('sequência diária: escudo salva um dia perdido uma vez por semana', () => {
+  const day = 86400000;
+  const g = freshGame();
+  assert.ok(g.claimDaily().ok);
+  g.now = T0 + day; g.claimDaily();
+  assert.equal(g.state.daily.streak, 2);
+  g.now = T0 + 3 * day; // faltou um dia
+  const st = g.dailyStatus();
+  assert.ok(st.shield);
+  g.claimDaily();
+  assert.equal(g.state.daily.streak, 3);
+  g.now = T0 + 5 * day; // faltou de novo, 5 out de 2026 é segunda: 8 e 10 caem na mesma semana
+  const st2 = g.dailyStatus();
+  assert.equal(st2.shield, false);
+  g.claimDaily();
+  assert.equal(g.state.daily.streak, 1);
+});
+
+test('loja de gemas: compra recursos, recusa sem gemas e pacote real fica para depois', () => {
+  const g = freshGame();
+  const s = g.state;
+  assert.equal(g.buyShop('ouro').ok, false);
+  s.res.gems = 100;
+  const gold = s.res.gold;
+  assert.ok(g.buyShop('ouro').ok);
+  assert.ok(s.res.gold > gold);
+  assert.equal(s.res.gems, 90);
+  assert.ok(g.buyShop('impulso').ok);
+  assert.ok(s.boostUntil > T0);
+  assert.equal(g.buyShop('mudas').ok, false); // sem mudas
+  const r = g.buyGemPack('punhado');
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /em breve/);
+});
+
+test('pacote de volta depois de 2+ dias fora; 7 dias libera a secreta', () => {
+  const g = freshGame();
+  const s = g.state;
+  const gems = s.res.gems;
+  const sum = g.catchUp(T0 + 8 * 86400000);
+  assert.ok(sum.welcome);
+  assert.ok(s.res.gems >= gems + 3);
+  assert.ok(s.achievements['eles-apostaram']);
 });

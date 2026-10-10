@@ -2,6 +2,47 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.18.0] — 2026-10-10
+### Adicionado
+- **Opções novas**:
+  - **Volume geral**, que controla música e efeitos juntos.
+  - **Silenciar em segundo plano** (ligado por padrão): o som para quando você troca de aba ou minimiza o jogo.
+  - **Pedir confirmação antes de demolir** (ligado por padrão): desligue para demolir prédios e salas direto.
+  - **Modo economia de bateria**: o mapa é desenhado a 30 quadros por segundo.
+  - Botão **Jogar em tela cheia**, que só aparece se o navegador permitir.
+  - **Restaurar todas as opções**, que volta tudo ao padrão menos as teclas.
+
+## [0.17.0] — 2026-10-07
+### Adicionado
+- **29 conquistas novas (53 no total).** 13 essenciais (árvores, muralhas, Cais de Pesca, subsolo, Quartel, Taverna, 3 lendários, 30 dias seguidos, 10 h de jogo), 13 **secretas** com piada (aparecem como "???" com uma dica: código Konami, clicar 30 vezes no mesmo prédio, jogar de madrugada, voltar depois de 7 dias, arrancar a própria muda...) e 3 de **sombra**, que não contam no total (ideia do Cookie Clicker), como a "Pura Sorte", com chance de 1 em 1 milhão por segundo.
+- **Cada conquista dá +1% de produção para sempre** (sobrevive à Ascensão; as de sombra não contam). Ideia do leite do Cookie Clicker e dos bônus do Antimatter Dimensions.
+- **Próxima conquista**: a aba Perfil mostra a conquista mais perto de sair, com barra de progresso.
+- **Escudo da sequência**: uma vez por semana, faltar um único dia não zera a sequência diária.
+- **Pacote de volta**: quem volta depois de 2 dias ou mais fora ganha 3 gemas, 1 pergaminho e 30 min de ouro.
+- **Loja de Gemas** (aba Perfil): gemas compram 1 hora de ouro, madeira, pedra ou comida, impulso de 30 min, pergaminho e crescer todas as mudas. Pacotes de gemas por dinheiro real aparecem como "Em breve": o pagamento ainda não está ligado.
+### Mudado
+- Gemas agora também poderão ser compradas com dinheiro real (decisão de 2026-10-07); o modelo de negócio foi atualizado.
+
+## [0.16.2] — 2026-10-07
+### Mudado
+- **Moradores mais rápidos e sem travadas.** Saiu o "stop motion": eles andam a 1,2 tile/s (o dobro) com movimento liso a cada frame, em vez de pular 5 vezes por segundo. A pose (pé no ar, ferramenta batendo) continua trocando em passinhos, e o "z z z" de quem dorme sobe liso.
+
+## [0.16.1] — 2026-10-07
+### Corrigido
+- **Relógio atrasado congelava o reino.** Se o relógio do aparelho voltava (fuso, horário de verão, save importado de outro aparelho), nada produzia e nenhuma horda vinha até o relógio alcançar o horário salvo. Agora o jogo recomeça a contar a partir da hora atual.
+- A prévia de construção do Cais dizia "Precisa de montanha". Agora diz "Precisa de água" (e "montanha" só para a Mina).
+- Cais e Mina não podem mais ser construídos nem movidos para onde não funcionariam: o jogo avisa "só funciona ao lado de água/montanha" em vez de cobrar e deixar o prédio parado.
+### Adicionado
+- Workflow `test.yml`: os testes rodam em todo PR, antes do merge.
+
+## [0.16.0] — 2026-10-07
+### Adicionado
+- **Hordas quebram construções.** Perder uma horda (fora a proteção de novato) agora também danifica de 2 a 4 construções, as mais perto da borda de onde ela veio; quanto mais faltou de defesa, mais golpes. Muralhas e torres estão na frente e gastam 2 golpes cada, então protegem o que está atrás delas (ideia do Kingdom Two Crowns).
+- **Construção danificada** pega fogo e solta fumaça, não produz nem defende e não ocupa moradores (casas continuam abrigando gente e armazéns continuam guardando). **Consertar** custa 30% do preço base por nível, pelo painel do tile ou pelo botão "Consertar tudo" no topo. Não dá para melhorar antes de consertar.
+- **Ruína**: o que continuar danificado na derrota seguinte desaba e vira ruína (sprite `building_destroyed` do KayKit, CC0). Construir em cima limpa o terreno. A Escadaria nunca é atingida.
+### Mudado
+- O saque de recursos na derrota caiu de 15% para 10%, já que agora a derrota também quebra coisas.
+
 ## [0.15.0] — 2026-10-07
 ### Alterado
 - **Expedições nerfadas**: mandar todos os heróis fora do Conselho em Patrulhas de 1 minuto rendia gemas e recursos demais. Agora só **2 expedições rodam ao mesmo tempo**, e a Taverna nos níveis 5 e 10 abre mais uma vaga cada (até 4). A aba de heróis mostra as vagas ocupadas.

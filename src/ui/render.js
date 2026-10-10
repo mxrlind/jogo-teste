@@ -5,7 +5,8 @@ import { BUILDINGS, TERRAIN, GROW_SECONDS } from '../data/buildings.js';
 import { GRID_W, GRID_H, idx, isUnlocked, neighbors, ringOf, wallMask } from '../core/map.js';
 import { adjacencyAt } from '../core/economy.js';
 import { fmtPct } from '../core/format.js';
-import { UNDER_SPRITES, ROOM_SPRITES, TERRAIN_SPRITES, BUILDING_SPRITES, buildingSrc, wallSrc, SPRITE_FRAME, SPRITE_K, LOCKED_OVERLAY, CART_SPRITE, BOAT_SPRITE, RAIDER_SPRITES, saplingSprite } from './sprites.js';
+import { neighborName } from '../core/game.js';
+import { UNDER_SPRITES, ROOM_SPRITES, TERRAIN_SPRITES, BUILDING_SPRITES, buildingSrc, wallSrc, SPRITE_FRAME, SPRITE_K, LOCKED_OVERLAY, CART_SPRITE, BOAT_SPRITE, RAIDER_SPRITES, RUIN_SPRITE, saplingSprite } from './sprites.js';
 import { VillageLife } from './villagers.js';
 import { images, iconKey, TOOL_COLOR } from './assets.js';
 import { UNDER_TILES } from '../data/underground.js';
@@ -231,6 +232,7 @@ export class MapRenderer {
         const tile = grid.tiles[i];
         if (!tile.b) {
           if (boats.has(i)) this.drawBoat(x, y, T, now, boats.get(i), motion);
+          if (tile.ruin) { this.framed(RUIN_SPRITE, x * T + T / 2, y * T + T / 2, T); continue; }
           const over = tile.t === 'sapling' ? [saplingSprite(tile, Date.now(), GROW_SECONDS)] : TERRAIN_SPRITES[tile.t]?.over;
           if (over) this.framed(pick(over, i), x * T + T / 2, y * T + T / 2, T);
           continue;
@@ -245,13 +247,14 @@ export class MapRenderer {
           if (p >= 1 || !motion) this.pops.delete(i);
           else scale = p < 0.6 ? 0.75 + (p / 0.6) * 0.4 : 1.15 - ((p - 0.6) / 0.4) * 0.15;
         }
-        const dim = info && (!info.active || (info.workers > 0 && info.staff < 0.5));
+        const dim = info && !info.damaged && (!info.active || (info.workers > 0 && info.staff < 0.5));
         ctx.globalAlpha = dim ? 0.6 : 1;
         const cx = x * T + T / 2;
         const cy = y * T + T / 2;
         this.framed(tile.b.id === 'muralha' ? wallSrc(wallMask(grid, x, y)) : buildingSrc(spr, tile.b.lvl), cx, cy, T, scale);
         if (spr.blades) this.drawBlades(spr.blades, cx, cy, T, scale, motion && info?.active !== false ? now / 900 : 0.4);
         ctx.globalAlpha = 1;
+        if (tile.b.dmg) this.drawDamage(cx, cy, T, i, motion ? now : 0);
       }
     }
 
@@ -272,7 +275,8 @@ export class MapRenderer {
       const x = i % GRID_W;
       const y = Math.floor(i / GRID_W);
       if (b.lvl > 1) this.badge(x * T + T * 0.84, y * T + T * 0.84, String(b.lvl), T);
-      if (econ?.tiles[i] && !econ.tiles[i].active) this.img(iconKey('warning', '#ffb020'), x * T + T * 0.66, y * T + T * 0.04, T * 0.3, T * 0.3);
+      if (b.dmg) this.img(iconKey('swords', '#ff8a7a'), x * T + T * 0.66, y * T + T * 0.04, T * 0.3, T * 0.3);
+      else if (econ?.tiles[i] && !econ.tiles[i].active) this.img(iconKey('warning', '#ffb020'), x * T + T * 0.66, y * T + T * 0.04, T * 0.3, T * 0.3);
     }
 
     if (!this.view && state) {
@@ -433,6 +437,39 @@ export class MapRenderer {
     this.label(x * T + T / 2, y * T + T * 0.86, dir === 'down' ? 'desce' : 'sobe', '#ffe08a', T);
   }
 
+  // Construção danificada pela horda: chão chamuscado, fogo baixo e fumaça subindo (parada sem animação).
+  drawDamage(cx, cy, T, seed, now) {
+    const ctx = this.ctx;
+    ctx.fillStyle = 'rgba(30, 20, 15, 0.35)';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + T * 0.28, T * 0.42, T * 0.16, 0, 0, Math.PI * 2);
+    ctx.fill();
+    for (let k = 0; k < 3; k++) {
+      const fx = cx + (k - 1) * T * 0.22 + Math.sin(seed * 3 + k) * T * 0.04;
+      const flick = 0.75 + 0.25 * Math.sin(now / 90 + k * 2 + seed);
+      // Chama em gota: base larga e ponta para cima, com miolo amarelo.
+      for (const [w, h, c] of [[0.08, 0.2, `rgba(232, 89, 40, ${0.9 * flick})`], [0.045, 0.11, 'rgba(255, 214, 90, 0.95)']]) {
+        const by = cy + T * 0.2;
+        ctx.fillStyle = c;
+        ctx.beginPath();
+        ctx.moveTo(fx - T * w, by);
+        ctx.quadraticCurveTo(fx - T * w, by - T * h * 0.6 * flick, fx, by - T * h * flick);
+        ctx.quadraticCurveTo(fx + T * w, by - T * h * 0.6 * flick, fx + T * w, by);
+        ctx.arc(fx, by, T * w, 0, Math.PI);
+        ctx.fill();
+      }
+    }
+    for (let k = 0; k < 4; k++) {
+      const p = ((now / 2200 + k / 4 + seed * 0.13) % 1);
+      const sx = cx + Math.sin(p * 5 + k + seed) * T * 0.12 + (k % 2 ? T * 0.1 : -T * 0.08);
+      const sy = cy - T * 0.2 - p * T * 0.9;
+      ctx.fillStyle = `rgba(55, 52, 50, ${0.75 * (1 - p * 0.8)})`;
+      ctx.beginPath();
+      ctx.arc(sx, sy, T * (0.1 + p * 0.16), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   // Efeitos por cima de tudo (números flutuantes, faíscas, clarão). Compactação no próprio array:
   // nada de alocar um array novo por frame.
   drawEffects(now, T, motion) {
@@ -556,7 +593,7 @@ export class MapRenderer {
       ctx.strokeRect(nx * T + 1, ny * T + 1, T - 2, T - 2);
     }
     for (const p of adj.parts) this.label(p.x * T + T / 2, p.y * T + T * 0.24, fmtPct(p.value), p.value > 0 ? '#9be7a8' : '#ffb3a6', T);
-    const total = adj.hasRequired ? `Total ${fmtPct(adj.total)}` : 'Precisa de montanha';
+    const total = adj.hasRequired ? `Total ${fmtPct(adj.total)}` : `Precisa de ${neighborName(BUILDINGS[buildId].requiresAdj)}`;
     const color = !adj.hasRequired ? '#ffb3a6' : adj.total > 0 ? '#ffe08a' : adj.total < 0 ? '#ffb3a6' : '#ffffff';
     this.label(x * T + T / 2, y * T - T * 0.14 < T * 0.2 ? y * T + T * 1.12 : y * T - T * 0.14, total, color, T, true);
   }
