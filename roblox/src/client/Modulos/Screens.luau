@@ -422,6 +422,8 @@ local function renderMenu(animate)
 	local half = UDim.new(0.5, -math.ceil(rem(0.4) / 2))
 	local tip = "Formato de save v" .. tostring(Storage.WEB_SAVE_VERSION) .. (Audio.hasMusic() and "" or " · nenhuma música instalada")
 	Kit.render(menuUi, h("Frame", { BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) }, {
+		-- #menuMap { filter: brightness(.55) }: véu preto por cima do mapa (blur não existe na interface do Roblox)
+		h("Frame", { Name = "Veu", BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.45, BorderSizePixel = 0, Size = UDim2.fromScale(1, 1), ZIndex = 1 }),
 		-- vinheta: radial-gradient(70% 70% at 50% 50%, transparent 30%, rgba(14,12,20,.75) 100%)
 		U.sprite("ui/vignette", UDim2.fromScale(1.45, 1.45), {
 			AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),

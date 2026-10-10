@@ -11,7 +11,6 @@
 -- No renderizador do jogo (com onTileClick), mode/selected/cursor/layer/hover são os mesmos de Ctx.ui
 -- (ler ou escrever em r.x é ler ou escrever em Ctx.ui.x).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local GuiService = game:GetService("GuiService")
 
 local Reino = ReplicatedStorage:WaitForChild("Reino")
 local Map = require(Reino.Core.Map)
@@ -399,13 +398,8 @@ end
 function MapView:tileFromInput(input)
 	local p = input.Position
 	local px, py = p.X, p.Y
-	-- InputObject.Position não conta a barra do Roblox; numa ScreenGui com IgnoreGuiInset as posições absolutas contam.
-	local sg = self.frame:FindFirstAncestorOfClass("ScreenGui")
-	if sg and sg.IgnoreGuiInset then
-		local inset = GuiService:GetGuiInset()
-		px += inset.X
-		py += inset.Y
-	end
+	-- Testado no Studio: com IgnoreGuiInset, InputObject.Position já está no mesmo espaço das posições absolutas
+	-- (somar GetGuiInset jogava o cursor um tile para baixo).
 	local ap, as = self.frame.AbsolutePosition, self.frame.AbsoluteSize
 	if as.X <= 0 or as.Y <= 0 then
 		return nil
