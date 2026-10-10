@@ -46,7 +46,7 @@ Não existe dinheiro real no jogo: gemas só se ganham jogando.
 
 ## Opções e acessibilidade
 
-Volumes separados de música e efeitos, tamanho do texto, alto contraste, reduzir movimento, moradores e partículas liga/desliga e remapeamento de todas as teclas.
+Volume geral e volumes separados de música e efeitos, silenciar em segundo plano, confirmação antes de demolir (dá para desligar), modo economia de bateria (30 quadros por segundo), tela cheia, tamanho do texto, alto contraste, reduzir movimento, moradores e partículas liga/desliga e remapeamento de todas as teclas. Um botão restaura todas as opções para o padrão.
 
 ## Progresso salvo
 

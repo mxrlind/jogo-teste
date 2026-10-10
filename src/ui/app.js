@@ -9,7 +9,7 @@ import { RAID_LOSS_FRACTION } from '../data/events.js';
 import { Game, DIR_NAMES, TAB_NAMES, UNDO_WINDOW } from '../core/game.js';
 import { createState, newSeed, SAVE_VERSION } from '../core/state.js';
 import { loadSave, writeSave, exportCode, importCode, listBackups, restoreBackup, clearSave, BACKUP_SLOTS } from '../core/storage.js';
-import { CONFIG_KEY, KEY_ACTIONS, normalizeConfig, actionForKey, keyLabel } from '../core/config.js';
+import { CONFIG_KEY, KEY_ACTIONS, normalizeConfig, actionForKey, keyLabel, effectiveVolumes, resetOptions } from '../core/config.js';
 import { buildCost, canAfford, kingdomPower, heroStrength, heroPowerOf } from '../core/economy.js';
 import { generateRivals, rivalGrid, encodeKingdom, decodeKingdom } from '../core/social.js';
 import { fmt, fmtTime } from '../core/format.js';
@@ -22,7 +22,7 @@ import { ico, resIco } from './icons.js';
 import { showModal, replaceModal, closeModal, confirmModal, runConfirm, toast, modalOpen, modalClosable } from './modals.js';
 import { renderHud, renderPalette, renderTileInfo, renderSide, renderModeHint, hudInfo, lockedTabHint, describeBonus } from './panels.js';
 
-const GAME_VERSION = '0.17.0';
+const GAME_VERSION = '0.18.0';
 const TAB_ORDER = ['reino', 'herois', 'temporada', 'legado', 'social', 'perfil'];
 const FLOAT_COLORS = RES_COLORS;
 
@@ -61,11 +61,14 @@ export async function boot() {
   // Soltar o botão fora da janela não gera pointerup: sem isto o painel lateral parava de atualizar.
   window.addEventListener('blur', () => { ui.pointerHeld = false; });
   document.addEventListener('visibilitychange', onVisibility);
+  document.addEventListener('visibilitychange', applyVolumes); // silencia com a aba em segundo plano
+  document.addEventListener('fullscreenchange', () => { if (modalOpen() && $('#opt-fullscreen')) showOptions(true); });
   window.addEventListener('beforeunload', save);
   window.addEventListener('pagehide', save); // celulares nem sempre disparam beforeunload
   $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal' && modalClosable()) closeModal(); });
 
   initAudio(ui.config);
+  applyVolumes();
   let imgDone = 0; let imgTotal = 1; let sfxDone = 0; let sfxTotal = 1;
   const progress = () => {
     const p = Math.round(((imgDone + sfxDone) / (imgTotal + sfxTotal)) * 100);
@@ -93,9 +96,15 @@ function applyConfig() {
   document.documentElement.style.setProperty('--fs', String(c.fontScale));
   document.body.classList.toggle('high-contrast', c.highContrast);
   document.body.classList.toggle('reduce-motion', c.reduceMotion);
-  setVolumes(c.musicVolume, c.sfxVolume, c.musicOn);
+  applyVolumes();
   renderMusicBtn();
-  if (ui.game && (!c.musicOn || c.musicVolume <= 0) && c.sfxVolume <= 0) ui.game.secret('silence');
+  const v = effectiveVolumes(c);
+  if (ui.game && (!c.musicOn || v.music <= 0) && v.sfx <= 0) ui.game.secret('silence');
+}
+
+function applyVolumes() {
+  const v = effectiveVolumes(ui.config, document.hidden);
+  setVolumes(v.music, v.sfx, ui.config.musicOn);
 }
 
 function save() {
@@ -218,9 +227,13 @@ function startLoops() {
     renderTileInfo();
     ambientFx();
   }, 1000);
-  const loop = () => {
-    if (ui.game && !gameEl.hidden) ui.renderer.draw(ui.game);
+  // Modo economia: desenha o mapa a no máximo 30 quadros por segundo (poupa bateria no celular).
+  let lastDraw = 0;
+  const loop = (now) => {
     requestAnimationFrame(loop);
+    if (ui.config.batterySaver && now - lastDraw < 1000 / 30 - 2) return;
+    lastDraw = now;
+    if (ui.game && !gameEl.hidden) ui.renderer.draw(ui.game);
   };
   requestAnimationFrame(loop);
 }
@@ -505,8 +518,12 @@ const ACTIONS = {
   gameMenu: () => showGameMenu(),
   toggleMusic: () => {
     const c = ui.config;
-    if (c.musicOn && c.musicVolume > 0) c.musicOn = false;
-    else { c.musicOn = true; if (c.musicVolume <= 0) c.musicVolume = 0.5; }
+    if (c.musicOn && c.musicVolume > 0 && c.masterVolume > 0) c.musicOn = false;
+    else {
+      c.musicOn = true;
+      if (c.musicVolume <= 0) c.musicVolume = 0.5;
+      if (c.masterVolume <= 0) c.masterVolume = 1;
+    }
     saveConfig();
     applyConfig();
     play('click');
@@ -563,7 +580,9 @@ const ACTIONS = {
   },
   sell: () => {
     const { x, y } = ui.renderer.selected;
-    confirmModal(`<h2>${ico('demolish')} Demolir?</h2><p>Você recebe 50% do que gastou de volta.</p>`, () => { result(ui.game.sell(x, y)); ui.renderer.selected = null; renderTileInfo(true); }, { yes: 'Demolir', danger: true });
+    const go = () => { result(ui.game.sell(x, y)); ui.renderer.selected = null; renderTileInfo(true); };
+    if (!ui.config.confirmDemolish) { go(); return; }
+    confirmModal(`<h2>${ico('demolish')} Demolir?</h2><p>Você recebe 50% do que gastou de volta.</p>`, go, { yes: 'Demolir', danger: true });
   },
   clear: () => { const { x, y } = ui.renderer.selected; result(ui.game.clear(x, y)); },
   layer: (el) => { play('tab', 0.6); setLayer(Number(el.dataset.arg)); },
@@ -574,7 +593,9 @@ const ACTIONS = {
   roomSell: () => {
     const { x, y } = ui.renderer.selected;
     const d = ui.renderer.layer;
-    confirmModal(`<h2>${ico('demolish')} Demolir a sala?</h2><p>Você recebe 50% do que gastou de volta.</p>`, () => { result(ui.game.sellRoom(d, x, y)); renderTileInfo(true); }, { yes: 'Demolir', danger: true });
+    const go = () => { result(ui.game.sellRoom(d, x, y)); renderTileInfo(true); };
+    if (!ui.config.confirmDemolish) { go(); return; }
+    confirmModal(`<h2>${ico('demolish')} Demolir a sala?</h2><p>Você recebe 50% do que gastou de volta.</p>`, go, { yes: 'Demolir', danger: true });
   },
   goLayer: (el) => {
     const r = ui.renderer;
@@ -658,6 +679,19 @@ const ACTIONS = {
     startGame(createState({ seed: newSeed() }), { isNew: true });
   }, { yes: 'Apagar', danger: true }),
   remap: (el) => { remapping = el.dataset.arg; showOptions(true); },
+  resetOptions: () => {
+    ui.config = resetOptions(ui.config);
+    saveConfig();
+    applyConfig();
+    ui.renderer?.resize();
+    showOptions(true);
+    toast('Opções restauradas para o padrão.', 'good', 'check');
+  },
+  fullscreen: () => {
+    // O botão se atualiza sozinho pelo evento fullscreenchange.
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    else document.documentElement.requestFullscreen?.().catch(() => toast('O navegador não deixou entrar em tela cheia.', 'bad', 'warning'));
+  },
   resetKeys: () => { ui.config.keys = Object.fromEntries(KEY_ACTIONS.map((a) => [a.id, a.key])); saveConfig(); showOptions(true); },
   startKingdom: () => {
     ui.game.setKingdomName($('#introName').value || 'Reino de Bolso');
@@ -689,7 +723,7 @@ function onInput(e) {
   if (out) out.textContent = `${Math.round(Number(el.value))}%`;
   saveConfig();
   applyConfig();
-  if (k === 'sfxVolume') play('click');
+  if (k === 'sfxVolume' || k === 'masterVolume') play('click');
   if (k === 'fontScale') ui.renderer?.resize();
 }
 
@@ -738,7 +772,7 @@ function updateMood() {
 function renderMusicBtn() {
   const el = $('#musicBtn');
   if (!el) return;
-  const on = ui.config.musicOn && ui.config.musicVolume > 0;
+  const on = ui.config.musicOn && effectiveVolumes(ui.config).music > 0;
   el.hidden = !hasMusic();
   el.innerHTML = ico(on ? 'music' : 'speaker-off');
   el.setAttribute('aria-pressed', String(on));
@@ -864,10 +898,16 @@ function showOptions(replace = false) {
   const m = nowPlaying();
   const html = `<h2>${ico('settings')} Opções</h2>
     <h3>Som</h3>
+    ${slider('masterVolume', 'Volume geral', 0, 100, 'speaker')}
     ${hasMusic() ? check('musicOn', 'Tocar música') : ''}
     ${slider('musicVolume', 'Música', 0, 100, 'music')}
     ${hasMusic() ? `<p class="muted">${m ? `Tocando: ${esc(m.title)} (${esc(m.author)}, ${esc(m.license)}). ` : ''}Folk de taverna na vila; metal quando uma horda se aproxima e no subsolo.</p>` : '<p class="muted">Nenhuma faixa de música instalada.</p>'}
     ${slider('sfxVolume', 'Efeitos', 0, 100, 'speaker')}
+    ${check('muteInBackground', 'Silenciar quando o jogo estiver em segundo plano')}
+    <h3>Jogo</h3>
+    ${check('confirmDemolish', 'Pedir confirmação antes de demolir')}
+    ${check('batterySaver', 'Modo economia de bateria (mapa a 30 quadros por segundo)')}
+    ${document.fullscreenEnabled ? `<div class="row"><button class="btn small" id="opt-fullscreen" data-action="fullscreen">${ico('map')} ${document.fullscreenElement ? 'Sair da tela cheia' : 'Jogar em tela cheia'}</button></div>` : ''}
     <h3>Visual e acessibilidade</h3>
     ${slider('fontScale', 'Tamanho do texto', 85, 150, 'font')}
     ${check('villagers', 'Moradores andando pelo mapa')}
@@ -877,6 +917,8 @@ function showOptions(replace = false) {
     <h3>Teclado</h3>
     <div class="keys">${keys}</div>
     <div class="row"><button class="btn small" data-action="resetKeys">Restaurar teclas padrão</button></div>
+    <h3>Padrões</h3>
+    <div class="row"><button class="btn small" data-action="resetOptions">Restaurar todas as opções (menos as teclas)</button></div>
     <button class="btn big primary" data-action="closeModal">Fechar</button>`;
   if (replace && modalOpen()) { replaceModal(html); return; }
   showModal(html, '', { priority: true });
