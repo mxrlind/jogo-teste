@@ -1,5 +1,5 @@
 -- Janelas modais em fila (porte de src/ui/modals.js + #modal, .sheet e .modal-x do styles.css).
--- Ctx.modal.show(conteúdo, opts): conteúdo é uma lista de nós do Kit ou uma função que devolve uma
+-- Ctx.modal.show(conteúdo, cls, opts): conteúdo é uma lista de nós do Kit ou uma função que devolve uma
 -- (a função é chamada de novo em replace() sem argumento e quando a janela volta da fila).
 -- opts: priority (mostra já, empurrando a atual para a fila), closable (false esconde o X e o clique fora),
 --       onClose, wide (.sheet.wide: 40rem em vez de 32rem).
@@ -11,6 +11,16 @@ local U = require(script.Parent.Ui)
 local Ctx = require(script.Parent.Ctx)
 
 local h = Kit.h
+
+-- text-transform: uppercase com os acentos do português (string.upper só mexe em ASCII).
+local ACC = { ["á"] = "Á", ["à"] = "À", ["â"] = "Â", ["ã"] = "Ã", ["é"] = "É", ["ê"] = "Ê", ["í"] = "Í", ["ó"] = "Ó", ["ô"] = "Ô", ["õ"] = "Õ", ["ú"] = "Ú", ["ç"] = "Ç" }
+local function upper(s)
+	s = string.upper(s)
+	for a, b in ACC do
+		s = string.gsub(s, a, b)
+	end
+	return s
+end
 local AY = Enum.AutomaticSize.Y
 
 local Modals = {}
@@ -59,7 +69,7 @@ function Modals.h3(text, o)
 	o = o or {}
 	return h("Frame", { BackgroundTransparency = 1, Size = UDim2.fromScale(1, 0), AutomaticSize = AY }, {
 		Kit.pad(o.top or T.rem(0.55), 0, 0, 0),
-		U.text(string.upper(text), { bold = true, size = 0.8, color = T.c.muted, wrap = true }),
+		U.text(upper(text), { bold = true, size = 0.8, color = T.c.muted, wrap = true }),
 	})
 end
 
@@ -243,15 +253,21 @@ function Modals.closable()
 	return cur == nil or cur.opts.closable ~= false
 end
 
-function Modals.show(content, opts)
-	opts = opts or {}
-	if opts.cls == "wide" then opts.wide = true end
+-- show(conteúdo, cls?, opts?) como o showModal(html, cls, opts) do web; cls "wide" = .sheet.wide.
+-- Também aceita show(conteúdo, opts) (opts.wide no lugar da classe).
+function Modals.show(content, cls, opts)
+	if type(cls) == "table" then
+		opts, cls = cls, nil
+	end
+	opts = table.clone(opts or {})
+	cls = cls or opts.cls
+	if type(cls) == "string" and string.find(" " .. cls .. " ", " wide ", 1, true) then opts.wide = true end
 	if cur and not opts.priority then
-		table.insert(queue, { content, opts })
+		table.insert(queue, { content, nil, opts })
 		return
 	end
 	if cur and opts.priority then
-		table.insert(queue, 1, { cur.content, { closable = cur.opts.closable, wide = cur.opts.wide } })
+		table.insert(queue, 1, { cur.content, nil, { closable = cur.opts.closable, wide = cur.opts.wide } })
 	end
 	cur = { content = content, opts = opts }
 	onCloseCb = opts.onClose
@@ -282,7 +298,7 @@ function Modals.close()
 	end
 	local nxt = table.remove(queue, 1)
 	if nxt then
-		Modals.show(nxt[1], nxt[2])
+		Modals.show(nxt[1], nxt[2], nxt[3])
 	else
 		render()
 	end
@@ -303,7 +319,7 @@ function Modals.confirm(content, fn, o)
 				}),
 			}),
 		}
-	end, { priority = true })
+	end, nil, { priority = true })
 	pendingConfirm = fn
 end
 

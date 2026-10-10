@@ -13,6 +13,16 @@ local Buildings = require(Reino.Data.Buildings)
 local Talents = require(Reino.Data.Talents)
 
 local h = Kit.h
+
+-- text-transform: uppercase com os acentos do português (string.upper só mexe em ASCII).
+local ACC = { ["á"] = "Á", ["à"] = "À", ["â"] = "Â", ["ã"] = "Ã", ["é"] = "É", ["ê"] = "Ê", ["í"] = "Í", ["ó"] = "Ó", ["ô"] = "Ô", ["õ"] = "Õ", ["ú"] = "Ú", ["ç"] = "Ç" }
+local function upper(s)
+	s = string.upper(s)
+	for a, b in ACC do
+		s = string.gsub(s, a, b)
+	end
+	return s
+end
 local AY, AXY = Enum.AutomaticSize.Y, Enum.AutomaticSize.XY
 local fmt, fmtRate, fmtTime = Util.fmt, Util.fmtRate, Util.fmtTime
 
@@ -93,7 +103,7 @@ local function tile(rec, label, value, o)
 			Kit.list("y", { gap = T.rem(0.15) }),
 			U.row({ gap = T.rem(0.25), wrap = false }, {
 				o.icon and U.ico(o.icon, GOLD_TEXT, T.rem(1)) or nil,
-				U.text(string.upper(label), { bold = true, size = 0.66, color = T.c.muted, wrap = true, lineHeight = 1.2, Size = UDim2.new(1, -T.rem(1.3), 0, 0), AutomaticSize = AY }),
+				U.text(upper(label), { bold = true, size = 0.66, color = T.c.muted, wrap = true, lineHeight = 1.2, Size = UDim2.new(1, -T.rem(1.3), 0, 0), AutomaticSize = AY }),
 			}),
 			count(value, o.kind or "int"),
 			(o.sub and o.sub ~= "") and U.text(o.sub, { size = 0.72, color = T.c.muted, wrap = true }) or nil,
@@ -162,7 +172,7 @@ function A.build(summary, fresh)
 			Kit.list("x", { gap = T.rem(0.7), align = "center" }),
 			U.sprite("icon-" .. c.id, 48),
 			U.col({ gap = 2, props = { Size = UDim2.new(1, -48 - T.rem(0.7), 0, 0) } }, {
-				U.text(string.upper("Melhor combo da rodada"), { bold = true, size = 0.66, color = T.c.muted }),
+				U.text(upper("Melhor combo da rodada"), { bold = true, size = 0.66, color = T.c.muted }),
 				U.row({ gap = T.rem(0.25), wrap = true }, {
 					U.text(string.format("<b>%s</b> nível %s:", U.esc(def and def.name or c.id), tostring(c.lvl)), { size = 1 }),
 					count(c.bonus, "pct", { size = 1, color = T.c.good }),
@@ -240,7 +250,7 @@ function A.build(summary, fresh)
 			U.resIco("crowns", T.rem(3.6)),
 			h("UIScale", {}),
 		}),
-		U.text(string.upper(string.format("%s nº %s · %s", fresh and "Ascensão" or "Rodada", tostring(s.n), U.esc(s.name or ""))), {
+		U.text(U.esc(upper(string.format("%s nº %s · %s", fresh and "Ascensão" or "Rodada", tostring(s.n), s.name or ""))), {
 			bold = true, size = 0.75, color = GOLD_TEXT, align = Enum.TextXAlignment.Center, wrap = true,
 		}),
 		count(s.crowns or 0, "int", {

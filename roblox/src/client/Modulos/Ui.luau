@@ -360,10 +360,20 @@ function U.cardTitle(icon, title, count)
 	})
 end
 
+-- text-transform: uppercase com os acentos do português (string.upper só mexe em ASCII).
+local ACC = { ["á"] = "Á", ["à"] = "À", ["â"] = "Â", ["ã"] = "Ã", ["é"] = "É", ["ê"] = "Ê", ["í"] = "Í", ["ó"] = "Ó", ["ô"] = "Ô", ["õ"] = "Õ", ["ú"] = "Ú", ["ç"] = "Ç" }
+function U.upper(s)
+	s = string.upper(s)
+	for a, b in ACC do
+		s = string.gsub(s, a, b)
+	end
+	return s
+end
+
 -- h4 / .lbl: rótulo em caixa alta, espaçado.
 function U.label(str, o)
 	o = o or {}
-	return U.text(string.upper(str), merge({ bold = true, size = o.size or 0.72, color = o.color or T.c.muted }, o))
+	return U.text(U.upper(str), merge({ bold = true, size = o.size or 0.72, color = o.color or T.c.muted }, o))
 end
 
 -- .bar: trilho pergaminho, preenchimento verde (gold/big = roxo), texto centralizado.

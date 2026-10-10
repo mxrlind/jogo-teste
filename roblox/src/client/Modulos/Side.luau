@@ -13,6 +13,7 @@ local T = require(script.Parent.Theme)
 local U = require(script.Parent.Ui)
 local Assets = require(script.Parent.Assets)
 local Ctx = require(script.Parent.Ctx)
+local Ascension = require(script.Parent.Ascension)
 
 local Reino = ReplicatedStorage:WaitForChild("Reino")
 local Util = require(Reino.Core.Util)
@@ -497,6 +498,23 @@ local function tabReino(g)
 	local barW = Ctx.mobile and rem(5) or rem(6.5)
 	local rightW = rem(5.6)
 	local gap = rem(0.5)
+	if Ctx.mobile then
+		-- .mission { grid-template-columns: 1fr 5rem auto } no celular: a coluna da direita é a maior pílula/botão
+		local xpPad = rem(0.55) * 2
+		local xpIco = math.floor(rem(0.78) * 1.25 + 0.5) + rem(0.2)
+		rightW = 0
+		for _, m in missions do
+			local w
+			if m.claimed then
+				w = xpPad + xpIco + textW("Feita", rem(0.78), true)
+			elseif m.progress >= m.target then
+				w = btnW("Resgatar", { small = true })
+			else
+				w = xpPad + textW("+" .. m.xp .. " XP", rem(0.78), true)
+			end
+			rightW = math.max(rightW, math.ceil(w) + 2)
+		end
+	end
 	for i, m in missions do
 		local ready = not m.claimed and m.progress >= m.target
 		local f = m.claimed and 0.55 or nil
@@ -980,7 +998,15 @@ local function runHistory(runs)
 					inl({ U.b("+" .. fmt(r.crowns or 0)), U.resIco("crowns", rem(1.25)) }, rem(0.25)),
 					para(sub, { size = 0.76, muted = true }),
 				}),
-				U.btn({ small = true, text = "Ver resumo", onClick = Ctx.does("runSummary", i) }),
+				U.btn({ small = true, text = "Ver resumo", onClick = function()
+					if Ctx.actions.runSummary then
+						Ctx.run("runSummary", i)
+					elseif Ctx.modal then
+						-- O Controller ainda não tem runSummary: faz o mesmo que o ACTIONS do web (app.js).
+						Ctx.play("open", 0.6)
+						Ascension.show(r)
+					end
+				end }),
 			}),
 			i < #runs and dashed() or nil,
 		}))
@@ -991,7 +1017,7 @@ local function runHistory(runs)
 	})
 end
 
-local function kpi(label, valueNodes)
+local function kpi(label, valueNodes, foot)
 	return h("Frame", { BackgroundColor3 = T.c.paper, AutomaticSize = AY, Size = UDim2.new(0.5, -rem(0.25), 0, 0) }, {
 		Kit.corner(10),
 		Kit.stroke(T.c.line, 1, 0),
@@ -999,6 +1025,8 @@ local function kpi(label, valueNodes)
 		Kit.list("y", { gap = rem(0.2) }),
 		U.text(upper(label), { bold = true, size = 0.68, color = T.c.muted, wrap = true }),
 		U.row({ gap = rem(0.3), wrap = true, align = "end" }, valueNodes),
+		-- <small class="muted"> depois do número: o .kpis small o deixa em bloco, em caixa alta
+		foot and U.text(upper(foot), { bold = true, size = 0.68, color = T.c.muted, wrap = true }) or nil,
 	})
 end
 
@@ -1075,8 +1103,7 @@ local function tabLegado(g)
 				kpi("Coroas guardadas", { U.text(tostring(s.res.crowns), { bold = true, size = bigSize, color = C.crowns, lineHeight = 1 }) }),
 				kpi("Ao ascender agora", {
 					U.text("+" .. adv.crowns, { bold = true, size = bigSize, color = adv.crowns >= 1 and T.c.good or T.c.muted, lineHeight = 1 }),
-					(g.econ.crownBonus and g.econ.crownBonus > 0) and U.text("templos +" .. Util.round(g.econ.crownBonus * 100) .. "%", { size = 0.82, color = T.c.muted }) or nil,
-				}),
+				}, (g.econ.crownBonus and g.econ.crownBonus ~= 0) and ("templos +" .. Util.round(g.econ.crownBonus * 100) .. "%") or nil),
 			}), 0.5, 0.7),
 			p(advText, { color = adv.recommended and T.c.good or T.c.muted }),
 			U.btn({
@@ -1334,6 +1361,16 @@ local function tabPerfil(g)
 				table.insert(bgKids, Kit.grad({ C.readyA, C.gotB }, 90))
 				table.insert(bgKids, Kit.stroke(T.c.gold, 1, 0.55))
 			end
+		elseif a.kind == "secret" then
+			-- repeating-linear-gradient(135deg, paper 0 8px, rgba(0,0,0,.03) 8px 16px): o UIGradient aceita
+			-- só 20 pontos, então as listras saem suaves (~10 faixas por card) em vez de bordas duras.
+			local stripe = c(mix(T.c.black, T.c.paper, 0.03))
+			local cols = {}
+			for j = 1, 20 do
+				table.insert(cols, j % 2 == 1 and bg or stripe)
+			end
+			table.insert(bgKids, Kit.grad(cols, 45))
+			bg = T.c.white
 		end
 		local iconW = rem(1.9)
 		local gap = rem(0.45)

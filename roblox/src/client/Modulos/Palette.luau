@@ -346,7 +346,8 @@ end
 
 local function head(left, right, first)
 	return h("Frame", { key = "head-" .. left, BackgroundTransparency = 1, Size = UDim2.fromScale(1, 0), AutomaticSize = AY }, {
-		Kit.pad(first and 0 or rem(0.55) - rem(0.35), rem(0.2), rem(0.1), rem(0.2)),
+		-- margin: .55rem .2rem .1rem (no flex a margem soma com o gap; a primeira não tem margem em cima)
+		Kit.pad(first and 0 or rem(0.55), rem(0.2), rem(0.1), rem(0.2)),
 		Kit.list("x", { justify = "between", align = "center" }),
 		U.b(upper(left), { size = 0.7, color = T.c.onInkMuted }),
 		U.b(upper(right), { size = 0.7, color = T.c.onInkMuted }),

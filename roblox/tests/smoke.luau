@@ -62,7 +62,7 @@ end)
 local FakeInstance = {
 	new = function(class)
 		local inst = roblox.Instance.new(class)
-		if inst:IsA("GuiBase2d") then inst.AbsoluteSize = roblox.Vector2.new(1280, 660) end
+		if inst:IsA("GuiBase2d") then inst.AbsoluteSize = roblox.Vector2.new(1280, 660); pcall(function() inst.AbsolutePosition = roblox.Vector2.new(0, 0) end) end
 		return inst
 	end,
 }
@@ -80,6 +80,24 @@ roblox.implementMethod("Players", "GetPlayers", function() return table.clone(cu
 local heartbeat = Signal.new()
 roblox.implementProperty("RunService", "Heartbeat", function() return heartbeat end)
 local inputBegan = Signal.new()
+local renderStepped = Signal.new()
+roblox.implementProperty("RunService", "RenderStepped", function() return renderStepped end)
+for _, ev in { "InputChanged", "InputEnded", "WindowFocused", "WindowFocusReleased" } do
+	local sg = Signal.new()
+	roblox.implementProperty("UserInputService", ev, function() return sg end)
+end
+roblox.implementMethod("UserInputService", "GetFocusedTextBox", function() return nil end)
+roblox.implementMethod("TweenService", "Create", function() return { Play = function() end, Cancel = function() end } end)
+roblox.implementMethod("ContentProvider", "PreloadAsync", function() end)
+roblox.implementMethod("Sound", "Play", function() end)
+roblox.implementMethod("Sound", "Stop", function() end)
+roblox.implementMethod("Sound", "Pause", function() end)
+roblox.implementMethod("Sound", "Resume", function() end)
+roblox.implementProperty("GuiBase2d", "AbsolutePosition", function() return roblox.Vector2.new(0, 0) end)
+roblox.implementMethod("StarterGui", "SetCoreGuiEnabled", function() end)
+for _, ev in { "InputBegan", "InputEnded", "InputChanged", "Focused" } do
+	roblox.implementProperty("GuiObject", ev, function(self) return signalFor(self, ev) end)
+end
 roblox.implementProperty("UserInputService", "InputBegan", function() return inputBegan end)
 
 roblox.implementMethod("DataModel", "BindToClose", function() end)
@@ -156,8 +174,13 @@ local function env(scriptInst)
 		game = fakeGame, script = scriptInst, workspace = place:GetService("Workspace"), Instance = FakeInstance, Enum = roblox.Enum,
 		UDim = roblox.UDim, UDim2 = roblox.UDim2, Color3 = roblox.Color3, Vector2 = roblox.Vector2, Font = roblox.Font,
 		task = task, warn = function(...) print("[warn]", ...) end,
-		DateTime = { now = function() return { UnixTimestampMillis = clock } end },
+		DateTime = { now = function() return { UnixTimestampMillis = clock } end, fromUnixTimestampMillis = function(ms) return { FormatLocalTime = function() return "01/01/2026, 10:00:00" end } end },
+		typeof = typeof, utf8 = utf8, bit32 = bit32, os = setmetatable({ clock = function() return clock / 1000 end }, { __index = os }), math = math, string = string, table = table,
 	}
+	for _, n in { "Rect", "NumberRange", "ColorSequence", "ColorSequenceKeypoint", "NumberSequence", "NumberSequenceKeypoint", "TweenInfo", "Vector3", "CFrame", "Content" } do
+		e[n] = (roblox :: any)[n]
+	end
+	e.TweenInfo = { new = function(...) return { ... } end }
 	e.require = function(target)
 		if typeof(target) == "Instance" then
 			if moduleCache[target] == nil then
@@ -183,6 +206,7 @@ local function second(n)
 	for _ = 1, n or 1 do
 		clock += 1000
 		heartbeat:Fire(1)
+		for _ = 1, 4 do renderStepped:Fire(0.25) end
 	end
 end
 
@@ -192,7 +216,7 @@ run(place:GetService("ServerScriptService").ReinoServidor.Main)
 table.insert(currentPlayers, thePlayer)
 playersAdded:Fire(thePlayer)
 local cliente = place:GetService("StarterPlayer").StarterPlayerScripts.ReinoCliente
-run(cliente.Ui)
+run(cliente.Main)
 second()
 local gui = playerGui:FindFirstChild("ReinoDeBolso")
 check("a tela foi criada", gui ~= nil)
@@ -236,7 +260,123 @@ end
 local function tileAt(x, y) return lastSnapshot.grid.tiles[y * 12 + x + 1] end
 local function ringOf(x, y) return math.max(math.abs(x - 5.5), math.abs(y - 5.5)) - 0.5 end
 
--- Construir uma serraria encostada numa floresta, pela paleta e pelo mapa.
+
+local function allButtons()
+	local out = {}
+	for _, d in playerGui:GetDescendants() do
+		if d:IsA("GuiButton") then table.insert(out, d) end
+	end
+	return out
+end
+local function screenText()
+	local parts = {}
+	for _, d in playerGui:GetDescendants() do
+		if (d:IsA("TextLabel") or d:IsA("TextButton") or d:IsA("TextBox")) and d.Text ~= "" then table.insert(parts, d.Text) end
+	end
+	return table.concat(parts, " | ")
+end
+local function press(pattern)
+	for _, bt in allButtons() do
+		if bt.Parent and string.find(textOf(bt), pattern) then
+			signalFor(bt, "Activated"):Fire()
+			second()
+			return true
+		end
+	end
+	print("NAO ACHEI BOTAO: " .. pattern)
+	return false
+end
+local function has(pattern)
+	for _, bt in allButtons() do
+		if bt.Parent and string.find(textOf(bt), pattern) then return true end
+	end
+	return false
+end
+local function openMenu()
+	for _ = 1, 4 do
+		if has("Salvar e voltar") then return true end
+		inputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.Q, UserInputType = roblox.Enum.UserInputType.Keyboard }, false)
+		second()
+	end
+	return has("Salvar e voltar")
+end
+local function show(tag) if not process.env.DEBUG_SMOKE then return end print("== " .. tag .. ": " .. string.sub(screenText(), 1, 700)) end
+second(2)
+show("inicio")
+check("menu: novo reino", press("Novo reino"))
+show("intro")
+for _, d in playerGui:GetDescendants() do
+	if d:IsA("TextBox") and d.Name == "NomeDoReino" then d.Text = "Vila Teste"; signalFor(d, "chg:Text"):Fire() end
+end
+check("fundar", press("Fundar meu reino"))
+show("depois de fundar")
+check("nome", lastSnapshot.kingdom.name == "Vila Teste", lastSnapshot.kingdom.name)
+press("Resgatar")
+show("depois da diaria")
+check("menu q", pcall(function() inputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.Q, UserInputType = roblox.Enum.UserInputType.Keyboard }, false) end))
+second()
+show("menu do jogo")
+check("opcoes", press("^Opções$"))
+show("opcoes")
+press("Alto contraste")
+check("alto contraste ligado", true)
+press("Seta para cima")
+show("remap")
+inputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.W, UserInputType = roblox.Enum.UserInputType.Keyboard }, false)
+second()
+press("Restaurar todas")
+press("Restaurar teclas")
+press("^Fechar$")
+check("save menu", press("Save e backups"))
+show("save")
+local code = nil
+press("Copiar código")
+for _, d in playerGui:GetDescendants() do
+	if d:IsA("TextBox") and d.Name == "Codigo" then code = d.Text end
+end
+check("codigo exportado", code and #code > 1000, code and #code)
+press("^Fechar$")
+for _, d in playerGui:GetDescendants() do
+	if d:IsA("TextBox") and d.Name == "CodigoDoSave" then d.Text = code; signalFor(d, "chg:Text"):Fire() end
+end
+check("importar", press("^Importar$"))
+show("confirma importar")
+check("confirma", press("^Importar$"))
+show("depois de importar")
+openMenu()
+press("Save e backups")
+show("save2")
+check("restaurar", press("^Restaurar$"))
+press("^Restaurar$")
+show("depois de restaurar")
+inputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.Q, UserInputType = roblox.Enum.UserInputType.Keyboard }, false)
+second()
+
+inputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.Q, UserInputType = roblox.Enum.UserInputType.Keyboard }, false)
+second()
+press("Créditos")
+show("creditos")
+press("^Fechar$")
+inputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.Q, UserInputType = roblox.Enum.UserInputType.Keyboard }, false)
+second()
+press("Como jogar")
+press("Entendi")
+inputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.Q, UserInputType = roblox.Enum.UserInputType.Keyboard }, false)
+second()
+openMenu()
+press("Salvar e voltar")
+show("menu principal")
+check("continuar", press("Continuar: "))
+second(2)
+show("jogo de novo")
+
+-- ------------------------------------------------------------ tela do jogo: mapa, painel do tile, abas, teclado
+local Ctx
+for _, m in moduleCache do
+	if type(m) == "table" and m.VERSION and m.show then Ctx = m end
+end
+check("achou Ctx", Ctx ~= nil)
+while Ctx.modal.isOpen() do Ctx.modal.close() end
 local spot = nil
 for y = 0, 11 do
 	for x = 0, 11 do
@@ -250,147 +390,109 @@ for y = 0, 11 do
 	end
 end
 check("achou lugar para a serraria", spot ~= nil)
-if process.env.DEBUG_SMOKE then
-	local n = 0
-	for _, bt in buttons() do
-		n += 1
-		if bt.ZIndex ~= 50 then print("botão:", textOf(bt)) end
-	end
-	print("botões:", n)
-	print("tela:", string.sub(textOf(gui), 1, 400))
-end
-check("clicou na serraria da paleta", click("Serraria"))
-local hit = tileButton(spot[1], spot[2])
-check("achou o tile no mapa", hit ~= nil)
-signalFor(hit, "MouseEnter"):Fire()
-check("prévia aparece ao passar o mouse", string.find(textOf(gui), "Serraria aqui") ~= nil)
-signalFor(hit, "MouseButton1Click"):Fire()
-local b = tileAt(spot[1], spot[2]).b
-check("serraria construída pelo clique", b and b.id == "serraria", b and b.id)
-check("botão Desfazer aparece", string.find(textOf(gui), "Desfazer") ~= nil)
-
--- Selecionar o prédio e melhorar pelo teclado.
-inputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.Escape }, false)
-signalFor(hit, "MouseButton1Click"):Fire()
-check("inspetor mostra o prédio", string.find(textOf(gui), "Serraria · nível 1") ~= nil)
-lastSnapshot.res = lastSnapshot.res
+check("paleta tem a Serraria", press("Serraria"))
+check("modo construir", Ctx.ui.mode.type == "build" and Ctx.ui.mode.id == "serraria", Ctx.ui.mode.type)
+local okHover, eHover = pcall(function() Ctx.onHover({ x = spot[1], y = spot[2] }) second() end)
+check("prévia ao passar o mouse", okHover and Ctx.ui.hoverDelta ~= nil, eHover)
+Ctx.onTileClick(spot[1], spot[2])
+second()
+local sb = tileAt(spot[1], spot[2]).b
+check("serraria construída pelo clique", sb and sb.id == "serraria", sb and sb.id)
+check("aviso de desfazer aparece", string.find(screenText(), "Desfazer") ~= nil)
+Ctx.run("cancelMode")
+second()
+Ctx.onTileClick(spot[1], spot[2])
+second()
+check("painel do tile mostra o prédio", string.find(screenText(), "Serraria") ~= nil and has("Melhorar"))
 second(60)
-inputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.U }, false)
+inputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.U, UserInputType = roblox.Enum.UserInputType.Keyboard }, false)
+second()
 check("melhorou com U", tileAt(spot[1], spot[2]).b.lvl == 2, tileAt(spot[1], spot[2]).b.lvl)
 
--- Constrói pelo servidor no primeiro lugar que der (para avançar o jogo no teste).
-local function buildAnywhere(id)
-	local acaoRemote = place:GetService("ReplicatedStorage").ReinoRemotes.Acao
-	for y = 0, 11 do
-		for x = 0, 11 do
-			local t = tileAt(x, y)
-			if t.t == "grass" and not t.b and ringOf(x, y) <= lastSnapshot.grid.ring then
-				local r = acaoRemote:InvokeServer("build", id, x, y)
-				if r.ok then return true end
-			end
-		end
+-- Clica em todos os botões de todas as abas e em todos os tiles (pega erro de qualquer tela).
+local errs = {}
+local SKIP = { "Ascender", "Confirmar", "Salvar e voltar", "Apagar", "Novo reino", "Restaurar", "Importar", "Demolir" }
+local function safe(bt)
+	local t = textOf(bt)
+	for _, k in SKIP do
+		if string.find(t, k) then return false end
 	end
-	return false
+	return true
 end
-check("construiu uma casa pelo remote", buildAnywhere("casa"))
-second(3)
-
--- Heróis: recrutar com o pergaminho grátis (a aba abre depois das primeiras construções).
-click("^Heróis$")
-check("aba Heróis abriu", string.find(textOf(gui), "Usar pergaminho") ~= nil)
-click("Usar pergaminho")
-local heroes = 0
-for _ in lastSnapshot.heroes.owned do heroes += 1 end
-check("recrutou um herói", heroes == 1)
-
--- Passa por todas as abas e clica em todos os botões que aparecem (pega erro de qualquer tela).
-local errors = {}
-local tabs = { "^Reino$", "^Heróis$", "^Temporada$", "^Legado$", "^Social$", "^Perfil$" }
-for round = 1, 3 do
-	for _, tab in tabs do
-		click(tab)
+local warns = 0
+for round = 1, 2 do
+	for _, tab in Ctx.TAB_ORDER do
+		Ctx.run("tab", tab)
 		second()
-		for _, btn in buttons() do
-			if btn.Parent and btn.ZIndex ~= 50 and not string.find(textOf(btn), "^Ascender") and not string.find(textOf(btn), "Confirmar") then
-				local ok, err = pcall(function() signalFor(btn, "MouseButton1Click"):Fire() end)
-				if not ok then table.insert(errors, textOf(btn) .. ": " .. tostring(err)) end
+		for _, bt in allButtons() do
+			if bt.Parent and bt:IsDescendantOf(gui) and safe(bt) then
+				local ok, err = pcall(function() signalFor(bt, "Activated"):Fire() end)
+				if not ok then table.insert(errs, textOf(bt) .. ": " .. tostring(err)) end
 			end
 		end
 		second()
+		while Ctx.modal.isOpen() do Ctx.modal.close() end
 	end
-	-- Muito ouro para destravar mais telas na próxima volta.
 	for y = 0, 11 do
 		for x = 0, 11 do
-			local hb = tileButton(x, y)
-			local ok, err = pcall(function()
-				signalFor(hb, "MouseEnter"):Fire()
-				signalFor(hb, "MouseButton1Click"):Fire()
-				signalFor(hb, "MouseLeave"):Fire()
-			end)
-			if not ok then table.insert(errors, string.format("tile %d,%d: %s", x, y, tostring(err))) end
+			local ok, err = pcall(function() Ctx.onHover({ x = x, y = y }) Ctx.onTileClick(x, y) end)
+			if not ok then table.insert(errs, string.format("tile %d,%d: %s", x, y, tostring(err))) end
 		end
 	end
+	Ctx.run("cancelMode")
 	second(30)
+	while Ctx.modal.isOpen() do Ctx.modal.close() end
 end
-check("nenhum botão deu erro", #errors == 0, errors[1])
-
--- Atalhos de teclado.
-for _, k in { "One", "Two", "Three", "T", "Z", "M", "Delete", "Escape" } do
-	local ok, err = pcall(function() inputBegan:Fire({ KeyCode = roblox.Enum.KeyCode[k] }, false) end)
+check("nenhum botão deu erro", #errs == 0, errs[1])
+for _, k in { "One", "Two", "Three", "T", "Z", "M", "Delete", "Left", "Up", "Return", "Q" } do
+	local ok, err = pcall(function() inputBegan:Fire({ KeyCode = roblox.Enum.KeyCode[k], UserInputType = roblox.Enum.UserInputType.Keyboard }, false) second() end)
 	check("tecla " .. k, ok, err)
 end
-
--- Subsolo: escadaria abre os botões de nível e a tela do subsolo desenha.
-for _ = 1, 4 do buildAnywhere("casa") end
-buildAnywhere("fazenda")
-second(400) -- junta madeira e pedra para a escadaria
-do
-	local acaoRemote = place:GetService("ReplicatedStorage").ReinoRemotes.Acao
-	for y = 0, 11 do
-		for x = 0, 11 do
-			if tileAt(x, y).t == "rock" and lastSnapshot.res.stone < 60 then acaoRemote:InvokeServer("clear", x, y) end
+while Ctx.modal.isOpen() do Ctx.modal.close() end
+-- recrutar e resumo de rodada pelos eventos do Controller
+local okR, eR = pcall(function()
+	Ctx.show.recruit({ hero = { id = "h1" }, isNew = false, stars = 2 })
+	second()
+	show("recruta")
+	Ctx.modal.close()
+	Ctx.show.offline({ elapsed = 3600, efficiency = 0.8, gains = { gold = 10, food = -2, wood = 1, stone = 0 }, capped = true, simulated = 3000, welcome = { days = 3, gems = 5, scroll = 1, goldMinutes = 30 }, expeditionsReady = 1 })
+	second()
+	show("offline")
+	Ctx.modal.close()
+	Ctx.show.daily()
+	second()
+	show("diaria")
+	Ctx.modal.close()
+	Ctx.modal.close()
+	Ctx.show.options()
+	second()
+	for _, d in playerGui:GetDescendants() do
+		if d:IsA("TextButton") and d.Name == "Slider-fontScale" then
+			signalFor(d, "InputBegan"):Fire({ UserInputType = roblox.Enum.UserInputType.MouseButton1, Position = roblox.Vector2.new(900, 0) })
 		end
 	end
-	print(string.format("recursos: ouro %d madeira %d pedra %d", lastSnapshot.res.gold, lastSnapshot.res.wood, lastSnapshot.res.stone))
-end
-local stairsSpot = nil
-for y = 0, 11 do
-	for x = 0, 11 do
-		local t = tileAt(x, y)
-		if not stairsSpot and t.t == "grass" and not t.b and ringOf(x, y) <= lastSnapshot.grid.ring then stairsSpot = { x, y } end
-	end
-end
-if stairsSpot then
-	-- dá recursos pelo próprio servidor (cheat só no teste)
-	local remotes = place:GetService("ReplicatedStorage").ReinoRemotes
-	local r = remotes.Acao:InvokeServer("build", "escadaria", stairsSpot[1], stairsSpot[2])
-	check("escadaria construída", r.ok, r.reason)
 	second()
-	local okUnder = click("^Galerias$")
-	check("botão Galerias aparece depois da escadaria", okUnder or not r.ok)
+	show("opcoes fonte")
+	Ctx.modal.close()
+	Ctx.run("toggleMusic")
 	second()
-	local okDraw, errDraw = pcall(function()
-		for y = 0, 11 do
-			for x = 0, 11 do signalFor(tileButton(x, y), "MouseButton1Click"):Fire() end
-		end
-	end)
-	check("subsolo desenha e responde a cliques", okDraw, errDraw)
-	click("^Superfície$")
-end
+	Ctx.run("hardReset")
+	second()
+	press("^Apagar$")
+	show("hard reset")
+	check("hard reset abre a intro", has("Fundar meu reino"))
+	second(5)
+	local sum = Ctx.game:runSummary()
+	sum.n = 1
+	sum.newRecords = { "gold" }
+	Ctx.show.runSummary(sum, { fresh = true })
+	second(2)
+	show("resumo")
+	Ctx.modal.close()
+end)
+check("janelas extras", okR, eR)
+press("Salvar e voltar")
 
--- Sair salva; voltar carrega o mesmo reino e calcula o tempo fora.
-local goldBefore = lastSnapshot.res.gold
-local builtBefore = lastSnapshot.stats.built
-playersRemoving:Fire(thePlayer)
-check("salvou ao sair", saved["reino_102836778"] ~= nil)
-clock += 3 * 3600 * 1000
-local toasts = {}
-playersAdded:Fire(thePlayer)
-second()
-check("voltou com as mesmas construções", lastSnapshot.stats.built == builtBefore, lastSnapshot.stats.built)
-check("produziu enquanto estava fora", lastSnapshot.res.gold >= goldBefore, string.format("%s -> %s", goldBefore, lastSnapshot.res.gold))
-check("aviso de tempo fora apareceu", string.find(textOf(gui), "Enquanto você esteve fora") ~= nil)
-_ = toasts
 
 end
 

@@ -269,6 +269,36 @@ function MapView.new(parent, opts)
 		local r2 = stroked(frame, "Anel2", 3, 17, rgb(185, 130, 14), 0.45, 2, 4)
 		local r3 = stroked(frame, "Anel3", 5, 19, BLACK, 0.5, 1, 3)
 		self.ring1, self.ring2, self.ring3 = s1, r2, r3
+		-- border-radius: 14px do canvas. ClipsDescendants só recorta em retângulo: os cantos que sobram entre o
+		-- arco de 14 px e o canto quadrado são cobertos por faixas de 1 px da cor do anel (no web, o anel de 3 px
+		-- do box-shadow, que segue o arco, também ocupa esse lugar).
+		self.cornerMasks = {}
+		local R = 14
+		for row = 0, R - 1 do
+			local dy = R - row - 0.5
+			local wpx = R - math.sqrt(math.max(0, R * R - dy * dy))
+			if wpx > 0.05 then
+				for k = 0, 3 do
+					local m = Instance.new("Frame")
+					m.Name = "Canto"
+					m.BorderSizePixel = 0
+					m.BackgroundColor3 = hex("#2a2433")
+					m.ZIndex = 2
+					local right, bottom = k % 2 == 1, k >= 2
+					m.AnchorPoint = Vector2.new(right and 1 or 0, bottom and 1 or 0)
+					m.Position = UDim2.new(right and 1 or 0, 0, bottom and 1 or 0, bottom and -row or row)
+					m.Size = UDim2.fromOffset(wpx, 1)
+					-- borda antisserrilhada: a fração do pixel vira opacidade
+					local whole = math.floor(wpx)
+					if whole < 1 then
+						m.Size = UDim2.fromOffset(1, 1)
+						m.BackgroundTransparency = 1 - wpx
+					end
+					m.Parent = frame
+					table.insert(self.cornerMasks, m)
+				end
+			end
+		end
 	end
 
 	if opts.onTileClick or opts.onHover then
@@ -601,9 +631,9 @@ local function drawDamage(L, cx, cy, T, seed, now)
 		local sx = cx + math.sin(p * 5 + k + seed) * T * 0.12 + (k % 2 == 1 and T * 0.1 or -T * 0.08)
 		local sy = cy - T * 0.2 - p * T * 0.9
 		local r = T * (0.1 + p * 0.16)
-		-- "ui/smoke": disco de 48 px borrado num quadro de 64
-		local s = r * 2 * 64 / 48
-		L:img("ui/smoke", sx - s / 2, sy - s / 2, s, s, 0.75 * (1 - p * 0.8), SMOKE)
+		-- arc + fill: "ui/disc" (círculo de 62 px num quadro de 64, borda nítida como no canvas)
+		local s = r * 2 * 64 / 62
+		L:img("ui/disc", sx - s / 2, sy - s / 2, s, s, 0.75 * (1 - p * 0.8), SMOKE)
 	end
 end
 
@@ -1103,6 +1133,9 @@ function MapView:_look(under)
 	end
 	self.look = under
 	self.ring1.Color = under and hex("#5b4a3a") or hex("#2a2433")
+	for _, m in self.cornerMasks do
+		m.BackgroundColor3 = self.ring1.Color
+	end
 	self.ring2.Visible = not under
 	self.ring3.Visible = not under
 	self.shadowA.Visible = not under

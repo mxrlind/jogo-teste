@@ -199,20 +199,22 @@ end
 local function placeCompass()
 	local r = renderer()
 	local map = r and r.frame
-	if not map or not mapWrap or not compassInst then
+	if not map or not mapWrap then
 		return
 	end
 	local wrapPos, wrapSize = mapWrap.AbsolutePosition, mapWrap.AbsoluteSize
 	local left = map.AbsolutePosition.X - wrapPos.X
 	local top = map.AbsolutePosition.Y - wrapPos.Y
 	local right = left + map.AbsoluteSize.X
-	local cw = compassSize()
-	local outside = wrapSize.X - right >= cw + 14
-	compassInst.Position = UDim2.fromOffset(outside and right + 10 or right - cw - 8, top + (outside and 0 or 8))
-	local btn = compassInst:FindFirstChild("Rosa")
-	if btn then
-		-- #compass:not(.outside) { opacity: .94 }
-		btn.ImageTransparency = outside and 0 or 0.06
+	if compassInst and compassInst.Parent then
+		local cw = compassSize()
+		local outside = wrapSize.X - right >= cw + 14
+		compassInst.Position = UDim2.fromOffset(outside and right + 10 or right - cw - 8, top + (outside and 0 or 8))
+		local btn = compassInst:FindFirstChild("Rosa")
+		if btn then
+			-- #compass:not(.outside) { opacity: .94 }
+			btn.ImageTransparency = outside and 0 or 0.06
+		end
 	end
 	if layersInst and layersInst.Parent then
 		local lw = layersInst.AbsoluteSize.X
@@ -291,20 +293,16 @@ local function renderLayers()
 	if not layersHost then
 		return
 	end
-	local reached = g and g.state.under and g.state.under.reached or 0
+	-- O Controller guarda o nível alcançado em Ctx.ui.layersReached (e volta para a superfície se precisar).
+	local reached = Ctx.ui.layersReached
+	if reached == nil then
+		reached = g and g.state.under and g.state.under.reached or 0
+	end
 	if not g or reached < 1 then
 		if layersInst then
 			Kit.render(layersHost, nil)
 			layersInst = nil
 			layersSig = ""
-		end
-		local r = renderer()
-		if r and (r.layer or 0) ~= 0 then
-			if Ctx.setLayer then
-				Ctx.setLayer(0)
-			else
-				Ctx.run("layer", 0)
-			end
 		end
 		return
 	end
@@ -385,7 +383,7 @@ local function renderTutorial()
 	}, {
 		U.ico("mission", T.c.goldText, rem(1.6)),
 		h("Frame", { Name = "tt", BackgroundTransparency = 1, Size = UDim2.fromOffset(rem(12), 0), AutomaticSize = AY }, {
-			Kit.flex(1, 1),
+			Kit.flex(1, 0), -- flex: 1; min-width: 12rem
 			Kit.list("y", { gap = 0 }),
 			h("Frame", { BackgroundTransparency = 1, AutomaticSize = AXY, Size = UDim2.new() }, {
 				Kit.list("x", { gap = rem(0.35), align = "center" }),
@@ -448,8 +446,11 @@ local function renderVisit()
 	local banner = Hud and Hud.banner(Hud.bannerColor(k.banner), Hud.emblemIcon(k.emblem), true) or nil
 	local node = strip({ name = "Visita", anchor = Vector2.zero, pos = UDim2.new(), shadow = 22, shadowT = 0.45, shadowDy = 8, active = true }, {
 		banner,
-		U.text("Visitando <b>" .. U.esc(k.name) .. "</b> · " .. U.esc(k.title or "") .. " · Poder " .. Util.fmt(k.power or 0), { wrap = false }),
-		U.spacer(),
+		-- o texto ocupa o meio e quebra linha se faltar espaço; o botão fica na ponta (margin-left: auto)
+		h("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(rem(8), 0), AutomaticSize = AY }, {
+			Kit.flex(1, 1),
+			U.text("Visitando <b>" .. U.esc(k.name) .. "</b> · " .. U.esc(k.title or "") .. " · Poder " .. Util.fmt(k.power or 0), { wrap = true }),
+		}),
 		U.btn({ icon = "house", text = "Voltar ao meu reino", small = true, onClick = Ctx.does("endVisit") }),
 	})
 	visitInst = Kit.render(holder, node)
@@ -510,7 +511,7 @@ local function renderModeHint()
 		kids = {
 			U.sprite("icon-" .. m.id, 32),
 			h("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(rem(12), 0), AutomaticSize = AY }, {
-				Kit.flex(1, 1),
+				Kit.flex(1, 0), -- flex: 1; min-width: 12rem
 				U.text("<b>" .. def.name .. "</b>: " .. U.esc(def.desc) .. "<br />" .. line, { wrap = true, LineHeight = 1.08 }),
 			}),
 			U.btn({ text = "Cancelar", small = true, onClick = Ctx.does("cancelMode") }),
@@ -519,7 +520,7 @@ local function renderModeHint()
 		kids = {
 			U.ico("move", T.c.text, rem(1.25)),
 			h("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(rem(12), 0), AutomaticSize = AY }, {
-				Kit.flex(1, 1),
+				Kit.flex(1, 0), -- flex: 1; min-width: 12rem
 				U.text("Escolha o novo lugar (mover é grátis).", { wrap = true }),
 			}),
 			U.btn({ text = "Cancelar", small = true, onClick = Ctx.does("cancelMode") }),
@@ -769,10 +770,7 @@ function Stage.render(part, force)
 		renderCompass()
 		renderTileInfo(true)
 	elseif part == "undo" then
-		local ok, Toasts = pcall(require, script.Parent.Toasts)
-		if ok and Toasts and Toasts.renderUndo then
-			Toasts.renderUndo()
-		end
+		-- nada: o aviso de desfazer vive nos Toasts, que têm o próprio laço
 	elseif part == "stage" or part == "all" then
 		renderVisit()
 		renderTutorial()

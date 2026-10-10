@@ -56,7 +56,7 @@ local function nowMs()
 	return DateTime.now().UnixTimestampMillis
 end
 
--- [Player] = { game, events, lastUnder, lastSave, calls, loadFailed, config, configDirtyAt, sendExtra, hasSave,
+-- [Player] = { game, events, lastUnder, lastSave, calls, loadFailed, config, configDirtyAt, configFailed, sendExtra, hasSave,
 --              backups, backupsFailed, policy }
 local sessions = {}
 
@@ -107,7 +107,7 @@ end
 
 local function saveConfig(player)
 	local s = sessions[player]
-	if not s or not store or not s.configDirtyAt then return end
+	if not s or not store or not s.configDirtyAt or s.configFailed then return end
 	s.configDirtyAt = nil
 	local cfg = s.config
 	withRetry(function()
@@ -240,6 +240,7 @@ local function start(player)
 	-- Preferências e backups (chaves à parte; se a leitura falhar, não grava por cima).
 	local rawConfig = loadKey(configKey(player))
 	s.config = type(rawConfig) == "table" and normalizeConfig(rawConfig) or defaultConfig()
+	s.configFailed = rawConfig == false
 	local rawBackups = loadKey(backupKey(player))
 	s.backupsFailed = rawBackups == false
 	s.backups = type(rawBackups) == "table" and rawBackups or { next = 0, lastAt = 0, slots = {} }
@@ -365,7 +366,8 @@ function SPECIAL.setConfig(_player, s, cfg)
 	if type(cfg) ~= "table" then return { ok = false, reason = "Inválido" } end
 	s.config = normalizeConfig(cfg)
 	s.configDirtyAt = os.clock()
-	s.sendExtra = true
+	-- Não devolve a config no próximo envio: o cliente já a aplicou, e com o slider sendo arrastado
+	-- uma resposta atrasada voltaria o valor para trás. Ela volta no próximo "sync" (tela reaberta).
 	return { ok = true, config = s.config }
 end
 
