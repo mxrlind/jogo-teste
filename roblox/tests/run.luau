@@ -62,7 +62,9 @@ local Season = mod("Core", "Season")
 local Social = mod("Core", "Social")
 local State = mod("Core", "State")
 local Game = mod("Core", "Game")
-local roteiro = luau.load(fs.readFile("tests/roteiro.luau"), { debugName = "roteiro" })()
+local Config = mod("Core", "Config")
+local Roteiros = luau.load(fs.readFile("tests/roteiro.luau"), { debugName = "roteiro" })()
+local roteiro, cenarios = Roteiros.roteiro, Roteiros.cenarios
 
 local fixtures = serde.decode("json", fs.readFile("tests/fixtures.json"))
 local T0 = 1791385200000
@@ -119,6 +121,13 @@ end
 for i, sec in { 5, 75, 3725, 90061 } do
 	check("fmtTime " .. sec, Util.fmtTime(sec) == fixtures.fmtTime[i], Util.fmtTime(sec))
 end
+for _, row in fixtures.fmtExtra do
+	local n = row[1]
+	local got = { Util.fmt(n), Util.fmt(n, 2), Util.fmtRate(n), Util.fmtPct(n / 7), Util.fmtTime(n * 37) }
+	for k, name in { "fmt", "fmt2", "fmtRate", "fmtPct", "fmtTime" } do
+		check(name .. " " .. Util.jsNumStr(n), got[k] == row[k + 1], got[k] .. " vs " .. row[k + 1])
+	end
+end
 
 -- ------------------------------------------------------------ uma hora de jogo roteirizada + 5 h offline
 local function sortedKeys(t)
@@ -167,6 +176,41 @@ for _, case in { { "a", 4242 }, { "b", 77 } } do
 	end
 	check("sessão " .. name .. ": defesa", near(game.econ.defense, exp.defense))
 	check("sessão " .. name .. ": felicidade", near(game.econ.happiness, exp.happiness))
+end
+
+-- ------------------------------------------------------------ novidades de 0.16 a 0.18
+do
+	local exp = fixtures.cenarios
+	Util.random = Util.mulberry32(99)
+	local game = Game.new(State.createState({ seed = 4242, now = T0 }), T0)
+	local log = cenarios(game, T0, { Util = Util, Config = Config })
+	for i = 1, math.max(#log, #exp.log) do
+		check("cenários #" .. i .. " " .. tostring(exp.log[i]), log[i] == exp.log[i], "luau=" .. tostring(log[i]) .. " web=" .. tostring(exp.log[i]))
+	end
+	local s = game.state
+	for _, r in { "gold", "food", "wood", "stone", "gems", "crowns" } do
+		check("cenários: " .. r, near(s.res[r], exp.res[r]), tostring(s.res[r]) .. " vs " .. tostring(exp.res[r]))
+	end
+	check("cenários: pergaminhos", s.items.scrolls == exp.items.scrolls)
+	for k, v in exp.stats do
+		check("cenários: stats." .. k, near(s.stats[k], v), tostring(s.stats[k]) .. " vs " .. tostring(v))
+	end
+	check("cenários: sequência", s.daily.streak == exp.daily.streak and s.daily.lastDay == exp.daily.lastDay and s.daily.shieldWeek == exp.daily.shieldWeek)
+	check("cenários: conquistas", table.concat(sortedKeys(s.achievements), ",") == table.concat(exp.achievements, ","))
+	check("cenários: gatilhos secretos", table.concat(sortedKeys(s.flags), ",") == table.concat(exp.flags, ","))
+	local parts = {}
+	for _, t in s.grid.tiles do
+		table.insert(parts, string.sub(t.t, 1, 1) .. (t.b and (t.b.id .. t.b.lvl .. (t.b.dmg and "!" or "")) or "") .. (t.ruin and ("#" .. t.ruin) or ""))
+	end
+	check("cenários: mapa final (danos e ruínas)", table.concat(parts, ",") == exp.grid)
+	for _, r in { "gold", "food", "wood", "stone" } do
+		check("cenários: produção de " .. r, near(game.econ.rates[r], exp.rates[r]), tostring(game.econ.rates[r]) .. " vs " .. tostring(exp.rates[r]))
+	end
+	check("cenários: defesa", near(game.econ.defense, exp.defense))
+	check("cenários: bônus das conquistas", near(game.econ.mods.prodAll, exp.prodAll), tostring(game.econ.mods.prodAll) .. " vs " .. tostring(exp.prodAll))
+	-- O que a interface mostra das conquistas: 50 contam (53 menos as 3 de sombra).
+	local count = game:achievementCount()
+	check("cenários: total de conquistas", count.total == 50, tostring(count.total))
 end
 
 -- ------------------------------------------------------------ save: vai e volta pelo formato do DataStore

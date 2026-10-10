@@ -8,6 +8,7 @@ local Buildings = require(script.Parent.Parent.Data.Buildings)
 local HeroData = require(script.Parent.Parent.Data.Heroes)
 local Talents = require(script.Parent.Parent.Data.Talents)
 local Events = require(script.Parent.Parent.Data.Events)
+local Achievements = require(script.Parent.Parent.Data.Achievements)
 
 local BUILDINGS, TERRAIN = Buildings.BUILDINGS, Buildings.TERRAIN
 local GRID_W, GRID_H, idx = Map.GRID_W, Map.GRID_H, Map.idx
@@ -115,9 +116,21 @@ function E.collectModifiers(state, now)
 	m.prodAll += um.prodAll
 	m.prod.food += um.food
 
+	-- Cada conquista (fora as de sombra) dá +1% de produção para sempre.
+	m.prodAll += E.achievementBonus(state)
+
 	if state.boostUntil > now then m.prodAll += 0.5 end
 	m.cost = math.min(0.75, m.cost)
 	return m
+end
+
+function E.achievementBonus(state)
+	local n = 0
+	local got = state.achievements or {}
+	for _, a in Achievements.ACHIEVEMENTS do
+		if a.kind ~= "shadow" and got[a.id] then n += 1 end
+	end
+	return n * Achievements.ACH_PROD_BONUS
 end
 
 function E.levelMult(lvl)
@@ -203,22 +216,28 @@ function E.computeEconomy(state, now)
 			local x, y = Map.xy(i)
 			local lm = E.levelMult(tile.b.lvl)
 			local adj = E.adjacencyAt(state, tile.b.id, x, y, mods)
+			-- Danificada por uma horda: não produz, não defende e não ocupa moradores até ser consertada.
+			local damaged = tile.b.dmg ~= nil and tile.b.dmg ~= 0 and tile.b.dmg ~= false
 			local info = {
-				id = tile.b.id, lvl = tile.b.lvl, adjBonus = adj.total, adjParts = adj.parts,
-				active = adj.hasRequired, mult = math.max(0, 1 + adj.total) * lm, workers = E.workersFor(def, tile.b.lvl),
+				id = tile.b.id, lvl = tile.b.lvl, adjBonus = adj.total, adjParts = adj.parts, damaged = damaged,
+				active = adj.hasRequired and not damaged, mult = math.max(0, 1 + adj.total) * lm,
+				workers = damaged and 0 or E.workersFor(def, tile.b.lvl),
 				out = {}, defense = 0, staff = 1,
 			}
 			tiles[i] = info
+			-- Moradores e estoque continuam (a casa rachada ainda abriga gente); o resto para.
 			if def.popCap then popCap += def.popCap * tile.b.lvl end
-			workersNeeded += info.workers
-			if def.happiness then
-				happinessRaw += def.happiness * (def.happiness > 0 and info.mult or 1)
-			end
 			if def.storage then
 				for r, v in def.storage do caps[r] += v * E.storageMult(tile.b.lvl) end
 			end
-			if def.globalGold then globalGold += def.globalGold end
-			if def.crownBonus then crownBonus += def.crownBonus end
+			if not damaged then
+				workersNeeded += info.workers
+				if def.happiness then
+					happinessRaw += def.happiness * (def.happiness > 0 and info.mult or 1)
+				end
+				if def.globalGold then globalGold += def.globalGold end
+				if def.crownBonus then crownBonus += def.crownBonus end
+			end
 		end
 	end
 
@@ -276,7 +295,7 @@ function E.computeEconomy(state, now)
 				foodDemandMarkets += c
 				table.insert(marketTiles, info)
 			end
-			if def.defense then
+			if def.defense and not info.damaged then
 				info.defense = def.defense * eff
 				local x, y = Map.xy(i)
 				for _, d in DIRS do
@@ -362,6 +381,11 @@ function E.upgradeCost(id, lvl, mods)
 	local def = BUILDINGS[id]
 	if lvl >= (def.maxLevel or Buildings.MAX_LEVEL) then return nil end
 	return scaleCost(def.cost, Buildings.LEVEL_COST_GROWTH ^ lvl * (1 - mods.cost))
+end
+
+-- Conserto de uma construção danificada: uma fração do custo base, maior quanto mais alto o nível.
+function E.repairCost(id, lvl, mods)
+	return scaleCost(BUILDINGS[id].cost, Events.REPAIR_FRACTION * lvl * (1 - mods.cost))
 end
 
 function E.canAfford(res, cost)

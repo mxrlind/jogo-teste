@@ -22,7 +22,12 @@ E.RAID_INTERVAL = 240
 E.RAID_WARNING = 20
 E.RAID_BASE_STRENGTH = 8
 E.RAID_GROWTH = 1.4
-E.RAID_LOSS_FRACTION = 0.15
+E.RAID_LOSS_FRACTION = 0.1
+-- Derrota também quebra construções do lado da horda (2 a 4 golpes; muralha e torre gastam 2 golpes cada).
+E.RAID_HITS_MIN = 2
+E.RAID_HITS_MAX = 4
+E.RAID_DEFENSE_HITS = 2
+E.REPAIR_FRACTION = 0.3 -- conserto = 30% do custo base por nível
 E.RAID_NEWBIE_LOSS = 0.05
 E.RAID_NEWBIE_COUNT = 2
 E.RAID_LOSS_CAP_SECONDS = 120

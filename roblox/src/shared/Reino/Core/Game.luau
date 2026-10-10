@@ -18,12 +18,13 @@ local Seasons = require(Data.Seasons)
 local Achievements = require(Data.Achievements)
 local Cosmetics = require(Data.Cosmetics)
 local UnderData = require(Data.Underground)
+local Shop = require(Data.Shop)
 
 local BUILDINGS, TERRAIN = Buildings.BUILDINGS, Buildings.TERRAIN
 local HERO_BY_ID = HeroData.HERO_BY_ID
 local computeEconomy, canAfford, pay, refund = Economy.computeEconomy, Economy.canAfford, Economy.pay, Economy.refund
 local PROD_RES = Economy.PROD_RES
-local GRID_W, idx = Map.GRID_W, Map.idx
+local GRID_W, GRID_H, idx = Map.GRID_W, Map.GRID_H, Map.idx
 
 local Game = {}
 Game.__index = Game
@@ -52,6 +53,25 @@ Game.TUTORIAL = {
 }
 
 Game.RAID_DIRS = { "n", "s", "e", "w" }
+
+-- Data e hora no fuso do jogo (o mesmo de Util.dayKey): o servidor do Roblox roda em UTC.
+local function localDate(ms)
+	return os.date("!*t", math.floor(ms / 1000) + Util.DAY_OFFSET_HOURS * 3600)
+end
+
+-- Semana do calendário (segunda a domingo), para o escudo da sequência diária: o dia da segunda-feira.
+local function weekOf(ms)
+	local back = (localDate(ms).wday + 5) % 7 -- wday: 1 = domingo; (getDay() + 6) % 7 no web
+	return Util.dayKey(ms - back * 86400000)
+end
+Game.weekOf = weekOf
+
+-- Nome do vizinho obrigatório no meio de uma frase ("ao lado de água", "ao lado de montanha").
+function Game.neighborName(key)
+	if key == "water" then return "água" end
+	local ter = TERRAIN[key]
+	return ter and string.lower(ter.name) or key
+end
 Game.DIR_NAMES = { n = "Norte", s = "Sul", e = "Leste", w = "Oeste" }
 
 Game.RUN_HISTORY = 10
@@ -84,6 +104,10 @@ Game.TAB_UNLOCKS = {
 	end },
 }
 Game.TAB_NAMES = { reino = "Reino", herois = "Heróis", temporada = "Temporada", legado = "Legado", social = "Social", perfil = "Perfil" }
+
+local function validXY(x, y)
+	return type(x) == "number" and type(y) == "number" and x % 1 == 0 and y % 1 == 0 and Map.inBounds(x, y)
+end
 
 local function ok(extra)
 	local r = extra or {}
@@ -146,6 +170,10 @@ function Game:tick(now, background)
 	self.now = now
 	self:growTrees(now)
 	local dt = (now - s.lastTick) / 1000
+	if dt < -3600 then self:secret("timeTravel") end
+	-- Relógio voltou (save de outro aparelho, horário do servidor ajustado): recomeça a contar daqui.
+	-- Sem isto o reino ficava parado até o relógio alcançar o horário salvo.
+	if dt < 0 then s.lastTick = now end
 	if dt <= 0 then return end
 	if dt > Game.OFFLINE_THRESHOLD then
 		local summary = self:catchUp(now, background and 1 or nil)
@@ -161,6 +189,7 @@ function Game:tick(now, background)
 	self:updateLive(now)
 	if now - self.lastAchCheck > 2000 then
 		self.lastAchCheck = now
+		self:checkSecrets()
 		self:checkAchievements()
 		self:checkTutorial()
 		self:checkUnlocks()
@@ -238,6 +267,16 @@ function Game:catchUp(now, efficiency)
 	Season.syncSeason(s, now)
 	Season.syncMissions(s, now, self:goldScale())
 	if elapsed < 60 then return nil end
+	local welcome = nil
+	if elapsed >= 7 * 86400 then self:secret("comeback") end
+	if elapsed >= Shop.WELCOME_BACK_DAYS * 86400 then
+		local wb = Shop.WELCOME_BACK
+		welcome = Util.merge(wb, { days = math.floor(elapsed / 86400) })
+		s.res.gems += wb.gems
+		s.items.scrolls += wb.scroll
+		self:grant({ type = "goldMinutes", minutes = wb.goldMinutes })
+		self:log(string.format("Pacote de volta: +%d gemas, +%d pergaminho e ouro", wb.gems, wb.scroll))
+	end
 	local gains = {}
 	for _, r in PROD_RES do
 		gains[r] = s.res[r] - before[r]
@@ -246,7 +285,7 @@ function Game:catchUp(now, efficiency)
 	for _, h in s.heroes.owned do
 		if h.expedition and h.expedition.endsAt <= now then ready += 1 end
 	end
-	return { elapsed = elapsed, simulated = simSec, capped = elapsed > capSec, efficiency = eff, gains = gains, popDelta = s.pop - popBefore, expeditionsReady = ready }
+	return { elapsed = elapsed, simulated = simSec, capped = elapsed > capSec, efficiency = eff, gains = gains, popDelta = s.pop - popBefore, expeditionsReady = ready, welcome = welcome }
 end
 
 function Game:updateLive(now)
@@ -353,6 +392,7 @@ function Game:resolveRaid(now)
 		s.stats.totalGold += loot
 		s.stats.runGold += loot
 		s.stats.raidsWon += 1
+		s.stats.lossStreak = 0
 		s.stats.bestRaid = math.max(s.stats.bestRaid, s.raid.level + 1)
 		s.raid.level += 1
 		result.win = true
@@ -370,10 +410,15 @@ function Game:resolveRaid(now)
 			lost[r] = math.floor(math.min(s.res[r] * fraction, cap))
 			s.res[r] -= lost[r]
 		end
+		-- Fora a proteção de novato, a horda também quebra o que encontra pelo caminho.
+		local ruin = newbie and { damaged = {}, collapsed = {} } or self:raidDamage(s.raid.dir, 1 - e.defense / strength)
 		s.stats.raidsLost += 1
+		s.stats.lossStreak = (s.stats.lossStreak or 0) + 1
 		s.raid.level = math.max(0, s.raid.level - 1)
 		result.win = false
 		result.lost = lost
+		result.damaged = ruin.damaged
+		result.collapsed = ruin.collapsed
 		self:log(string.format("%s saquearam o reino (força %d contra defesa %d).", name, strength, math.floor(e.defense)))
 	end
 	local interval = Events.RAID_INTERVAL * e.mods.raidInterval * (0.8 + Util.random() * 0.4)
@@ -386,6 +431,94 @@ function Game:resolveRaid(now)
 	self.econ = computeEconomy(s, now)
 	self:emit("raid", result)
 	return result
+end
+
+-- Derrota: o que ficou danificado da última vez desaba, e a horda entra pela borda `dir` quebrando
+-- as construções que encontra primeiro. `gap` (0..1) é o quanto faltou de defesa: mais golpes.
+-- Muralhas e torres gastam mais golpes, protegendo o que está atrás delas.
+function Game:raidDamage(dir, gap)
+	local s = self.state
+	local collapsed = {}
+	for i, t in s.grid.tiles do
+		if t.b and t.b.dmg then
+			local x, y = Map.xy(i)
+			table.insert(collapsed, { x = x, y = y, id = t.b.id })
+			t.ruin = t.b.id
+			t.b = nil
+		end
+	end
+	local function depth(x, y)
+		if dir == "n" then return y end
+		if dir == "s" then return GRID_H - 1 - y end
+		if dir == "w" then return x end
+		if dir == "e" then return GRID_W - 1 - x end
+		return 0 / 0
+	end
+	local targets = {}
+	for i, t in s.grid.tiles do
+		if t.b and t.b.id ~= "escadaria" then
+			local x, y = Map.xy(i)
+			table.insert(targets, { i = i, x = x, y = y, t = t, d = depth(x, y) - (BUILDINGS[t.b.id].defense and 0.5 or 0) + Util.random() * 0.4 })
+		end
+	end
+	-- Ordenação estável como a do JavaScript: empate fica na ordem do mapa.
+	table.sort(targets, function(a, b)
+		if a.d ~= b.d then return a.d < b.d end
+		return a.i < b.i
+	end)
+	local hits = Events.RAID_HITS_MIN + Util.round((Events.RAID_HITS_MAX - Events.RAID_HITS_MIN) * math.max(0, math.min(1, gap)))
+	local damaged = {}
+	for _, tg in targets do
+		if hits <= 0 then break end
+		tg.t.b.dmg = 1
+		hits -= BUILDINGS[tg.t.b.id].defense and Events.RAID_DEFENSE_HITS or 1
+		table.insert(damaged, { x = tg.x, y = tg.y, id = tg.t.b.id })
+	end
+	return { damaged = damaged, collapsed = collapsed }
+end
+
+function Game:repair(x, y)
+	local s = self.state
+	if not validXY(x, y) then return fail("Fora do mapa") end
+	local tile = self:tileAt(x, y)
+	if not (tile.b and tile.b.dmg) then return fail("Nada para consertar") end
+	local cost = Economy.repairCost(tile.b.id, tile.b.lvl, self.econ.mods)
+	if not canAfford(s.res, cost) then return fail("Recursos insuficientes") end
+	pay(s.res, cost)
+	tile.b.dmg = nil
+	self.econ = computeEconomy(s, self.now)
+	self:emit("repaired", { x = x, y = y, id = tile.b.id })
+	return ok()
+end
+
+-- Conserta o que der, das construções mais baratas para as mais caras.
+function Game:repairAll()
+	local list = {}
+	for i, t in self.state.grid.tiles do
+		if t.b and t.b.dmg then
+			local x, y = Map.xy(i)
+			local c = 0
+			for _, v in Economy.repairCost(t.b.id, t.b.lvl, self.econ.mods) do c += v end
+			table.insert(list, { i = i, x = x, y = y, c = c })
+		end
+	end
+	table.sort(list, function(a, b)
+		if a.c ~= b.c then return a.c < b.c end
+		return a.i < b.i
+	end)
+	local n = 0
+	for _, it in list do
+		if self:repair(it.x, it.y).ok then n += 1 end
+	end
+	return { ok = n > 0, count = n, left = #list - n, reason = #list > 0 and "Recursos insuficientes" or "Nada para consertar" }
+end
+
+function Game:damagedCount()
+	local n = 0
+	for _, t in self.state.grid.tiles do
+		if t.b and t.b.dmg then n += 1 end
+	end
+	return n
 end
 
 -- ------------------------------------------------------------ construção
@@ -404,8 +537,13 @@ function Game:isAvailable(id)
 	return self:unlockProgress() >= def.unlock.buildings
 end
 
-local function validXY(x, y)
-	return type(x) == "number" and type(y) == "number" and x % 1 == 0 and y % 1 == 0 and Map.inBounds(x, y)
+-- Prédios com vizinho obrigatório (Cais: água, Mina: montanha) não podem ir para onde ficariam parados.
+-- Retorna o motivo, ou nil se o lugar serve.
+function Game:missingNeighbor(id, x, y)
+	local def = BUILDINGS[id]
+	local need = def and def.requiresAdj
+	if not need or Economy.adjacencyAt(self.state, id, x, y).hasRequired then return nil end
+	return def.name .. " só funciona ao lado de " .. Game.neighborName(need)
 end
 
 function Game:build(id, x, y)
@@ -424,8 +562,13 @@ function Game:build(id, x, y)
 		end
 		return fail("Não dá para construir em " .. string.lower(ter.name))
 	end
+	local needs = self:missingNeighbor(id, x, y)
+	if needs then return fail(needs) end
 	local cost = Economy.buildCost(s, id, self.econ.mods)
-	if not canAfford(s.res, cost) then return fail("Recursos insuficientes") end
+	if not canAfford(s.res, cost) then
+		s.stats.failBuild = (s.stats.failBuild or 0) + 1
+		return fail("Recursos insuficientes")
+	end
 	local missions = {}
 	if s.season.missions then
 		for i, m in s.season.missions.list do missions[i] = m.progress end
@@ -433,6 +576,7 @@ function Game:build(id, x, y)
 	local xpBefore = s.season.xp
 	pay(s.res, cost)
 	tile.b = { id = id, lvl = 1 }
+	tile.ruin = nil -- construir em cima limpa a ruína
 	s.stats.built += 1
 	if id == "escadaria" then self:openEntrance(x, y) end
 	self.econ = computeEconomy(s, self.now)
@@ -455,6 +599,7 @@ function Game:upgrade(x, y)
 	if not validXY(x, y) then return fail("Fora do mapa") end
 	local tile = self:tileAt(x, y)
 	if not tile.b then return fail("Nada para melhorar") end
+	if tile.b.dmg then return fail("Conserte antes de melhorar") end
 	local cost = Economy.upgradeCost(tile.b.id, tile.b.lvl, self.econ.mods)
 	if not cost then return fail("Nível máximo") end
 	if not canAfford(s.res, cost) then return fail("Recursos insuficientes") end
@@ -495,8 +640,11 @@ function Game:move(fx, fy, tx, ty)
 	if not Map.isUnlocked(s.grid, tx, ty) then return fail("Terra ainda não conquistada") end
 	if to.b then return fail("Destino ocupado") end
 	if not TERRAIN[to.t].buildable then return fail("Terreno inválido") end
+	local needs = self:missingNeighbor(from.b.id, tx, ty)
+	if needs then return fail(needs) end
 	to.b = from.b
 	from.b = nil
+	to.ruin = nil
 	self.econ = computeEconomy(s, self.now)
 	self:emit("moved", { fx = fx, fy = fy, tx = tx, ty = ty })
 	return ok()
@@ -523,6 +671,8 @@ function Game:clear(x, y)
 	if not wasSapling then
 		s.stats.cleared += 1
 		self:track("clear")
+	else
+		self:secret("choppedOwn")
 	end
 	self:emit("cleared", { x = x, y = y, yieldRes = ter.clearYield })
 	return ok()
@@ -857,6 +1007,7 @@ function Game:finishTraining(now)
 		if h.training and h.training.endsAt <= now then
 			h.training = nil
 			h.level = (h.level or 1) + 1
+			s.stats.trained = (s.stats.trained or 0) + 1
 			done = true
 			self:log(string.format("%s chegou ao nível %d", HERO_BY_ID[hid].name, h.level))
 			self:toast(string.format("%s terminou o treino: nível %d!", HERO_BY_ID[hid].name, h.level), "good")
@@ -954,6 +1105,15 @@ function Game:grant(reward)
 		s.res.gold += v
 		s.stats.totalGold += v
 		s.stats.runGold += v
+	elseif kind == "resMinutes" then
+		local gross = self.econ.gross and self.econ.gross[reward.res] or 0
+		local v = math.floor(math.max(100, gross * reward.minutes * 60))
+		s.res[reward.res] += v
+	elseif kind == "growAll" then
+		for _, t in s.grid.tiles do
+			if t.t == "sapling" then t.p = 0 end
+		end
+		self:growTrees(self.now)
 	elseif kind == "cosmetic" then
 		local list = ({ title = "titles", banner = "banners", emblem = "emblems" })[reward.kind]
 		local value = reward.kind == "title" and (Cosmetics.SEASON_TITLES[reward.id] or reward.id) or reward.id
@@ -978,18 +1138,27 @@ end
 
 function Game:dailyStatus()
 	local today = Util.dayKey(self.now)
+	-- O fuso do jogo não tem horário de verão, então 24 h atrás é sempre o dia anterior.
 	local yesterday = Util.dayKey(self.now - 86400000)
+	local twoDaysAgo = Util.dayKey(self.now - 2 * 86400000)
 	local d = self.state.daily
 	local available = d.lastDay ~= today
-	local nextStreak = d.lastDay == yesterday and d.streak + 1 or 1
-	return { available = available, nextStreak = nextStreak, reward = Cosmetics.DAILY_REWARDS[(nextStreak - 1) % 7 + 1] }
+	-- Escudo: uma vez por semana, faltar um único dia não zera a sequência.
+	local week = weekOf(self.now)
+	local shield = d.lastDay == twoDaysAgo and d.streak > 0 and d.shieldWeek ~= week
+	local nextStreak = (d.lastDay == yesterday or shield) and d.streak + 1 or 1
+	return {
+		available = available, nextStreak = nextStreak, shield = shield, shieldReady = d.shieldWeek ~= week,
+		reward = Cosmetics.DAILY_REWARDS[(nextStreak - 1) % 7 + 1],
+	}
 end
 
 function Game:claimDaily()
 	local s = self.state
 	local st = self:dailyStatus()
 	if not st.available then return fail("Volte amanhã") end
-	s.daily = { lastDay = Util.dayKey(self.now), streak = st.nextStreak }
+	s.daily = { lastDay = Util.dayKey(self.now), streak = st.nextStreak, shieldWeek = st.shield and weekOf(self.now) or s.daily.shieldWeek }
+	if st.shield then self:toast("O escudo da semana salvou sua sequência!", "good") end
 	local r = st.reward
 	if r.gold then s.res.gold += r.gold end
 	if r.gems then s.res.gems += r.gems end
@@ -1115,7 +1284,9 @@ end
 function Game:setKingdomName(name)
 	local clean = string.sub(string.gsub(string.gsub(tostring(name), "[<>]", ""), "^%s*(.-)%s*$", "%1"), 1, 24)
 	if clean == "" then return fail("Nome vazio") end
+	local before = self.state.kingdom.name
 	self.state.kingdom.name = clean
+	if string.lower(clean) == "reino de bolso" and string.lower(before) ~= "reino de bolso" then self:secret("defaultName") end
 	return ok()
 end
 
@@ -1262,6 +1433,7 @@ function Game:undoBuild()
 	self:tileAt(u.x, u.y).b = nil
 	refund(s.res, u.cost, 1)
 	s.stats.built = math.max(0, s.stats.built - 1)
+	s.stats.undos = (s.stats.undos or 0) + 1
 	s.season.xp = math.max(0, s.season.xp - u.xp)
 	if s.season.missions then
 		for i, m in s.season.missions.list do
@@ -1349,6 +1521,104 @@ function Game:checkUnlocks()
 end
 
 -- ------------------------------------------------------------ conquistas e tutorial
+-- Marca o gatilho de uma conquista secreta (a interface chama para cliques, teclas e som).
+-- ids usados pela interface: curious, poke, konami, silence, gemPoke (os outros o próprio jogo marca).
+function Game:secret(id)
+	local s = self.state
+	s.flags = s.flags or {}
+	if type(id) ~= "string" or s.flags[id] then return end
+	s.flags[id] = self.now
+	self:checkAchievements()
+end
+
+-- Só do Roblox: no web o jogo inteiro roda no navegador, aqui o cliente pede ao servidor. Para o
+-- cliente não marcar "voltou depois de 7 dias" ou "pura sorte" sozinho, ele só pode marcar os
+-- gatilhos que de fato nascem na interface.
+Game.UI_SECRETS = { curious = true, poke = true, konami = true, silence = true, gemPoke = true }
+function Game:uiSecret(id)
+	if not Game.UI_SECRETS[id] then return fail("Inválido") end
+	self:secret(id)
+	return ok()
+end
+
+-- Gatilhos que dependem do momento (hora do relógio, sorte, ouro zerado, muralha torta).
+function Game:checkSecrets()
+	local s = self.state
+	local hour = localDate(self.now).hour
+	if hour >= 3 and hour < 5 then self:secret("nightOwl") end
+	if Util.random() < 2e-6 then self:secret("lucky") end -- checado a cada ~2 s: 1 em 1 milhão por segundo
+	if s.res.gold < 1 and s.stats.totalGold >= 1000 then self:secret("broke") end
+	for i, t in s.grid.tiles do
+		if t.b and t.b.id == "muralha" then
+			local x, y = Map.xy(i)
+			if Economy.wallFacing(Map.wallMask(s.grid, x, y), s.raid.dir) < 1 then
+				self:secret("sidewall")
+				break
+			end
+		end
+	end
+end
+
+-- A conquista (não secreta) mais perto de sair: alvo para a barra "próxima conquista".
+-- Retorna { a, cur, goal, ratio } ou nil.
+function Game:nextAchievement()
+	local s = self.state
+	local best = nil
+	for _, a in Achievements.ACHIEVEMENTS do
+		if not s.achievements[a.id] and not a.kind and a.progress then
+			local p = a.progress(s, self.econ, HERO_BY_ID)
+			local cur, goal = p[1], p[2]
+			local ratio = math.min(0.999, math.max(0, cur / goal))
+			if not best or ratio > best.ratio then best = { a = a, cur = math.min(cur, goal), goal = goal, ratio = ratio } end
+		end
+	end
+	return best
+end
+
+-- Quantas conquistas contam (essenciais e secretas) e quantas já saíram; o bônus de produção vem daí.
+function Game:achievementCount()
+	local got, total = 0, 0
+	for _, a in Achievements.ACHIEVEMENTS do
+		if a.kind ~= "shadow" then
+			total += 1
+			if self.state.achievements[a.id] then got += 1 end
+		end
+	end
+	return { got = got, total = total, bonus = Economy.achievementBonus(self.state) }
+end
+
+-- ------------------------------------------------------------ loja de gemas
+function Game:buyShop(id)
+	local s = self.state
+	local item = Util.find(Shop.GEM_SHOP, function(i) return i.id == id end)
+	if not item then return fail("Item desconhecido") end
+	if item.reward.type == "growAll" and not Util.find(s.grid.tiles, function(t) return t.t == "sapling" end) then
+		return fail("Nenhuma muda plantada")
+	end
+	if s.res.gems < item.gems then return fail("Gemas insuficientes") end
+	s.res.gems -= item.gems
+	self:grant(item.reward)
+	self.econ = computeEconomy(s, self.now)
+	self:log("Loja: " .. item.name)
+	return ok({ item = item })
+end
+
+-- Compra com dinheiro real. Só credita quando o pagamento estiver ligado e confirmado pelo servidor
+-- (no Roblox: ProcessReceipt do MarketplaceService chama creditPurchasedGems).
+function Game:buyGemPack(id)
+	local pack = Util.find(Shop.GEM_PACKS, function(p) return p.id == id end)
+	if not pack then return fail("Pacote desconhecido") end
+	if not Shop.PAYMENTS_ENABLED then return fail("Compra de gemas chega em breve") end
+	return fail("Pagamento indisponível")
+end
+
+-- Ponto único para creditar gemas compradas (chamado depois que o pagamento for confirmado).
+function Game:creditPurchasedGems(amount)
+	local s = self.state
+	s.res.gems += amount
+	s.stats.gemsBought = (s.stats.gemsBought or 0) + amount
+end
+
 function Game:checkAchievements()
 	local s = self.state
 	for _, a in Achievements.ACHIEVEMENTS do
@@ -1359,7 +1629,7 @@ function Game:checkAchievements()
 				table.insert(s.cosmetics.titles, a.title)
 			end
 			self:log("Conquista: " .. a.name)
-			self:emit("achievement", { id = a.id, name = a.name, desc = a.desc, gems = a.gems, title = a.title })
+			self:emit("achievement", { id = a.id, name = a.name, desc = a.desc, gems = a.gems, title = a.title, icon = a.icon, kind = a.kind, hint = a.hint })
 		end
 	end
 end

@@ -95,9 +95,14 @@ function Util.clamp(v, lo, hi)
 	return math.min(hi, math.max(lo, v))
 end
 
--- Math.round do JavaScript (meio arredonda para cima).
+-- Math.round do JavaScript (meio arredonda para cima). Sem somar 0,5 antes do floor:
+-- 0,49999999999999994 + 0,5 dá 1 no double, e números acima de 2^52 já são inteiros.
 function Util.round(v)
-	return math.floor(v + 0.5)
+	local r = math.floor(v)
+	if v - r >= 0.5 then
+		return r + 1
+	end
+	return r
 end
 
 -- Math.imul: multiplicação de inteiros de 32 bits sem perder precisão no double do Luau.
@@ -178,10 +183,70 @@ local function isFinite(n)
 	return n == n and n ~= math.huge and n ~= -math.huge
 end
 
--- toFixed do JavaScript: empate arredonda para cima (0,25 -> 0,3), diferente do printf.
+-- String(n) do JavaScript: menor quantidade de dígitos que volta ao mesmo número,
+-- sem notação científica entre 1e-6 e 1e21 (o tostring do Luau usa %.14g e daria "1e+15").
+function Util.jsNumStr(n)
+	if n ~= n then return "NaN" end
+	if n == math.huge then return "Infinity" end
+	if n == -math.huge then return "-Infinity" end
+	if n == 0 then return "0" end
+	local sign = n < 0 and "-" or ""
+	n = math.abs(n)
+	local mant, ex
+	for p = 1, 17 do
+		local str = string.format("%." .. (p - 1) .. "e", n)
+		if tonumber(str) == n or p == 17 then
+			mant, ex = string.match(str, "^([%d%.]+)e([-+]%d+)$")
+			break
+		end
+	end
+	local digits = string.gsub(string.gsub(mant, "%.", ""), "0+$", "")
+	local k = #digits
+	local point = tonumber(ex) + 1 -- posição da vírgula decimal em relação aos dígitos
+	if k <= point and point <= 21 then
+		return sign .. digits .. string.rep("0", point - k)
+	elseif 0 < point and point <= 21 then
+		return sign .. string.sub(digits, 1, point) .. "." .. string.sub(digits, point + 1)
+	elseif -6 < point and point <= 0 then
+		return sign .. "0." .. string.rep("0", -point) .. digits
+	end
+	local e = point - 1
+	local rest = k > 1 and ("." .. string.sub(digits, 2)) or ""
+	return sign .. string.sub(digits, 1, 1) .. rest .. "e" .. (e >= 0 and "+" or "-") .. math.abs(e)
+end
+
+-- Soma 1 na última casa de um número decimal escrito ("9.99" -> "10.00").
+local function bumpLastDigit(str)
+	local chars = string.split(str, "")
+	local i = #chars
+	while i >= 1 do
+		local c = chars[i]
+		if c ~= "." then
+			if c == "9" then
+				chars[i] = "0"
+			else
+				chars[i] = tostring(tonumber(c) + 1)
+				return table.concat(chars)
+			end
+		end
+		i -= 1
+	end
+	return "1" .. table.concat(chars)
+end
+
+-- toFixed do JavaScript (n >= 0 e < 1e21): arredonda o valor exato do double, e no empate exato
+-- (0,25; 2,5; 0,125) escolhe o maior, enquanto o printf escolhe o par. 0,15 continua dando "0.1",
+-- porque o double de 0,15 é 0,1499999...
 local function toFixed(n, decimals)
-	local p = 10 ^ decimals
-	return string.format("%." .. decimals .. "f", math.floor(n * p + 0.5) / p)
+	local exact = string.format("%." .. (decimals + 25) .. "f", n)
+	local dot = string.find(exact, ".", 1, true)
+	local tail = string.sub(exact, dot + decimals + 1)
+	if tail == "5" .. string.rep("0", 24) then
+		local head = string.sub(exact, 1, dot + decimals)
+		if decimals == 0 then head = string.sub(head, 1, dot - 1) end
+		return bumpLastDigit(head)
+	end
+	return string.format("%." .. decimals .. "f", n)
 end
 
 local function fmtRaw(n, decimals)
@@ -194,7 +259,7 @@ local function fmtRaw(n, decimals)
 		if n < 10 and n % 1 ~= 0 then
 			return sign .. toFixed(n, decimals)
 		end
-		return sign .. tostring(math.floor(n))
+		return sign .. Util.jsNumStr(math.floor(n))
 	end
 	local tier = math.min(#SUFFIXES - 1, math.floor(math.log10(n) / 3))
 	local scaled = n / 10 ^ (tier * 3)
@@ -211,25 +276,26 @@ function Util.fmtRate(n)
 end
 
 function Util.fmtPct(f)
-	return (f >= 0 and "+" or "") .. Util.round(f * 100) .. "%"
+	return (f >= 0 and "+" or "") .. Util.jsNumStr(Util.round(f * 100)) .. "%"
 end
 
 function Util.fmtTime(sec)
 	sec = math.max(0, math.floor(sec))
 	local d = math.floor(sec / 86400)
-	local h = math.floor((sec % 86400) / 3600)
-	local m = math.floor((sec % 3600) / 60)
-	local s = sec % 60
+	local h = math.floor(math.fmod(sec, 86400) / 3600) -- fmod = % do JavaScript (exato com números grandes)
+	local m = math.floor(math.fmod(sec, 3600) / 60)
+	local s = math.fmod(sec, 60)
+	local str = Util.jsNumStr
 	if d > 0 then
-		return string.format("%dd %dh", d, h)
+		return str(d) .. "d " .. str(h) .. "h"
 	end
 	if h > 0 then
-		return string.format("%dh %dm", h, m)
+		return str(h) .. "h " .. str(m) .. "m"
 	end
 	if m > 0 then
-		return string.format("%dm %02ds", m, s)
+		return str(m) .. "m " .. string.format("%02d", s) .. "s"
 	end
-	return string.format("%ds", s)
+	return str(s) .. "s"
 end
 
 return Util

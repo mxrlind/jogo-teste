@@ -1,8 +1,16 @@
--- Ids das folhas de sprites no Roblox.
--- 1. No Studio, abra View > Asset Manager > Bulk Import e envie roblox/assets/folha-1.png e folha-2.png.
--- 2. Clique com o botão direito em cada imagem enviada > Copy Asset ID e cole abaixo, no lugar do 0.
--- Se um id for 0, o jogo funciona com blocos coloridos no lugar dos sprites.
+-- Ids das imagens e sons enviados para o Roblox (geradas por tools/atlas.py e tools/audio.py).
+-- Para trocar: no Studio, Asset Manager > Importar o arquivo de roblox/assets/, botão direito > Copiar ID, e cole aqui.
+-- Enquanto um id for 0, a tela usa blocos coloridos no lugar das imagens e fica sem aquele som.
 return {
-	"rbxassetid://89393252907489", -- folha-1.png
-	"rbxassetid://139789698426680", -- folha-2.png
+	sheets = {
+		["sprites-1"] = "rbxassetid://0",
+		["sprites-2"] = "rbxassetid://0",
+		["icones-1"] = "rbxassetid://0",
+		["ui-1"] = "rbxassetid://0",
+	},
+	audio = {
+		efeitos = "rbxassetid://0",
+		["musica-vila"] = "rbxassetid://0",
+		["musica-batalha"] = "rbxassetid://0",
+	},
 }

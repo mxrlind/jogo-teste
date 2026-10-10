@@ -21,6 +21,7 @@ local function freshStats()
 	return {
 		totalGold = 0, runGold = 0, built = 0, upgrades = 0, raidsWon = 0, raidsLost = 0, recruits = 0, goldRecruits = 0,
 		expeditions = 0, chests = 0, ascensions = 0, cleared = 0, planted = 0, dug = 0, visits = 0, playTime = 0, bestRaid = 0,
+		trained = 0, undos = 0, failBuild = 0, lossStreak = 0, gemsBought = 0,
 	}
 end
 
@@ -67,8 +68,9 @@ function S.createState(opts)
 		legacy = legacy,
 		season = carry and carry.season or { number = Season.seasonInfo(now).number, xp = 0, claimed = {} },
 		achievements = carry and carry.achievements or {},
+		flags = carry and carry.flags or {}, -- gatilhos das conquistas secretas (código Konami, madrugada...)
 		cosmetics = carry and carry.cosmetics or { banners = {}, emblems = {}, titles = table.clone(Cosmetics.BASE_TITLES) },
-		daily = carry and carry.daily or { streak = 0 },
+		daily = carry and carry.daily or { streak = 0 }, -- lastDay e shieldWeek começam nil (null no web)
 		social = carry and carry.social or { trades = {}, greets = {}, rivalsSeed = seed },
 		tutorial = carry and { done = true, step = 99 } or { done = false, step = 0 },
 		unlocks = carry and carry.unlocks or { tabs = { "reino", "perfil" } },
@@ -99,6 +101,7 @@ function S.carryOver(state)
 		items = state.items,
 		season = state.season,
 		achievements = state.achievements,
+		flags = state.flags,
 		cosmetics = state.cosmetics,
 		daily = state.daily,
 		social = state.social,
@@ -139,6 +142,7 @@ function S.normalize(data, now)
 	merged.season.claimed = merged.season.claimed or {}
 	merged.legacy = data.legacy or {}
 	merged.achievements = data.achievements or {}
+	merged.flags = type(data.flags) == "table" and data.flags or {}
 	merged.runs = data.runs or {}
 	merged.records = data.records or {}
 	merged.under = data.under or base.under
