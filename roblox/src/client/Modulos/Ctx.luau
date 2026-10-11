@@ -1,6 +1,7 @@
 -- Estado compartilhado da tela (o `ui` de src/ui/ctx.js) e a ponte com o servidor.
 -- Os módulos se registram aqui (Ctx.renderer, Ctx.actions, Ctx.toast...) e se chamam por aqui, sem require circular.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
 local Reino = ReplicatedStorage:WaitForChild("Reino")
 local Config = require(Reino.Core.Config)
@@ -37,6 +38,19 @@ Ctx.vp = Vector2.new(1280, 720)
 Ctx.mobile = false
 Ctx.mid = false
 Ctx.small = false
+
+-- Aparelho de toque (o "pointer: coarse" do web). PreferredInput é o que o Roblox recomenda; o
+-- "toque sem mouse" antigo falhava em celulares Android que dizem ter mouse. Sem PreferredInput,
+-- conta como toque quem tem tela de toque e não tem mouse e teclado ao mesmo tempo.
+function Ctx.touchOnly()
+	local ok, pref = pcall(function()
+		return UserInputService.PreferredInput == Enum.PreferredInput.Touch
+	end)
+	if ok then
+		return pref
+	end
+	return UserInputService.TouchEnabled and not (UserInputService.MouseEnabled and UserInputService.KeyboardEnabled)
+end
 
 -- ------------------------------------------------------------ relógio do servidor
 Ctx.timeOffset = 0
