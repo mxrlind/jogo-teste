@@ -662,6 +662,8 @@ local function optionsContent()
 		}),
 		muted((c.layout == "auto" and ("Detectado agora: " .. (Ctx.detectLayout("auto") == "mobile" and "celular" or "computador") .. ". ") or "")
 			.. "No celular o mapa fica em cima e o painel embaixo, com rolagem, e a tela fica em pé."),
+		-- Para diagnóstico: o que o jogo enxerga do aparelho.
+		muted(string.format("Aparelho: %s, tela %dx%d.", Ctx.touchOnly() and "toque" or "mouse/teclado", math.floor(Ctx.vp.X), math.floor(Ctx.vp.Y))),
 		h3("Visual e acessibilidade"),
 		slider("fontScale", "Tamanho do texto", 85, 150, "font"),
 		check("villagers", "Moradores andando pelo mapa"),

@@ -205,27 +205,19 @@ local function safeArea(vp)
 	return x, bottom
 end
 
--- Aparelho só de toque (mesma regra do Stage e dos Toasts).
-local function touchOnly()
-	return UserInputService.TouchEnabled and not UserInputService.MouseEnabled
-end
-
 -- "mobile" | "desktop" pela opção de layout (Opções > Tela); no automático, pela tela e pelo aparelho.
 function Ctx.detectLayout(layout)
 	local vp = mainGui.AbsoluteSize
 	if vp.X < 10 then
 		vp = Vector2.new(1280, 720)
 	end
-	return Config.resolveLayout(layout or "auto", { width = vp.X, touch = touchOnly(), screenMin = math.min(vp.X, vp.Y) })
+	return Config.resolveLayout(layout or "auto", { width = vp.X, touch = Ctx.touchOnly(), screenMin = math.min(vp.X, vp.Y) })
 end
-Ctx.touchOnly = touchOnly
 
 -- Celular no layout de celular fica em pé (mapa em cima, painel embaixo); no de computador, deitado.
+-- Sem checar o aparelho: no PC o Roblox ignora a orientação, e a checagem errava em alguns celulares.
 local lastOrientation = nil
 local function applyOrientation()
-	if not touchOnly() then
-		return
-	end
 	local want = Ctx.mobile and Enum.ScreenOrientation.Portrait or Enum.ScreenOrientation.LandscapeSensor
 	if want ~= lastOrientation then
 		lastOrientation = want
@@ -310,6 +302,10 @@ Ctx.relayout = function()
 end
 mainGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(Ctx.relayout)
 safeGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(Ctx.relayout)
+-- Entrada preferida muda (teclado ligado no tablet, toque depois do mouse): recalcula o automático.
+pcall(function()
+	UserInputService:GetPropertyChangedSignal("PreferredInput"):Connect(Ctx.relayout)
+end)
 hudFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(Ctx.relayout)
 gameScroll:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
 	if Ctx.mobile then

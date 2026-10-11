@@ -4,7 +4,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 
 local Kit = require(script.Parent.Kit)
 local T = require(script.Parent.Theme)
@@ -467,9 +466,7 @@ end
 local hintShown = false
 local hintInst = nil
 local hintHolder = nil
-local function touchUi()
-	return UserInputService.TouchEnabled and not UserInputService.MouseEnabled
-end
+local touchUi = Ctx.touchOnly
 
 local function renderModeHint()
 	if not overlayHost then

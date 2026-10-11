@@ -3,7 +3,6 @@
 -- faixa colorida à esquerda (box-shadow inset 3px) e ícone na cor do tipo, entrada "tin" e saída ".out".
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 
 local Reino = ReplicatedStorage:WaitForChild("Reino")
 local Buildings = require(Reino.Data.Buildings)
@@ -77,9 +76,7 @@ local layoutMobile = nil
 local layoutRem = nil
 
 -- Ponteiro grosso (toque sem mouse): o atalho de teclado some do botão Desfazer (@media (pointer: coarse)).
-local function coarse()
-	return UserInputService.TouchEnabled and not UserInputService.MouseEnabled
-end
+local coarse = Ctx.touchOnly
 
 -- #toasts: embaixo no centro, largura min(30rem, 100% - 2rem); no celular (<= 860 px) em cima, 8 px das bordas,
 -- e a ordem inverte (column-reverse no PC: o mais novo fica embaixo; column no celular: o mais novo fica em cima).

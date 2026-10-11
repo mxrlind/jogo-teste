@@ -124,10 +124,12 @@ end
 
 -- Layout que de fato vale (resolveLayout do web). No automático vira celular com tela estreita ou em
 -- aparelho só de toque com tela pequena: celular deitado passa de 860 px e antes caía no layout de PC.
+-- Lado menor até 500 px é celular mesmo sem toque detectado (nenhum celular passa disso; janela de PC
+-- tão baixa é rara e fica melhor empilhada).
 -- env = { width, touch, screenMin }
 function C.resolveLayout(layout, env)
 	if layout == "mobile" or layout == "desktop" then return layout end
-	if env.width <= 860 then return "mobile" end
+	if env.width <= 860 or env.screenMin <= 500 then return "mobile" end
 	return (env.touch and env.screenMin <= 600) and "mobile" or "desktop"
 end
 
