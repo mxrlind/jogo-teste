@@ -36,6 +36,8 @@ export const STAIRS_COST = [{ gold: 400, stone: 150 }, { gold: 3000, stone: 600 
 //   minDepth   nível mínimo   onTile  tipo de tile exigido embaixo (senão chão cavado)
 //   requiresAdj  só funciona com pelo menos um vizinho desse tipo
 //   adj        bônus por vizinho { tipo: fração } ('wall' = rocha, veio de ouro ou de gemas)
+//   storage    armazém extra { recurso: valor } x nível²; com `adjStorage` o bônus de vizinhos aumenta o armazém
+//   raidShield fração do saque de ouro que fica escondida por nível (soma de todas, até RAID_SHIELD_MAX)
 export const ROOMS = {
   pedreira_funda: {
     id: 'pedreira_funda', name: 'Pedreira Funda', minDepth: 1,
@@ -46,6 +48,16 @@ export const ROOMS = {
     id: 'adega', name: 'Adega', minDepth: 1,
     desc: 'Fresca o ano todo: guarda mais comida e as fazendas rendem +5% por nível.',
     cost: { wood: 100, stone: 80 }, storage: { food: 500 }, foodBonus: 0.05, adj: {}, maxLevel: 5,
+  },
+  deposito: {
+    id: 'deposito', name: 'Depósito', minDepth: 1,
+    desc: 'Galeria seca e firme para empilhar madeira e pedra. Cada parede de rocha vizinha guarda +10%.',
+    cost: { gold: 300, wood: 60 }, storage: { wood: 1500, stone: 1500 }, adjStorage: true, adj: { wall: 0.1 }, maxLevel: 5,
+  },
+  cofre: {
+    id: 'cofre', name: 'Cofre Anão', minDepth: 2,
+    desc: 'Câmara trancada para o ouro, longe das hordas: guarda mais ouro e esconde 10% do saque de ouro por nível. Cada parede de rocha vizinha guarda +10%.',
+    cost: { gold: 1500, stone: 300 }, storage: { gold: 12000 }, raidShield: 0.1, adjStorage: true, adj: { wall: 0.1 }, maxLevel: 5,
   },
   garimpo: {
     id: 'garimpo', name: 'Garimpo', minDepth: 1,
@@ -64,4 +76,7 @@ export const ROOMS = {
   },
 };
 
-export const ROOM_ORDER = ['pedreira_funda', 'adega', 'garimpo', 'fungos', 'forja'];
+export const ROOM_ORDER = ['pedreira_funda', 'adega', 'deposito', 'cofre', 'garimpo', 'fungos', 'forja'];
+
+// Os cofres juntos nunca escondem mais que isso do saque de ouro (derrota ainda dói).
+export const RAID_SHIELD_MAX = 0.5;

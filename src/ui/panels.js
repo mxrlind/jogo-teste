@@ -19,7 +19,7 @@ import { UNDER_SPRITES, ROOM_SPRITES, BUILDING_SPRITES, TERRAIN_SPRITES, RUIN_IC
 import { ui, $, esc, costHtml, bannerColor, emblemIcon, deltaText } from './ctx.js';
 import { ico, resIco } from './icons.js';
 import { runHistoryHtml } from './ascension.js';
-import { UNDER_TILES, ROOMS, ROOM_ORDER, LEVEL_NAMES } from '../data/underground.js';
+import { UNDER_TILES, ROOMS, ROOM_ORDER, LEVEL_NAMES, RAID_SHIELD_MAX } from '../data/underground.js';
 import { digCost, digYield, canReach, stairsCost, roomCost, roomUpgradeCost, roomAdjacency } from '../core/underground.js';
 
 const spriteOf = (id) => BUILDING_SPRITES[id]?.icon;
@@ -254,13 +254,14 @@ function underTileHtml(g, d, x, y) {
       : '<li class="muted">Nenhum vizinho com bônus</li>';
     const lines = [];
     for (const [r, v] of Object.entries(info?.out ?? {})) lines.push(`${resIco(r)} ${fmtRate(v)}`);
-    if (def.storage) for (const [r, v] of Object.entries(def.storage)) lines.push(`${resIco(r)} +${fmt(v * t.b.lvl * t.b.lvl)} de armazém`);
+    for (const [r, v] of Object.entries(info?.store ?? {})) lines.push(`${resIco(r)} +${fmt(v)} de armazém`);
+    if (def.raidShield) lines.push(`${ico('lock')} esconde ${Math.round(Math.min(RAID_SHIELD_MAX, def.raidShield * t.b.lvl) * 100)}% do saque de ouro`);
     if (def.foodBonus) lines.push(`${resIco('food')} +${Math.round(def.foodBonus * t.b.lvl * 100)}% de comida no reino`);
     if (def.prodAll && info?.active) lines.push(`${ico('upgrade')} +${Math.round(def.prodAll * t.b.lvl * 100)}% de toda a produção`);
     const warn = info && !info.active ? `<p class="warn">${ico('warning')} Precisa estar encostada em ${UNDER_TILES[def.requiresAdj].name.toLowerCase()}.</p>` : '';
     return `<div class="title-row"><img src="${ROOM_SPRITES[t.b.id].icon}" alt=""><h3><small class="muted">Nível ${t.b.lvl} de ${def.maxLevel} · subsolo ${d}</small>${def.name}</h3></div>
       <p class="muted">${esc(def.desc)}</p>${warn}
-      <div class="lbl"><span>Produção</span></div>
+      <div class="lbl"><span>${def.prod ? 'Produção' : 'Efeito'}</span></div>
       <div class="stats">${lines.map((l) => `<span>${l}</span>`).join('')}</div>
       ${Object.keys(def.adj).length ? `<div class="lbl"><span>Vizinhos</span><span class="${info?.adjBonus > 0 ? 'pos' : ''}">${fmtPct(info?.adjBonus ?? 0)}</span></div><ul class="adj">${adj}</ul>` : ''}
       ${up ? `<div class="row"><button class="btn ${canAfford(s.res, up) ? 'primary' : 'poor'}" data-action="roomUp">${ico('upgrade')} Melhorar ${costHtml(up, s.res)}</button></div>` : '<p class="muted">Nível máximo.</p>'}
