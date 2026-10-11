@@ -52,6 +52,13 @@ function Ctx.touchOnly()
 	return UserInputService.TouchEnabled and not (UserInputService.MouseEnabled and UserInputService.KeyboardEnabled)
 end
 
+-- Tipo de aparelho das preferências ("touch" ou "pc"), decidido uma vez por sessão: cada um tem a sua config.
+local device = nil
+function Ctx.device()
+	device = device or (Ctx.touchOnly() and "touch" or "pc")
+	return device
+end
+
 -- ------------------------------------------------------------ relógio do servidor
 Ctx.timeOffset = 0
 function Ctx.now()
@@ -158,7 +165,7 @@ function Ctx.setConfig(cfg, noSave)
 		Ctx.onConfig(Ctx.config)
 	end
 	if not noSave then
-		Ctx.actAsync("setConfig", Ctx.config)
+		Ctx.actAsync("setConfig", Ctx.config, Ctx.device())
 	end
 end
 

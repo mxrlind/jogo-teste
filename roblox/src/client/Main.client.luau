@@ -402,8 +402,8 @@ estado.OnClientEvent:Connect(function(snap, events, serverNow, extra)
 	g.canUndoServer = snap.canUndo
 	Ctx.game = g
 	if extra then
-		if extra.config then
-			Ctx.setConfig(extra.config, true)
+		if extra.configs then
+			Ctx.setConfig(extra.configs[Ctx.device()], true)
 		end
 		Ctx.server = extra
 	end
