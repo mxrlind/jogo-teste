@@ -1,0 +1,52 @@
+{
+  "name": "ReinoDeBolso",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Reino": {
+        "$path": "src/shared/Reino"
+      }
+    },
+    "ServerScriptService": {
+      "ReinoServidor": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "ReinoCliente": {
+          "$path": "src/client"
+        }
+      }
+    },
+    "Players": {
+      "$properties": {
+        "CharacterAutoLoads": false
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "Ambient": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "ClockTime": 14
+      }
+    },
+    "TextChatService": {
+      "ChatWindowConfiguration": {
+        "$properties": {
+          "Enabled": false
+        },
+        "$className": "ChatWindowConfiguration"
+      },
+      "ChatInputBarConfiguration": {
+        "$properties": {
+          "Enabled": false
+        },
+        "$className": "ChatInputBarConfiguration"
+      }
+    }
+  }
+}
