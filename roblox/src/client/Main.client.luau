@@ -6,10 +6,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local GuiService = game:GetService("GuiService")
 local StarterGui = game:GetService("StarterGui")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local Reino = ReplicatedStorage:WaitForChild("Reino")
 local Game = require(Reino.Core.Game)
+local Config = require(Reino.Core.Config)
 
 local M = script.Parent:WaitForChild("Modulos")
 local Kit = require(M.Kit)
@@ -51,6 +53,13 @@ local mainGui = layer("ReinoDeBolso", 1)
 local toastGui = layer("ReinoToasts", 5)
 local modalGui = layer("ReinoModal", 10)
 local tipGui = layer("ReinoDicas", 20)
+
+-- Sonda da área segura (entalhe e barra de gestos do celular): o tamanho dela com DeviceSafeInsets
+-- comparado com a tela inteira dá quanto sobra nas bordas.
+local safeGui = layer("ReinoAreaSegura", 0)
+pcall(function()
+	safeGui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
+end)
 
 -- Fundo da página: radial-gradient(120% 90% at 50% 0%, #2e2b3a 0%, var(--ink) 60%).
 local page = Instance.new("Frame")
@@ -171,14 +180,59 @@ Kit.setTipHandler(function(inst, text)
 end)
 
 -- ------------------------------------------------------------ layout (grade do #layout e breakpoints)
+-- Fim da barra do Roblox em px da tela. Max.Y (e não Height): no celular em pé a barra começa abaixo do
+-- entalhe, e só a altura deixava o HUD por baixo dos botões do Roblox.
 local function inset()
 	local ok, r = pcall(function()
 		return GuiService.TopbarInset
 	end)
 	if ok and r then
-		return r.Height
+		return math.max(r.Max.Y, r.Height)
 	end
 	return 0
+end
+
+-- Px fora da área segura: em cada lado e embaixo (o topo já fica abaixo da barra do Roblox).
+-- Sem a sonda (Studio antigo, testes), zero.
+local function safeArea(vp)
+	local s = safeGui.AbsoluteSize
+	if s.X < 10 or s.Y < 10 then
+		return 0, 0
+	end
+	local x = math.max(0, math.floor((vp.X - s.X) / 2))
+	-- ponytail: limite de 48 px caso a sonda não informe o entalhe de cima na posição (aí ele cairia embaixo).
+	local bottom = math.clamp(vp.Y - s.Y - math.max(0, safeGui.AbsolutePosition.Y), 0, 48)
+	return x, bottom
+end
+
+-- Aparelho só de toque (mesma regra do Stage e dos Toasts).
+local function touchOnly()
+	return UserInputService.TouchEnabled and not UserInputService.MouseEnabled
+end
+
+-- "mobile" | "desktop" pela opção de layout (Opções > Tela); no automático, pela tela e pelo aparelho.
+function Ctx.detectLayout(layout)
+	local vp = mainGui.AbsoluteSize
+	if vp.X < 10 then
+		vp = Vector2.new(1280, 720)
+	end
+	return Config.resolveLayout(layout or "auto", { width = vp.X, touch = touchOnly(), screenMin = math.min(vp.X, vp.Y) })
+end
+Ctx.touchOnly = touchOnly
+
+-- Celular no layout de celular fica em pé (mapa em cima, painel embaixo); no de computador, deitado.
+local lastOrientation = nil
+local function applyOrientation()
+	if not touchOnly() then
+		return
+	end
+	local want = Ctx.mobile and Enum.ScreenOrientation.Portrait or Enum.ScreenOrientation.LandscapeSensor
+	if want ~= lastOrientation then
+		lastOrientation = want
+		pcall(function()
+			playerGui.ScreenOrientation = want
+		end)
+	end
 end
 
 local layoutDirty = true
@@ -188,12 +242,20 @@ local function layout()
 		vp = Vector2.new(1280, 720)
 	end
 	local top = inset()
-	root.Position = UDim2.fromOffset(0, top)
-	root.Size = UDim2.new(1, 0, 1, -top)
+	local sx, sb = safeArea(vp)
+	root.Position = UDim2.fromOffset(sx, top)
+	root.Size = UDim2.new(1, -sx * 2, 1, -top - sb)
 	toastFrame.Position, toastFrame.Size = root.Position, root.Size
-	local h0 = vp.Y - top
+	vp = Vector2.new(vp.X - sx * 2, vp.Y)
+	local h0 = vp.Y - top - sb
 	Ctx.vp = Vector2.new(vp.X, h0)
-	Ctx.mobile = vp.X <= T.BP_MOBILE
+	local wasMobile = Ctx.mobile
+	Ctx.mobile = Ctx.detectLayout(Ctx.config.layout) == "mobile"
+	applyOrientation()
+	if wasMobile ~= Ctx.mobile then
+		-- Troca de layout (girar o celular, mudar a opção): HUD, paleta e painel mudam de forma.
+		Ctx.invalidate("all", true)
+	end
 	Ctx.mid = vp.X <= T.BP_MID
 	Ctx.small = vp.X <= T.BP_SMALL
 	local hudH = hudFrame.AbsoluteSize.Y
@@ -219,7 +281,9 @@ local function layout()
 		gameScroll.ScrollingEnabled = true
 		local side = 16
 		local w = vp.X - side * 2
-		local mapH = w
+		-- Mapa quadrado do tamanho da largura, mas cabendo inteiro na tela abaixo do HUD (celular deitado).
+		local mapH = math.max(240, math.min(w, h0 - hudH - rem(1.2))) -- 240 = mínimo do MapView
+		Ctx.mapMax = mapH
 		local stageH = mapH + Stage.mobileExtra()
 		local palH = Palette.mobileHeight()
 		local sideH = math.max(math.floor(h0 * 0.6), sideFrame:GetAttribute("contentH") or 0)
@@ -245,6 +309,7 @@ Ctx.relayout = function()
 	layoutDirty = true
 end
 mainGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(Ctx.relayout)
+safeGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(Ctx.relayout)
 hudFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(Ctx.relayout)
 gameScroll:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
 	if Ctx.mobile then

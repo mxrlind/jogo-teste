@@ -42,9 +42,13 @@ function C.defaultConfig()
 		reduceMotion = false,
 		fontScale = 1,
 		highContrast = false,
+		layout = "auto", -- "auto" | "mobile" | "desktop"
+		layoutAsked = false, -- a pergunta "celular ou computador?" já apareceu na primeira abertura
 		keys = keys,
 	}
 end
+
+C.LAYOUTS = { auto = true, mobile = true, desktop = true }
 
 -- Number(v) do JavaScript: nil vira NaN, booleano vira 0/1, texto vazio vira 0.
 local function toNumber(v)
@@ -97,6 +101,8 @@ function C.normalizeConfig(raw, legacySettings)
 		reduceMotion = bool("reduceMotion"),
 		fontScale = clamp(c.fontScale, 0.85, 1.5, d.fontScale),
 		highContrast = bool("highContrast"),
+		layout = (type(c.layout) == "string" and C.LAYOUTS[c.layout]) and c.layout or d.layout,
+		layoutAsked = bool("layoutAsked"),
 		keys = keys,
 	}
 end
@@ -108,11 +114,21 @@ function C.effectiveVolumes(config, hidden)
 	return { music = config.musicVolume * m, sfx = config.sfxVolume * m }
 end
 
--- Restaura as opções padrão sem mexer nas teclas (elas têm botão próprio).
+-- Restaura as opções padrão sem mexer nas teclas (elas têm botão próprio). A pergunta de layout não volta.
 function C.resetOptions(config)
 	local out = C.defaultConfig()
+	out.layoutAsked = config.layoutAsked == true
 	out.keys = Util.copy(config.keys)
 	return out
+end
+
+-- Layout que de fato vale (resolveLayout do web). No automático vira celular com tela estreita ou em
+-- aparelho só de toque com tela pequena: celular deitado passa de 860 px e antes caía no layout de PC.
+-- env = { width, touch, screenMin }
+function C.resolveLayout(layout, env)
+	if layout == "mobile" or layout == "desktop" then return layout end
+	if env.width <= 860 then return "mobile" end
+	return (env.touch and env.screenMin <= 600) and "mobile" or "desktop"
 end
 
 -- Primeira ação ligada a uma tecla (para o atalho e para detectar conflitos no remapeamento).
