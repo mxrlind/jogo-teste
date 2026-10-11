@@ -160,10 +160,11 @@ local function layoutStage()
 	local stH = stage.AbsoluteSize.Y
 	local tutH = (tutVisible and tutInst and tutInst.Parent) and (tutInst.AbsoluteSize.Y + rem(0.6)) or 0
 	if Ctx.mobile then
+		local mapS = math.min(w, Ctx.mapMax or w)
 		mapWrap.Position = UDim2.fromOffset(0, tutH)
-		mapWrap.Size = UDim2.new(1, 0, 0, w)
+		mapWrap.Size = UDim2.new(1, 0, 0, mapS)
 		tileHost.AnchorPoint = Vector2.zero
-		tileHost.Position = UDim2.fromOffset(0, tutH + w + rem(0.6))
+		tileHost.Position = UDim2.fromOffset(0, tutH + mapS + rem(0.6))
 		tileHost.Size = UDim2.new(1, 0, 0, tileH)
 	else
 		mapWrap.Position = UDim2.fromOffset(0, tutH)

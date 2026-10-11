@@ -238,6 +238,23 @@ do
 	check("rodada nova começa limpa", game.state.stats.runGold == 0 and #game.state.runs == 1)
 end
 
+-- Layout celular/computador (mesmos casos do tests/core.test.js do web)
+do
+	local L = Config.resolveLayout
+	check("layout: padrão automático", Config.defaultConfig().layout == "auto")
+	check("layout: valor inválido vira automático", Config.normalizeConfig({ layout = "tablet" }).layout == "auto")
+	check("layout: celular salvo", Config.normalizeConfig({ layout = "mobile" }).layout == "mobile")
+	check("layout: celular em pé", L("auto", { width = 390, touch = true, screenMin = 390 }) == "mobile")
+	check("layout: celular deitado", L("auto", { width = 915, touch = true, screenMin = 412 }) == "mobile")
+	check("layout: tablet deitado", L("auto", { width = 1180, touch = true, screenMin = 820 }) == "desktop")
+	check("layout: computador", L("auto", { width = 1440, touch = false, screenMin = 900 }) == "desktop")
+	check("layout: janela estreita no PC", L("auto", { width = 700, touch = false, screenMin = 900 }) == "mobile")
+	check("layout: escolha manual vence", L("desktop", { width = 390, touch = true, screenMin = 390 }) == "desktop")
+	local c = Config.defaultConfig()
+	c.layout, c.layoutAsked = "mobile", true
+	check("layout: restaurar opções não pergunta de novo", Config.resetOptions(c).layoutAsked == true)
+end
+
 print(string.format("\n%d ok, %d falharam", passed, failed))
 if failed > 0 then
 	local process = require("@lune/process")

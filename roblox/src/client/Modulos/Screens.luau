@@ -482,6 +482,25 @@ local function renderMenu(animate)
 	end
 end
 
+-- Primeira abertura num aparelho de toque: pergunta como a pessoa vai jogar (dá para trocar em Opções > Tela).
+-- No computador o automático já acerta (largura da janela), então não pergunta.
+local function askLayout()
+	if Ctx.config.layoutAsked or not (Ctx.touchOnly and Ctx.touchOnly()) then return end
+	local auto = Ctx.detectLayout("auto")
+	local function opt(mode, icon, text)
+		return stackBtn({ text = text, icon = icon, variant = auto == mode and "primary" or nil, onClick = function() Ctx.run("setLayout", mode) end })
+	end
+	Modals.show({
+		h2("map", "Onde você vai jogar?"),
+		muted("A tela se ajusta ao aparelho. Você pode mudar isso quando quiser em Opções > Tela."),
+		U.col({ gap = rem(0.5) }, {
+			opt("mobile", "move", "Celular: mapa em cima, tela em pé, rolagem vertical"),
+			opt("desktop", "keyboard", "Computador: tudo lado a lado, tela deitada"),
+			bigBtn({ text = "Detectar sozinho (agora: " .. (auto == "mobile" and "celular" or "computador") .. ")", onClick = function() Ctx.run("setLayout", "auto") end }),
+		}),
+	}, "", { closable = false, priority = true })
+end
+
 local function showMainMenu()
 	Ctx.setScreen("menu")
 	renderMenu(true)
@@ -497,6 +516,7 @@ local function showMainMenu()
 	end
 	menuRenderer.view = { grid = menuGrid }
 	drawMenuMap()
+	askLayout()
 end
 
 -- ================================================================ janelas
@@ -594,6 +614,13 @@ local function showGameMenu()
 	})
 end
 
+local function layoutBtn(mode, text)
+	return U.btn({
+		small = true, text = text, variant = Ctx.config.layout == mode and "primary" or nil,
+		onClick = function() Ctx.run("setLayout", mode) end,
+	})
+end
+
 local function optionsContent()
 	local c = Ctx.config
 	local keys = {}
@@ -627,6 +654,14 @@ local function optionsContent()
 		check("batterySaver", "Modo economia de bateria (mapa a 30 quadros por segundo)"),
 		-- "Jogar em tela cheia" não existe no Roblox (a tela cheia é do próprio Roblox): o botão fica escondido,
 		-- como no web quando document.fullscreenEnabled é falso.
+		h3("Tela"),
+		mrow({
+			layoutBtn("auto", "Automático"),
+			layoutBtn("mobile", "Celular"),
+			layoutBtn("desktop", "Computador"),
+		}),
+		muted((c.layout == "auto" and ("Detectado agora: " .. (Ctx.detectLayout("auto") == "mobile" and "celular" or "computador") .. ". ") or "")
+			.. "No celular o mapa fica em cima e o painel embaixo, com rolagem, e a tela fica em pé."),
 		h3("Visual e acessibilidade"),
 		slider("fontScale", "Tamanho do texto", 85, 150, "font"),
 		check("villagers", "Moradores andando pelo mapa"),
@@ -1085,6 +1120,20 @@ end
 A.remap = function(id)
 	ui.remapping = id
 	showOptions(true)
+end
+A.setLayout = function(mode)
+	local first = not Ctx.config.layoutAsked
+	local c = Util.deepCopy(Ctx.config)
+	c.layout = mode
+	c.layoutAsked = true
+	Ctx.setConfig(c)
+	if Ctx.renderer then Ctx.renderer:resize() end
+	if first and not optionsOpen then
+		play("click")
+		Modals.close()
+	else
+		showOptions(true)
+	end
 end
 A.resetOptions = function()
 	Ctx.setConfig(Config.resetOptions(Ctx.config))
