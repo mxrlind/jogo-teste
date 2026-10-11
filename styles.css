@@ -128,6 +128,10 @@ small { font-size: .82em; }
 .btn.on { outline: 3px solid var(--gold); outline-offset: -3px; }
 .row { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; margin: .4rem 0; }
 .stack { display: flex; flex-direction: column; gap: .5rem; }
+.seg { display: flex; gap: .3rem; flex-wrap: wrap; margin: .4rem 0; }
+.seg .btn { flex: 1; }
+.layout-pick .btn.big { flex-wrap: wrap; white-space: normal; min-height: 3.6rem; }
+.layout-pick .btn small { flex-basis: 100%; font-weight: 400; font-size: .8rem; opacity: .8; }
 .cost { white-space: nowrap; display: inline-flex; align-items: center; gap: .12rem; font-variant-numeric: tabular-nums; }
 .cost.short { color: var(--bad); }
 .delta { font-size: .8rem; color: var(--good); font-weight: 800; }
@@ -557,39 +561,39 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
 
 /* ---------- responsivo ---------- */
 @media (max-width: 1180px) { #layout { grid-template-columns: 12rem minmax(0, 1fr) 21rem; } .pb kbd { display: none; } }
-@media (max-width: 860px) {
-  body { overflow: auto; }
-  #game.screen { position: static; min-height: 100%; }
-  #layout { display: flex; flex-direction: column; padding: .6rem 16px 1rem; gap: .6rem; }
-  #palette { flex-direction: row; overflow-x: auto; order: 2; padding: 2px 2px .4rem; scroll-snap-type: x proximity; }
-  .pal-head { display: none; }
-  .pb { min-width: 9.5rem; scroll-snap-align: start; }
-  .pb:hover, .pb.active { transform: none; }
-  .pb.locked { min-width: 8.5rem; grid-template-columns: 26px 1fr; }
-  .pb.locked .pc { grid-column: 2; }
-  #stage { order: 1; }
-  #mapWrap { min-height: calc(100vw - 32px); }
-  #compass { width: 46px; height: 46px; }
-  #side { order: 3; min-height: 60vh; }
-  #hud { position: sticky; top: 0; z-index: 10; padding: .4rem 16px; gap: .4rem; }
-  #brand { flex: 1; min-width: 0; }
-  #brand > span:last-child { min-width: 0; }
-  #brand b, #brand small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
-  #hud-status { order: 4; flex-basis: 100%; }
-  #hud-status .status { flex: 1 1 auto; }
-  /* Dica de construção fixa no rodapé: não cobre o mapa nem muda a posição dos tiles entre os toques. */
-  #modeHint { position: fixed; top: auto; bottom: 8px; left: 8px; right: 8px; z-index: 40; }
-  #modeHint.flip { top: 8px; bottom: auto; }
-  #toasts { top: 8px; bottom: auto; left: 8px; right: 8px; width: auto; transform: none; flex-direction: column; }
-  /* recursos: rolagem lateral com esmaecimento na borda indicando que há mais */
-  #hud-res { order: 3; flex-basis: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-mask: linear-gradient(90deg, #000 88%, transparent); mask: linear-gradient(90deg, #000 88%, transparent); padding-right: 1.5rem; }
-  #hud-res::-webkit-scrollbar { display: none; }
-  .chip { flex: none; }
-  .chip .rate { display: none; }
-  #tileInfo { position: static; width: 100%; max-height: none; margin-top: .6rem; }
-  .achs { grid-template-columns: 1fr; }
-  .mission { grid-template-columns: 1fr 5rem auto; }
-}
+/* Layout de celular: aplicado pela classe body.layout-mobile (ver resolveLayout em src/core/config.js),
+   não por media query, para valer também com o celular deitado e poder ser forçado nas Opções. */
+body.layout-mobile { overflow: auto; }
+body.layout-mobile #game.screen { position: static; min-height: 100%; }
+body.layout-mobile #layout { display: flex; flex-direction: column; padding: .6rem 16px 1rem; gap: .6rem; }
+body.layout-mobile #palette { flex-direction: row; overflow-x: auto; order: 2; padding: 2px 2px .4rem; scroll-snap-type: x proximity; }
+body.layout-mobile .pal-head { display: none; }
+body.layout-mobile .pb { min-width: 9.5rem; scroll-snap-align: start; }
+body.layout-mobile .pb:hover, body.layout-mobile .pb.active { transform: none; }
+body.layout-mobile .pb.locked { min-width: 8.5rem; grid-template-columns: 26px 1fr; }
+body.layout-mobile .pb.locked .pc { grid-column: 2; }
+body.layout-mobile #stage { order: 1; }
+body.layout-mobile #mapWrap { min-height: calc(100vw - 32px); min-height: max(16rem, min(calc(100vw - 32px), calc(100svh - 7rem))); }
+body.layout-mobile #compass { width: 46px; height: 46px; }
+body.layout-mobile #side { order: 3; min-height: 60vh; }
+body.layout-mobile #hud { position: sticky; top: 0; z-index: 10; padding: .4rem 16px; gap: .4rem; }
+body.layout-mobile #brand { flex: 1; min-width: 0; }
+body.layout-mobile #brand > span:last-child { min-width: 0; }
+body.layout-mobile #brand b, body.layout-mobile #brand small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+body.layout-mobile #hud-status { order: 4; flex-basis: 100%; }
+body.layout-mobile #hud-status .status { flex: 1 1 auto; }
+/* Dica de construção fixa no rodapé: não cobre o mapa nem muda a posição dos tiles entre os toques. */
+body.layout-mobile #modeHint { position: fixed; top: auto; bottom: 8px; left: 8px; right: 8px; z-index: 40; }
+body.layout-mobile #modeHint.flip { top: 8px; bottom: auto; }
+body.layout-mobile #toasts { top: 8px; bottom: auto; left: 8px; right: 8px; width: auto; transform: none; flex-direction: column; }
+/* recursos: rolagem lateral com esmaecimento na borda indicando que há mais */
+body.layout-mobile #hud-res { order: 3; flex-basis: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-mask: linear-gradient(90deg, #000 88%, transparent); mask: linear-gradient(90deg, #000 88%, transparent); padding-right: 1.5rem; }
+body.layout-mobile #hud-res::-webkit-scrollbar { display: none; }
+body.layout-mobile .chip { flex: none; }
+body.layout-mobile .chip .rate { display: none; }
+body.layout-mobile #tileInfo { position: static; width: 100%; max-height: none; margin-top: .6rem; }
+body.layout-mobile .achs { grid-template-columns: 1fr; }
+body.layout-mobile .mission { grid-template-columns: 1fr 5rem auto; }
 @media (max-width: 420px) {
   .tiers { grid-template-columns: repeat(5, 1fr); }
   .gains { grid-template-columns: repeat(2, 1fr); }

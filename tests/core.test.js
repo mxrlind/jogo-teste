@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createState, serialize, deserialize, carryOver, SAVE_VERSION, SAVE_KEY } from '../src/core/state.js';
 import { encodeSave, decodeSave, loadSave, writeSave, exportCode, importCode, checksum, CORRUPT_KEY, BACKUP_INTERVAL, listBackups } from '../src/core/storage.js';
-import { defaultConfig, normalizeConfig, actionForKey, effectiveVolumes, resetOptions } from '../src/core/config.js';
+import { defaultConfig, normalizeConfig, actionForKey, effectiveVolumes, resetOptions, resolveLayout } from '../src/core/config.js';
 import { dirWeight, wallFacing } from '../src/core/economy.js';
 import { Game } from '../src/core/game.js';
 import { computeEconomy, adjacencyAt, buildCost, upgradeCost, collectModifiers, heroPowerOf } from '../src/core/economy.js';
@@ -1254,4 +1254,18 @@ test('pacote de volta depois de 2+ dias fora; 7 dias libera a secreta', () => {
   assert.ok(sum.welcome);
   assert.ok(s.res.gems >= gems + 3);
   assert.ok(s.achievements['eles-apostaram']);
+});
+
+test('config: layout celular/computador (automático detecta celular deitado)', () => {
+  assert.equal(defaultConfig().layout, 'auto');
+  assert.equal(normalizeConfig({ layout: 'tablet' }).layout, 'auto');
+  assert.equal(normalizeConfig({ layout: 'mobile' }).layout, 'mobile');
+  assert.equal(resolveLayout('auto', { width: 390, coarse: true, screenMin: 390 }), 'mobile'); // celular em pé
+  assert.equal(resolveLayout('auto', { width: 915, coarse: true, screenMin: 412 }), 'mobile'); // celular deitado
+  assert.equal(resolveLayout('auto', { width: 1180, coarse: true, screenMin: 820 }), 'desktop'); // tablet deitado
+  assert.equal(resolveLayout('auto', { width: 1440, coarse: false, screenMin: 900 }), 'desktop');
+  assert.equal(resolveLayout('auto', { width: 700, coarse: false, screenMin: 900 }), 'mobile'); // janela estreita no PC
+  assert.equal(resolveLayout('desktop', { width: 390, coarse: true, screenMin: 390 }), 'desktop');
+  assert.equal(resolveLayout('mobile', { width: 1440, coarse: false, screenMin: 900 }), 'mobile');
+  assert.equal(resetOptions({ ...defaultConfig(), layout: 'mobile', layoutAsked: true }).layoutAsked, true);
 });
