@@ -10,7 +10,9 @@ local roblox = require("@lune/roblox")
 local serde = require("@lune/serde")
 local task = require("@lune/task")
 
-local PLACE = "/tmp/reino-smoke.rbxl"
+-- Pasta temporária do sistema (no Windows não existe /tmp).
+local tmp = process.os == "windows" and (process.env.TEMP or process.env.TMP or ".") or "/tmp"
+local PLACE = tmp .. "/reino-smoke.rbxl"
 local built = process.exec("rojo", { "build", "default.project.json", "-o", PLACE })
 assert(built.ok, built.stderr)
 local place = roblox.deserializePlace(fs.readFile(PLACE))
@@ -176,11 +178,22 @@ roblox.implementMethod("RemoteEvent", "FireClient", function(self, _player, snap
 end)
 
 -- ------------------------------------------------------------ rodar scripts
+-- O Offset de UDim é inteiro: o Roblox corta a fração, o Lune (0.10+) dá erro. Aqui corta como o Roblox.
+local function int(n) return n and (n < 0 and math.ceil(n) or math.floor(n)) end
+local UDimInt = setmetatable({ new = function(s, o) return roblox.UDim.new(s, int(o)) end }, { __index = roblox.UDim })
+local UDim2Int = setmetatable({
+	new = function(xs, xo, ys, yo)
+		if typeof(xs) == "UDim" then return roblox.UDim2.new(xs, xo) end
+		return roblox.UDim2.new(xs, int(xo), ys, int(yo))
+	end,
+	fromOffset = function(x, y) return roblox.UDim2.fromOffset(int(x), int(y)) end,
+}, { __index = roblox.UDim2 })
+
 local moduleCache = {}
 local function env(scriptInst)
 	local e = {
 		game = fakeGame, script = scriptInst, workspace = place:GetService("Workspace"), Instance = FakeInstance, Enum = roblox.Enum,
-		UDim = roblox.UDim, UDim2 = roblox.UDim2, Color3 = roblox.Color3, Vector2 = roblox.Vector2, Font = roblox.Font,
+		UDim = UDimInt, UDim2 = UDim2Int, Color3 = roblox.Color3, Vector2 = roblox.Vector2, Font = roblox.Font,
 		task = task, warn = function(...) print("[warn]", ...) end,
 		DateTime = { now = function() return { UnixTimestampMillis = clock } end, fromUnixTimestampMillis = function(ms) return { FormatLocalTime = function() return "01/01/2026, 10:00:00" end } end },
 		typeof = typeof, utf8 = utf8, bit32 = bit32, os = setmetatable({ clock = function() return clock / 1000 end }, { __index = os }), math = math, string = string, table = table,
