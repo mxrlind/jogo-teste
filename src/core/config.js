@@ -18,6 +18,8 @@ export const KEY_ACTIONS = [
   { id: 'undo', label: 'Desfazer a última construção', key: 'z' },
 ];
 
+export const LAYOUTS = ['auto', 'mobile', 'desktop'];
+
 export function defaultConfig() {
   return {
     version: CONFIG_VERSION,
@@ -33,6 +35,8 @@ export function defaultConfig() {
     reduceMotion: false,
     fontScale: 1,
     highContrast: false,
+    layout: 'auto', // 'auto' | 'mobile' | 'desktop'
+    layoutAsked: false, // a pergunta "celular ou computador?" já apareceu na primeira abertura
     keys: Object.fromEntries(KEY_ACTIONS.map((a) => [a.id, a.key])),
   };
 }
@@ -64,6 +68,8 @@ export function normalizeConfig(raw, legacySettings = null) {
     reduceMotion: bool('reduceMotion'),
     fontScale: clamp(c.fontScale, 0.85, 1.5, d.fontScale),
     highContrast: bool('highContrast'),
+    layout: LAYOUTS.includes(c.layout) ? c.layout : d.layout,
+    layoutAsked: bool('layoutAsked'),
     keys,
   };
 }
@@ -76,8 +82,18 @@ export function effectiveVolumes(config, hidden = false) {
 }
 
 // Restaura as opções padrão sem mexer nas teclas (elas têm botão próprio).
+// A pergunta de layout da primeira abertura não volta a aparecer.
 export function resetOptions(config) {
-  return { ...defaultConfig(), keys: { ...config.keys } };
+  return { ...defaultConfig(), layoutAsked: config.layoutAsked, keys: { ...config.keys } };
+}
+
+// Layout que de fato vale. No automático, vira celular quando a janela é estreita ou quando o
+// aparelho é de toque com tela pequena: celular deitado (ou com "versão para computador" ligada)
+// passa de 860 px de largura e antes caía no layout de PC.
+export function resolveLayout(layout, env) {
+  if (layout === 'mobile' || layout === 'desktop') return layout;
+  if (env.width <= 860) return 'mobile';
+  return env.coarse && env.screenMin <= 600 ? 'mobile' : 'desktop';
 }
 
 // Primeira ação ligada a uma tecla (para o atalho e para detectar conflitos no remapeamento).

@@ -9,7 +9,7 @@ import { RAID_LOSS_FRACTION } from '../data/events.js';
 import { Game, DIR_NAMES, TAB_NAMES, UNDO_WINDOW } from '../core/game.js';
 import { createState, newSeed, SAVE_VERSION } from '../core/state.js';
 import { loadSave, writeSave, exportCode, importCode, listBackups, restoreBackup, clearSave, BACKUP_SLOTS } from '../core/storage.js';
-import { CONFIG_KEY, KEY_ACTIONS, normalizeConfig, actionForKey, keyLabel, effectiveVolumes, resetOptions } from '../core/config.js';
+import { CONFIG_KEY, KEY_ACTIONS, normalizeConfig, actionForKey, keyLabel, effectiveVolumes, resetOptions, resolveLayout } from '../core/config.js';
 import { buildCost, canAfford, kingdomPower, heroStrength, heroPowerOf } from '../core/economy.js';
 import { generateRivals, rivalGrid, encodeKingdom, decodeKingdom } from '../core/social.js';
 import { fmt, fmtTime } from '../core/format.js';
@@ -22,7 +22,7 @@ import { ico, resIco } from './icons.js';
 import { showModal, replaceModal, closeModal, confirmModal, runConfirm, toast, modalOpen, modalClosable } from './modals.js';
 import { renderHud, renderPalette, renderTileInfo, renderSide, renderModeHint, hudInfo, lockedTabHint, describeBonus } from './panels.js';
 
-const GAME_VERSION = '0.19.0';
+const GAME_VERSION = '0.20.0';
 const TAB_ORDER = ['reino', 'herois', 'temporada', 'legado', 'social', 'perfil'];
 const FLOAT_COLORS = RES_COLORS;
 
@@ -62,6 +62,8 @@ export async function boot() {
   window.addEventListener('blur', () => { ui.pointerHeld = false; });
   document.addEventListener('visibilitychange', onVisibility);
   document.addEventListener('visibilitychange', applyVolumes); // silencia com a aba em segundo plano
+  window.addEventListener('resize', applyLayout);
+  window.addEventListener('orientationchange', applyLayout);
   document.addEventListener('fullscreenchange', () => { if (modalOpen() && $('#opt-fullscreen')) showOptions(true); });
   window.addEventListener('beforeunload', save);
   window.addEventListener('pagehide', save); // celulares nem sempre disparam beforeunload
@@ -84,6 +86,7 @@ export async function boot() {
   renderMusicBtn();
   if (new URLSearchParams(location.search).has('debug')) window.reino = { ui, save, store };
   showMainMenu();
+  askLayout();
   registerServiceWorker();
 }
 
@@ -96,10 +99,39 @@ function applyConfig() {
   document.documentElement.style.setProperty('--fs', String(c.fontScale));
   document.body.classList.toggle('high-contrast', c.highContrast);
   document.body.classList.toggle('reduce-motion', c.reduceMotion);
+  applyLayout();
   applyVolumes();
   renderMusicBtn();
   const v = effectiveVolumes(c);
   if (ui.game && (!c.musicOn || v.music <= 0) && v.sfx <= 0) ui.game.secret('silence');
+}
+
+// Celular x computador. No automático, recalcula quando a janela muda (girar o celular, redimensionar).
+function detectedLayout() {
+  return resolveLayout('auto', {
+    width: window.innerWidth,
+    coarse: window.matchMedia?.('(pointer: coarse)').matches ?? false,
+    screenMin: Math.min(window.screen?.width || Infinity, window.screen?.height || Infinity),
+  });
+}
+
+function applyLayout() {
+  const mode = ui.config.layout === 'auto' ? detectedLayout() : ui.config.layout;
+  document.body.classList.toggle('layout-mobile', mode === 'mobile');
+}
+
+// Primeira abertura: pergunta como a pessoa vai jogar (dá para trocar depois em Opções > Tela).
+function askLayout() {
+  if (ui.config.layoutAsked) return;
+  const auto = detectedLayout();
+  const opt = (mode, icon, title, sub) => `<button class="btn big ${auto === mode ? 'primary' : ''}" data-action="setLayout" data-arg="${mode}" ${auto === mode ? 'data-autofocus' : ''}>${ico(icon)} ${title}<small>${sub}</small></button>`;
+  showModal(`<h2>${ico('map')} Onde você vai jogar?</h2>
+    <p class="muted">A tela se ajusta ao aparelho. Você pode mudar isso quando quiser em Opções &gt; Tela.</p>
+    <div class="stack layout-pick">
+      ${opt('mobile', 'move', 'Celular', 'Mapa em cima, botões grandes, rolagem vertical')}
+      ${opt('desktop', 'keyboard', 'Computador', 'Tudo lado a lado, atalhos de teclado')}
+      <button class="btn" data-action="setLayout" data-arg="auto">Detectar sozinho (agora: ${auto === 'mobile' ? 'celular' : 'computador'})</button>
+    </div>`, '', { closable: false, priority: true });
 }
 
 function applyVolumes() {
@@ -679,6 +711,15 @@ const ACTIONS = {
     startGame(createState({ seed: newSeed() }), { isNew: true });
   }, { yes: 'Apagar', danger: true }),
   remap: (el) => { remapping = el.dataset.arg; showOptions(true); },
+  setLayout: (el) => {
+    const first = !ui.config.layoutAsked;
+    ui.config.layout = el.dataset.arg;
+    ui.config.layoutAsked = true;
+    saveConfig();
+    applyConfig();
+    ui.renderer?.resize();
+    if (first) { play('click'); closeModal(); } else showOptions(true);
+  },
   resetOptions: () => {
     ui.config = resetOptions(ui.config);
     saveConfig();
@@ -908,6 +949,9 @@ function showOptions(replace = false) {
     ${check('confirmDemolish', 'Pedir confirmação antes de demolir')}
     ${check('batterySaver', 'Modo economia de bateria (mapa a 30 quadros por segundo)')}
     ${document.fullscreenEnabled ? `<div class="row"><button class="btn small" id="opt-fullscreen" data-action="fullscreen">${ico('map')} ${document.fullscreenElement ? 'Sair da tela cheia' : 'Jogar em tela cheia'}</button></div>` : ''}
+    <h3>Tela</h3>
+    <div class="seg" role="radiogroup" aria-label="Layout da tela">${[['auto', 'Automático'], ['mobile', 'Celular'], ['desktop', 'Computador']].map(([v, l]) => `<button class="btn small ${c.layout === v ? 'primary' : ''}" role="radio" aria-checked="${c.layout === v}" data-action="setLayout" data-arg="${v}">${l}</button>`).join('')}</div>
+    <p class="muted">${c.layout === 'auto' ? `Detectado agora: ${detectedLayout() === 'mobile' ? 'celular' : 'computador'}. ` : ''}No celular o mapa fica em cima e o painel embaixo, com rolagem.</p>
     <h3>Visual e acessibilidade</h3>
     ${slider('fontScale', 'Tamanho do texto', 85, 150, 'font')}
     ${check('villagers', 'Moradores andando pelo mapa')}

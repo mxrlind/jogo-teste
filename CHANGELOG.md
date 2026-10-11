@@ -2,6 +2,13 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.20.0] — 2026-10-11
+### Adicionado
+- **Layout de celular ou computador.** Na primeira abertura o jogo pergunta onde você vai jogar (Celular, Computador ou Detectar sozinho). Dá para trocar depois em **Opções > Tela**.
+### Corrigido
+- Celular deitado (ou com "versão para computador" ligada no navegador) abria com o layout de PC, porque o layout de celular só valia em telas com menos de 860 px de largura. Agora o modo automático também detecta aparelho de toque com tela pequena e recalcula ao girar o celular.
+- No celular deitado o mapa cabe na altura da tela, em vez de ficar do tamanho da largura.
+
 ## [0.19.0] — 2026-10-11
 ### Adicionado
 - **Armazéns no subsolo.** Duas salas novas para guardar recursos lá embaixo:
