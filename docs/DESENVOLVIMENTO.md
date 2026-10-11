@@ -27,19 +27,17 @@ src/ui/       canvas, HUD, painéis, menus, áudio
 assets/       sprites, ui, icons, sfx, music, fonts (com as licenças originais)
 tests/        testes do motor (node:test)
 tools/        servidor, simulador, varredura de emoji, geradores (ASSETS.md, ícones, música)
+roblox/       versão do Roblox (Luau + Rojo), ver roblox/README.md
 ```
 
 ## Documentação
 
 | Arquivo | Conteúdo |
 |---|---|
-| [GDD.md](../GDD.md) | Documento de design curto: conceito, core loop, progressão, estilo visual e sonoro |
-| [EXECUTAR.md](../EXECUTAR.md) | O que depende de uma pessoa: música, publicação, conferência de assets |
+| [GDD.md](GDD.md) | Documento de design curto: conceito, core loop, progressão, estilo visual e sonoro |
 | [ASSETS.md](../ASSETS.md) | Cada asset: arquivo, uso, fonte, autor, licença e link |
 | [CHANGELOG.md](../CHANGELOG.md) | O que mudou e por quê |
-| [ROADMAP.md](../ROADMAP.md) | O que ficou de fora, em ordem de impacto |
-| [DIAGNOSTICO.md](DIAGNOSTICO.md) | Diagnóstico: bugs, checklist de jogo completo, pesquisa do gênero |
-| [REVISAO-0.3.md](REVISAO-0.3.md) | Revisão de código da 0.3.0: problemas encontrados, plano priorizado e pendências |
+| [ROADMAP.md](ROADMAP.md) | O que ficou de fora, em ordem de impacto |
 | [BALANCEAMENTO.md](BALANCEAMENTO.md) | Fórmulas, constantes e resultados do simulador |
 | [ARQUITETURA.md](ARQUITETURA.md) | Código, formato do save, como adicionar conteúdo, debug |
 | [ESPECIFICACAO-SISTEMAS.md](ESPECIFICACAO-SISTEMAS.md) | Especificação detalhada de cada sistema |

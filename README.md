@@ -6,6 +6,15 @@
 
 Roda no navegador, no computador e no celular. Pode ser instalado como app (opção "Instalar" ou "Adicionar à tela inicial" do navegador) e funciona offline depois da primeira visita.
 
+## Versões
+
+| Versão | Onde | Código |
+|---|---|---|
+| **Oficial (web)** | https://mxrlind.github.io/jogo-teste/ | raiz do repositório (`index.html`, `src/`, `assets/`) |
+| **Roblox** | Roblox (publicada pelo Studio) | [`roblox/`](roblox/README.md) |
+
+Documentação de desenvolvimento em [docs/](docs/DESENVOLVIMENTO.md) e histórico de versões no [CHANGELOG](CHANGELOG.md).
+
 ## Como jogar
 
 1. Escolha um prédio na paleta. Ao passar pelo mapa, o jogo mostra o bônus de cada vizinho e quanto o prédio vai render ali.

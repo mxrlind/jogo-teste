@@ -59,7 +59,7 @@ def main():
     w('Os arquivos de licença originais estão junto de cada pacote: `assets/sprites/kaykit/License.txt` (Medieval Hexagon), `assets/sprites/kaykit/License-Dungeon-Remastered.txt`, `assets/sprites/medieval-rts/License.txt`, `assets/ui/kenney-ui-pack/License.txt`, `assets/icons/game-icons/License.txt`, `assets/sfx/License-*.txt`, `assets/fonts/Nunito-OFL.txt`.\n')
     w('## Origem dos downloads\n')
     w('A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.io, freesound.org e game-icons.net. Por isso:')
-    w('- **Kenney**: espelho público [github.com/ETdoFresh/kenney.nl](https://github.com/ETdoFresh/kenney.nl) (ZIPs extraídos, com o `License.txt` original). Como a licença é CC0, a redistribuição é permitida. O [EXECUTAR.md](EXECUTAR.md) explica como conferir com os ZIPs oficiais.')
+    w('- **Kenney**: espelho público [github.com/ETdoFresh/kenney.nl](https://github.com/ETdoFresh/kenney.nl) (ZIPs extraídos, com o `License.txt` original). Como a licença é CC0, a redistribuição é permitida.')
     w('- **game-icons.net**: repositório oficial [github.com/game-icons/icons](https://github.com/game-icons/icons). **Modificações**: fundo preto removido e cor trocada por `currentColor` (tingida por CSS).')
     w('- **Sons Kenney**: convertidos de OGG para MP3 (96 kbps) para tocar em todos os navegadores. **Modificação**: só conversão de formato.')
     w('- **Nunito**: pacote npm [@fontsource/nunito](https://www.npmjs.com/package/@fontsource/nunito) (arquivos do Google Fonts).')
@@ -165,7 +165,7 @@ def main():
         for t in music['tracks']:
             w(f'| `assets/music/{t["file"]}` | {'música da vila' if t.get('mood', 'vila') == 'vila' else 'música de batalha e do subsolo'} | {t["title"]} | {t["author"]} | {t["license"]} | [{t["url"]}]({t["url"]}) |')
     else:
-        w('Nenhuma faixa instalada ainda. Recomendação e passo a passo: [EXECUTAR.md](EXECUTAR.md), seção "Música". O jogo funciona sem música.')
+        w('Nenhuma faixa instalada ainda. O jogo funciona sem música.')
     w('')
 
     # Fontes e ícone do app

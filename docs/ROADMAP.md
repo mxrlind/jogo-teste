@@ -4,11 +4,11 @@ O que ficou de fora da versão 0.15.0, **em ordem de impacto** (o que mais muda 
 
 | # | Item | Por que importa | Esforço |
 |---|---|---|---|
-| 1 | **Música ambiente** | Hoje só há efeitos e fanfarras; um idle fica aberto por horas e o silêncio pesa. O código já toca a faixa, só falta o arquivo (licença precisa ser conferida por uma pessoa) | Minutos: ver [EXECUTAR.md](EXECUTAR.md), passo 3 |
+| 1 | **Música ambiente** | Hoje só há efeitos e fanfarras; um idle fica aberto por horas e o silêncio pesa. O código já toca a faixa, só falta o arquivo (licença precisa ser conferida por uma pessoa) | Minutos: ver instalada em assets/music |
 | 2 | **Teste com 10 jogadores reais + telemetria opcional** | Tudo o que sabemos do ritmo vem do simulador e de uma partida com bot. Funil do tutorial, D1/D7 e tempo de sessão dizem onde as pessoas desistem | 1 semana |
 | 3 | **Ouro sobrando no meio do jogo** | Na partida de novato, o ouro chega a 1.400 enquanto a madeira trava em 10–40: falta um uso para ouro que alivie a madeira (ex.: mercado que compra madeira, ou serraria mais barata em ouro) | 1–2 dias + simulação |
 | 4 | **Notificações opcionais do navegador** | "Expedição pronta" e "armazém cheio" trazem o jogador de volta, que é o que segura um idle | 2 dias |
-| 5 | **Página na Steam e lista de desejos** | Valida o negócio antes de investir mais (meta de 7.000 listas, ver [MODELO-DE-NEGOCIO](docs/MODELO-DE-NEGOCIO.md)) | 1 semana (trailer + GIFs) |
+| 5 | **Página na Steam e lista de desejos** | Valida o negócio antes de investir mais (meta de 7.000 listas, ver [MODELO-DE-NEGOCIO](MODELO-DE-NEGOCIO.md)) | 1 semana (trailer + GIFs) |
 | 6 | **i18n (PT-BR, depois EN e ES)** | Multiplica o público possível; os textos já estão concentrados em `src/data/` e `src/core/game.js` | 3–5 dias |
 | 7 | **Social real** | Visitas, ranking por temporada e trocas entre jogadores reais (API mínima em Cloudflare Workers + D1) | 2–3 semanas |
 | 8 | **Empacotamento para Steam** | Tauri, save em arquivo + Steam Cloud, conquistas Steam mapeadas de `ACHIEVEMENTS` | 2 semanas |
@@ -35,5 +35,5 @@ O que ficou de fora da versão 0.15.0, **em ordem de impacto** (o que mais muda 
 - **0.6.0**: tela de estatísticas ao Ascender, com recordes e histórico das rodadas.
 - **0.5.0**: vida da vila (moradores com profissão, rotina e sprite por ofício; sem emprego dormem na rua).
 - **0.4.0**: desfazer a última construção (5 s, custo devolvido por inteiro) e README voltado para quem joga.
-- **0.3.0**: revisão de código, tema visual novo, melhorias de UX e de desempenho. Ver [docs/REVISAO-0.3.md](docs/REVISAO-0.3.md).
+- **0.3.0**: revisão de código, tema visual novo, melhorias de UX e de desempenho.
 - **0.2.0**: zero emoji, arte e som reais com licença registrada, save v2 com migração e backups, menus completos, acessibilidade, desbloqueio gradual, hordas com direção. Detalhes no [CHANGELOG](CHANGELOG.md).

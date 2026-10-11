@@ -37,7 +37,7 @@ Versão 0.1 · Out/2026 · Status: **protótipo jogável completo**
 | Público | Fãs de idle/incremental, city builders leves e jogadores "de pausa" | A tag Idler cresceu ~150% em 2026 e bate 1.000 reviews com mais frequência que a média |
 | Sessão casual | **2–5 min**: coletar, construir, mandar expedição, sair | Loop de mobile (Honor of Kings, Last War) |
 | Sessão hardcore | **30–120 min**: otimizar adjacência, defender, completar missões e passe | Dois perfis de jogador no mesmo jogo |
-| Idioma | PT-BR (i18n planejado; ver [ROADMAP](../ROADMAP.md)) | Primeiro mercado: o próprio autor e a comunidade BR |
+| Idioma | PT-BR (i18n planejado; ver [ROADMAP](ROADMAP.md)) | Primeiro mercado: o próprio autor e a comunidade BR |
 
 ## 3. Loops
 
@@ -265,7 +265,7 @@ Sequência de 7 dias: 200 ouro → 2 gemas → 10 min de ouro → 3 gemas → b�
 - **Ranking regional**: 9 reinos vizinhos determinísticos (semente do jogador) que crescem com o tempo, + o jogador. "Poder do Reino" = √(ouro da vida toda) + 10/nível de prédio + 40/ de herói + 500/ascensão + 15/vitória.
 - **Visitar** (vê a cidade do vizinho), **saudar** (1×/dia, +10 XP, 25% de chance de 1 gemas) e **trocar** (1×/h por vizinho: 25% da madeira/pedra por ouro).
 - **Código do reino** (`RB1.…`): exporta o layout real; um amigo cola e vê a cidade. É social de verdade, sem servidor.
-- O backend real (visitas, guildas e trocas entre jogadores) está planejado em [ARQUITETURA](ARQUITETURA.md#12-caminho-para-social-real) e [ROADMAP](../ROADMAP.md).
+- O backend real (visitas, guildas e trocas entre jogadores) está planejado em [ARQUITETURA](ARQUITETURA.md#12-caminho-para-social-real) e [ROADMAP](ROADMAP.md).
 
 ### 4.17 Progresso offline
 - Simula até **4 h** (+2 h por nível de Vigília, +4 h por  do Relojoeiro) a **60%** de eficiência (+8% por Vigília, +25% por  do Relojoeiro; máx. 100%).
@@ -284,8 +284,8 @@ Sequência de 7 dias: 200 ouro → 2 gemas → 10 min de ouro → 3 gemas → b�
 **Feedback e "suco"**: partículas e números flutuantes de produção, explosão de faíscas ao construir/melhorar, tremor de tela e flash vermelho na derrota, flash dourado na vitória, revelação animada de herói com brilho da raridade, efeitos sonoros Kenney (CC0), toasts para tudo que acontece.
 
 ## 6. Arte e áudio
-- **Arte**: Kenney Medieval RTS (mundo), Kenney UI Pack (interface), game-icons.net (ícones) e Nunito (texto). Regras do estilo no [GDD](../GDD.md#5-estilo-visual); cada arquivo com autor e licença no [ASSETS.md](../ASSETS.md).
-- **Áudio**: efeitos e fanfarras dos pacotes de áudio da Kenney (CC0). A música em loop é opcional e instalada pelo [EXECUTAR.md](../EXECUTAR.md).
+- **Arte**: Kenney Medieval RTS (mundo), Kenney UI Pack (interface), game-icons.net (ícones) e Nunito (texto). Regras do estilo no [GDD](GDD.md#5-estilo-visual); cada arquivo com autor e licença no [ASSETS.md](../ASSETS.md).
+- **Áudio**: efeitos e fanfarras dos pacotes de áudio da Kenney (CC0). Música em loop em `assets/music/`.
 
 ## 7. Glossário
 | Termo | Significado |

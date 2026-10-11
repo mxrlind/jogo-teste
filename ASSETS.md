@@ -15,7 +15,7 @@ Os arquivos de licença originais estão junto de cada pacote: `assets/sprites/k
 ## Origem dos downloads
 
 A rede da sessão de desenvolvimento bloqueia kenney.nl, opengameart.org, itch.io, freesound.org e game-icons.net. Por isso:
-- **Kenney**: espelho público [github.com/ETdoFresh/kenney.nl](https://github.com/ETdoFresh/kenney.nl) (ZIPs extraídos, com o `License.txt` original). Como a licença é CC0, a redistribuição é permitida. O [EXECUTAR.md](EXECUTAR.md) explica como conferir com os ZIPs oficiais.
+- **Kenney**: espelho público [github.com/ETdoFresh/kenney.nl](https://github.com/ETdoFresh/kenney.nl) (ZIPs extraídos, com o `License.txt` original). Como a licença é CC0, a redistribuição é permitida.
 - **game-icons.net**: repositório oficial [github.com/game-icons/icons](https://github.com/game-icons/icons). **Modificações**: fundo preto removido e cor trocada por `currentColor` (tingida por CSS).
 - **Sons Kenney**: convertidos de OGG para MP3 (96 kbps) para tocar em todos os navegadores. **Modificação**: só conversão de formato.
 - **Nunito**: pacote npm [@fontsource/nunito](https://www.npmjs.com/package/@fontsource/nunito) (arquivos do Google Fonts).

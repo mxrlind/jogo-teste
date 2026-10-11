@@ -56,7 +56,7 @@ Regra prática do mercado indie (não vem da pesquisa; é o chamado "método Box
 - % de jogadores que compartilham o código do reino (proxy de viralidade).
 - Abandono por derrota em invasão (se alto: ajustar `RAID_GROWTH` / perda).
 
-Telemetria ainda não existe. Plano: endpoint anônimo e opcional com eventos agregados, sem dados pessoais (ver [ROADMAP](../ROADMAP.md)).
+Telemetria ainda não existe. Plano: endpoint anônimo e opcional com eventos agregados, sem dados pessoais (ver [ROADMAP](ROADMAP.md)).
 
 ## 6. Marketing de baixo custo
 - **"Divertido de assistir"**: o momento do herói lendário, a Lua de Sangue e combos absurdos de adjacência são feitos para GIF e clipe curto.

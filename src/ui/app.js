@@ -174,7 +174,7 @@ function showMainMenu() {
     <button class="btn big" data-action="howTo">${ico('info')} Como jogar</button>
     <div class="row"><button class="btn" style="flex:1" data-action="options">${ico('settings')} Opções</button><button class="btn" style="flex:1" data-action="credits">${ico('scroll')} Créditos</button></div>`;
   $('#menuVersion').textContent = `Versão ${GAME_VERSION}`;
-  $('#menuVersion').title = `Formato de save v${SAVE_VERSION}${hasMusic() ? '' : ' · nenhuma música instalada (ver EXECUTAR.md)'}`;
+  $('#menuVersion').title = `Formato de save v${SAVE_VERSION}${hasMusic() ? '' : ' · nenhuma música instalada'}`;
   $('#menuButtons button')?.focus({ preventScroll: true });
   if (loaded?.recovered && loaded.state) toast(`O save principal estava danificado; recuperamos o backup (${loaded.source}). A cópia danificada foi guardada.`, 'bad', 'warning');
   else if (loaded?.recovered) toast('O save estava danificado e não havia backup íntegro. A cópia danificada foi guardada.', 'bad', 'warning');

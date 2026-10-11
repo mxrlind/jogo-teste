@@ -1,7 +1,7 @@
 # Reino de Bolso — GDD curto
 
 > Documento-âncora para manter o jogo coerente entre sessões. Se uma mudança contradiz este arquivo, atualize este arquivo **antes** de mudar o jogo.
-> Detalhes por sistema: [docs/ESPECIFICACAO-SISTEMAS.md](docs/ESPECIFICACAO-SISTEMAS.md) · Fórmulas: [docs/BALANCEAMENTO.md](docs/BALANCEAMENTO.md) · Diagnóstico: [docs/DIAGNOSTICO.md](docs/DIAGNOSTICO.md) · Versão: 0.2.0 (save v2)
+> Detalhes por sistema: [ESPECIFICACAO-SISTEMAS.md](ESPECIFICACAO-SISTEMAS.md) · Fórmulas: [BALANCEAMENTO.md](BALANCEAMENTO.md) · Versão: 0.2.0 (save v2)
 
 ## 1. Conceito
 

@@ -154,7 +154,7 @@ Medido com hordas direcionais (o bot reforça o lado anunciado) e com a regra de
 | 5 h | 528 | 70 | 536 | 408 × 324 | 45 / 34 | 8 |
 | 8 h | 889 | 99 | 776 | 1.305 × 889 | 69 / 55 | 12 |
 
-**Leitura:** a horda acompanha a defesa e oscila em torno dela (autorregulação). Do meio para o fim, o bot perde cerca de 4 em cada 10 hordas: a perda é limitada (teto de 2 min de produção), mas é alta. Um jogador que olha o lado anunciado deve perder menos que o bot; confirmar com jogadores reais está no [ROADMAP](../ROADMAP.md). O passe sobe ~1,5 nível por hora de jogo contínuo sem missões nem expedições; um jogador real chega ao nível 30 em 2–3 semanas.
+**Leitura:** a horda acompanha a defesa e oscila em torno dela (autorregulação). Do meio para o fim, o bot perde cerca de 4 em cada 10 hordas: a perda é limitada (teto de 2 min de produção), mas é alta. Um jogador que olha o lado anunciado deve perder menos que o bot; confirmar com jogadores reais está no [ROADMAP](ROADMAP.md). O passe sobe ~1,5 nível por hora de jogo contínuo sem missões nem expedições; um jogador real chega ao nível 30 em 2–3 semanas.
 
 ## 5. Histórico de ajustes
 
