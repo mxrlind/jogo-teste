@@ -16,3 +16,22 @@ jobs:
         with:
           node-version: 22
       - run: npm test
+
+  # Versão Roblox: regras (comparadas com o web) e o place inteiro num Roblox simulado.
+  roblox:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: roblox
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instala Lune e Rojo
+        run: |
+          mkdir -p "$HOME/bin"
+          curl -fsSL -o /tmp/lune.zip https://github.com/lune-org/lune/releases/download/v0.11.0/lune-0.11.0-linux-x86_64.zip
+          curl -fsSL -o /tmp/rojo.zip https://github.com/rojo-rbx/rojo/releases/download/v7.7.1/rojo-7.7.1-linux-x86_64.zip
+          unzip -o -q /tmp/lune.zip -d "$HOME/bin"
+          unzip -o -q /tmp/rojo.zip -d "$HOME/bin"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+      - run: lune run tests/run
+      - run: lune run tests/smoke
