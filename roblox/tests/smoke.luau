@@ -232,6 +232,8 @@ local function second(n)
 end
 
 local function main()
+-- Preferências no formato antigo (uma config só, de antes da separação por aparelho).
+saved["config_" .. thePlayer.UserId] = serde.encode("json", { version = 1, villagers = false, layout = "desktop", layoutAsked = true, keys = { menu = "q" } })
 -- Servidor sobe, jogador entra, tela sobe.
 run(place:GetService("ServerScriptService").ReinoServidor.Main)
 table.insert(currentPlayers, thePlayer)
@@ -241,6 +243,11 @@ run(cliente.Main)
 second()
 local gui = playerGui:FindFirstChild("ReinoDeBolso")
 check("a tela foi criada", gui ~= nil)
+for _, m in moduleCache do
+	if type(m) == "table" and m.VERSION and m.config then
+		check("config antiga migrada (moradores mantido, tela no automático)", m.config.villagers == false and m.config.layout == "auto", m.config.layout)
+	end
+end
 -- O estado vai pela rede a cada segundo: precisa ser pequeno (o Roblox recomenda bem menos de 50 KB/s).
 local size = #serde.encode("json", lastSnapshot)
 check("estado por segundo tem menos de 20 KB", size < 20000, size)
@@ -535,6 +542,18 @@ local okR, eR = pcall(function()
 	second()
 	show("opcoes fonte")
 	Ctx.modal.close()
+	-- Preferências por aparelho: mudar no PC não mexe na do celular.
+	do
+		local c = table.clone(Ctx.config)
+		c.highContrast = true
+		Ctx.setConfig(c)
+		second(5)
+		local raw = saved["config_" .. thePlayer.UserId]
+		local cfgs = raw and serde.decode("json", raw)
+		check("config salva por aparelho", cfgs and cfgs.pc and cfgs.pc.highContrast == true and cfgs.touch and cfgs.touch.highContrast == false, raw)
+		c.highContrast = false
+		Ctx.setConfig(c)
+	end
 	Ctx.run("toggleMusic")
 	second()
 	Ctx.run("hardReset")

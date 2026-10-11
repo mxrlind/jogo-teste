@@ -1,7 +1,8 @@
 -- Servidor do Reino de Bolso no Roblox.
 -- Cada jogador tem o próprio reino (um Game do porte), que roda aqui no servidor e é salvo no DataStore.
 -- O cliente (ReinoCliente) só mostra o estado e pede ações pelo RemoteFunction "Acao".
--- No mesmo DataStore ficam, em chaves à parte: as preferências ("config_<UserId>", porte de src/core/config.js)
+-- No mesmo DataStore ficam, em chaves à parte: as preferências ("config_<UserId>", porte de src/core/config.js,
+-- uma por tipo de aparelho: { pc, touch })
 -- e os backups em rodízio ("backup_<UserId>", porte de src/core/storage.js).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -56,7 +57,7 @@ local function nowMs()
 	return DateTime.now().UnixTimestampMillis
 end
 
--- [Player] = { game, events, lastUnder, lastSave, calls, loadFailed, config, configDirtyAt, configFailed, sendExtra, hasSave,
+-- [Player] = { game, events, lastUnder, lastSave, calls, loadFailed, configs, configDirtyAt, configFailed, sendExtra, hasSave,
 --              backups, backupsFailed, policy }
 local sessions = {}
 
@@ -109,7 +110,7 @@ local function saveConfig(player)
 	local s = sessions[player]
 	if not s or not store or not s.configDirtyAt or s.configFailed then return end
 	s.configDirtyAt = nil
-	local cfg = s.config
+	local cfg = s.configs
 	withRetry(function()
 		store:SetAsync(configKey(player), cfg, { player.UserId })
 	end)
@@ -130,6 +131,29 @@ local function normalizeConfig(raw)
 		end
 	end
 	return c
+end
+
+-- Preferências por tipo de aparelho: celular/tablet ("touch") e computador ("pc") não se misturam
+-- (escolher "Computador" no PC não pode fazer o celular abrir deitado).
+local DEVICES = { pc = true, touch = true }
+local function normalizeConfigs(raw)
+	if type(raw) ~= "table" then
+		return { pc = defaultConfig(), touch = defaultConfig() }
+	end
+	if type(raw.pc) == "table" or type(raw.touch) == "table" then
+		local pc = type(raw.pc) == "table" and raw.pc or raw.touch
+		local touch = type(raw.touch) == "table" and raw.touch or raw.pc
+		return { pc = normalizeConfig(pc), touch = normalizeConfig(touch) }
+	end
+	-- Formato antigo (uma config só): vira as duas, com a tela de volta no automático e a pergunta de novo.
+	local out = {}
+	for d in DEVICES do
+		local c = normalizeConfig(raw)
+		c.layout = "auto"
+		c.layoutAsked = false
+		out[d] = c
+	end
+	return out
 end
 
 -- Backups em rodízio: { next = 0..SLOTS-1, lastAt = ms, slots = { [1..SLOTS] = { at, data } } }.
@@ -197,7 +221,7 @@ local function push(player)
 	local extra = nil
 	if s.sendExtra then
 		s.sendExtra = false
-		extra = { config = s.config, hasSave = s.hasSave }
+		extra = { configs = s.configs, hasSave = s.hasSave }
 	end
 	estado:FireClient(player, snapshot(s), events, nowMs(), extra)
 end
@@ -239,7 +263,7 @@ local function start(player)
 	local s = { events = {}, lastSave = os.clock(), calls = 0, loadFailed = loadFailed, hasSave = hasSave, sendExtra = true }
 	-- Preferências e backups (chaves à parte; se a leitura falhar, não grava por cima).
 	local rawConfig = loadKey(configKey(player))
-	s.config = type(rawConfig) == "table" and normalizeConfig(rawConfig) or defaultConfig()
+	s.configs = normalizeConfigs(rawConfig)
 	s.configFailed = rawConfig == false
 	local rawBackups = loadKey(backupKey(player))
 	s.backupsFailed = rawBackups == false
@@ -362,13 +386,13 @@ function SPECIAL.setKingdomName(player, s, name)
 	return setName(player, s, name)
 end
 
-function SPECIAL.setConfig(_player, s, cfg)
-	if type(cfg) ~= "table" then return { ok = false, reason = "Inválido" } end
-	s.config = normalizeConfig(cfg)
+function SPECIAL.setConfig(_player, s, cfg, device)
+	if type(cfg) ~= "table" or not DEVICES[device] then return { ok = false, reason = "Inválido" } end
+	s.configs[device] = normalizeConfig(cfg)
 	s.configDirtyAt = os.clock()
 	-- Não devolve a config no próximo envio: o cliente já a aplicou, e com o slider sendo arrastado
 	-- uma resposta atrasada voltaria o valor para trás. Ela volta no próximo "sync" (tela reaberta).
-	return { ok = true, config = s.config }
+	return { ok = true, config = s.configs[device] }
 end
 
 function SPECIAL.newGame(player, s, opts)

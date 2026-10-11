@@ -1253,7 +1253,7 @@ function Screens.init(f)
 		if drag and (t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch) then
 			local k = drag.key
 			drag = nil
-			Ctx.actAsync("setConfig", Ctx.config)
+			Ctx.actAsync("setConfig", Ctx.config, Ctx.device())
 			if k == "fontScale" and Ctx.renderer then Ctx.renderer:resize() end
 		end
 	end)

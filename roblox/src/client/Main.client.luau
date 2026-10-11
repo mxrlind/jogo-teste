@@ -216,6 +216,7 @@ end
 
 -- Celular no layout de celular fica em pé (mapa em cima, painel embaixo); no de computador, deitado.
 -- Sem checar o aparelho: no PC o Roblox ignora a orientação, e a checagem errava em alguns celulares.
+-- O jogo já abre em pé (StarterGui.ScreenOrientation no default.project.json); aqui só gira se precisar.
 local lastOrientation = nil
 local function applyOrientation()
 	local want = Ctx.mobile and Enum.ScreenOrientation.Portrait or Enum.ScreenOrientation.LandscapeSensor
@@ -230,7 +231,9 @@ end
 local layoutDirty = true
 local function layout()
 	local vp = mainGui.AbsoluteSize
-	if vp.X < 10 then
+	-- Tamanho da tela ainda desconhecido no primeiro quadro: não gira (o 1280x720 de reserva deitaria o celular).
+	local known = vp.X >= 10
+	if not known then
 		vp = Vector2.new(1280, 720)
 	end
 	local top = inset()
@@ -243,7 +246,9 @@ local function layout()
 	Ctx.vp = Vector2.new(vp.X, h0)
 	local wasMobile = Ctx.mobile
 	Ctx.mobile = Ctx.detectLayout(Ctx.config.layout) == "mobile"
-	applyOrientation()
+	if known then
+		applyOrientation()
+	end
 	if wasMobile ~= Ctx.mobile then
 		-- Troca de layout (girar o celular, mudar a opção): HUD, paleta e painel mudam de forma.
 		Ctx.invalidate("all", true)
@@ -397,8 +402,8 @@ estado.OnClientEvent:Connect(function(snap, events, serverNow, extra)
 	g.canUndoServer = snap.canUndo
 	Ctx.game = g
 	if extra then
-		if extra.config then
-			Ctx.setConfig(extra.config, true)
+		if extra.configs then
+			Ctx.setConfig(extra.configs[Ctx.device()], true)
 		end
 		Ctx.server = extra
 	end
